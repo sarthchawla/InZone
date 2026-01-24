@@ -775,7 +775,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - **[Unit Testing PRD](./testing/unit-testing-prd.md)** - Component and service tests
 
 #### BDD Tests Setup
-- [ ] Install Playwright and Cucumber.js dependencies (frontend)
+- [x] Install Playwright and Cucumber.js dependencies (frontend)
 - [ ] Install Supertest and Cucumber.js dependencies (backend)
 - [ ] Configure Cucumber for both frontend and backend
 - [ ] Set up test database for backend tests
