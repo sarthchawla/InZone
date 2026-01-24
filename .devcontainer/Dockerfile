@@ -1,0 +1,77 @@
+FROM node:20
+
+# Build arguments
+ARG TZ=America/Los_Angeles
+ARG CLAUDE_CODE_VERSION=latest
+ARG GIT_DELTA_VERSION=0.18.2
+ARG ZSH_IN_DOCKER_VERSION=1.2.0
+
+# Set timezone
+ENV TZ=${TZ}
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    gh \
+    nano \
+    vim \
+    zsh \
+    fzf \
+    man-db \
+    iptables \
+    ipset \
+    iproute2 \
+    dnsutils \
+    sudo \
+    procps \
+    jq \
+    unzip \
+    gnupg2 \
+    curl \
+    ca-certificates \
+    aggregate \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install git-delta for enhanced diff viewing
+RUN curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_amd64.deb" -o /tmp/git-delta.deb \
+    && dpkg -i /tmp/git-delta.deb \
+    && rm /tmp/git-delta.deb
+
+# Install zsh-in-docker for zsh configuration
+RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
+    -t powerlevel10k/powerlevel10k \
+    -p git \
+    -p fzf
+
+# Configure node user
+RUN usermod -s /bin/zsh node \
+    && echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers.d/node-firewall \
+    && chmod 0440 /etc/sudoers.d/node-firewall
+
+# Set up bash history persistence
+RUN mkdir -p /commandhistory \
+    && touch /commandhistory/.bash_history \
+    && chown -R node:node /commandhistory
+
+# Configure npm global directory for node user
+RUN mkdir -p /home/node/.npm-global \
+    && chown -R node:node /home/node/.npm-global \
+    && npm config set prefix /home/node/.npm-global --global
+
+# Set environment variables
+ENV PATH=/home/node/.npm-global/bin:$PATH
+ENV HISTFILE=/commandhistory/.bash_history
+ENV EDITOR=nano
+
+# Install Claude Code CLI
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+# Copy firewall initialization script
+COPY init-firewall.sh /usr/local/bin/init-firewall.sh
+RUN chmod +x /usr/local/bin/init-firewall.sh
+
+# Set working directory
+WORKDIR /workspace
+
+# Switch to node user
+USER node
