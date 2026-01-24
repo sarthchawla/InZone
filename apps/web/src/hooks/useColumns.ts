@@ -21,7 +21,7 @@ export function useCreateColumn() {
 export function useUpdateColumn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, boardId, ...updates }: { id: string; boardId: string; name?: string; wipLimit?: number }) => {
+    mutationFn: async ({ id, boardId, ...updates }: { id: string; boardId: string; name?: string; description?: string | null; wipLimit?: number | null }) => {
       const { data } = await apiClient.put<Column>(`/columns/${id}`, updates);
       return { ...data, boardId };
     },

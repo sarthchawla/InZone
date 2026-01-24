@@ -88,8 +88,8 @@ describe("BoardColumn", () => {
 
     it("renders column options button", () => {
       renderWithDnd(<BoardColumn {...defaultProps} />);
-      // The more options button should be present
-      const optionsButton = screen.getByRole("button", { name: "" });
+      // The more options button should be present with aria-label
+      const optionsButton = screen.getByRole("button", { name: /column options/i });
       expect(optionsButton).toBeInTheDocument();
     });
   });
