@@ -19,37 +19,7 @@ let testState: TestState = {
   columns: [],
 };
 
-// Column setup steps
-Given('I am viewing a board with columns {string}', async function (this: CustomWorld, columnNames: string) {
-  const columns = columnNames.split(', ').map((name, index) => ({
-    id: `col-${index + 1}`,
-    name: name.trim(),
-    position: index,
-    todos: [],
-  }));
-
-  testState.columns = columns;
-
-  // Mock API to return board with specified columns
-  await this.page.route('**/api/boards/*', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: testState.boardId,
-          name: 'Test Board',
-          columns: testState.columns,
-        }),
-      });
-    } else {
-      await route.continue();
-    }
-  });
-
-  await this.page.goto(`${this.baseUrl}/boards/${testState.boardId}`);
-  await this.page.waitForLoadState('networkidle');
-});
+// Note: 'I am viewing a board with columns {string}' is defined in todo.steps.ts
 
 Given('columns {string} exist in that order', async function (this: CustomWorld, columnNames: string) {
   // Columns are already set up in the background step
@@ -326,13 +296,7 @@ When('I click the delete button for {string} column', async function (this: Cust
   await column.getByRole('button', { name: /delete/i }).click();
 });
 
-When('I confirm the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /confirm|yes|delete/i }).click();
-});
-
-When('I cancel the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /cancel|no/i }).click();
-});
+// Note: 'I confirm the deletion' and 'I cancel the deletion' are in common.steps.ts
 
 When('I choose to move todos to {string} column', async function (this: CustomWorld, targetColumn: string) {
   await this.page.getByLabel(/move todos to/i).selectOption({ label: targetColumn });
@@ -405,9 +369,7 @@ Then('{string} should still appear in the column list', async function (this: Cu
   await expect(this.page.locator(`[data-testid="column"]:has-text("${columnName}")`)).toBeVisible();
 });
 
-Then('I should see a confirmation dialog', async function (this: CustomWorld) {
-  await expect(this.page.getByRole('dialog')).toBeVisible();
-});
+// Note: 'I should see a confirmation dialog' is defined in common.steps.ts
 
 Then('I should see a warning about {int} todos being deleted', async function (this: CustomWorld, todoCount: number) {
   await expect(this.page.getByText(new RegExp(`${todoCount}.*todo`, 'i'))).toBeVisible();

@@ -93,13 +93,7 @@ Given('a todo {string} exists without labels', async function (this: CustomWorld
   });
 });
 
-Given('a todo {string} exists in {string} column', async function (
-  this: CustomWorld,
-  todoTitle: string,
-  columnName: string
-) {
-  // This is handled by board setup - just a marker step
-});
+// Note: 'a todo {string} exists in {string} column' is defined in todo.steps.ts
 
 Given('{int} todos exist with label {string}', async function (
   this: CustomWorld,
@@ -209,10 +203,6 @@ When('I open label management', async function (this: CustomWorld) {
 });
 
 // Label creation steps
-When('I click {string}', async function (this: CustomWorld, buttonText: string) {
-  await this.page.getByRole('button', { name: buttonText }).click();
-});
-
 When('I enter {string} as the label name', async function (this: CustomWorld, name: string) {
   await this.page.getByLabel(/label name/i).fill(name);
 });
@@ -298,13 +288,7 @@ When('I click the delete button for {string} label', async function (
   await label.getByRole('button', { name: /delete/i }).click();
 });
 
-When('I confirm the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /confirm|yes|delete/i }).click();
-});
-
-When('I cancel the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /cancel|no/i }).click();
-});
+// Note: 'I confirm the deletion' and 'I cancel the deletion' are in common.steps.ts
 
 // Label assignment steps
 When('I open the {string} todo', async function (this: CustomWorld, todoTitle: string) {
@@ -459,14 +443,12 @@ Then('the {string} label should remain unchanged', async function (
   ).toBeVisible();
 });
 
-Then('my input should be preserved', async function (this: CustomWorld) {
+Then('my label input should be preserved', async function (this: CustomWorld) {
   const nameInput = this.page.getByLabel(/label name/i);
   await expect(nameInput).not.toBeEmpty();
 });
 
-Then('I should see a confirmation dialog', async function (this: CustomWorld) {
-  await expect(this.page.getByRole('dialog')).toBeVisible();
-});
+// Note: 'I should see a confirmation dialog' is defined in common.steps.ts
 
 Then('I should see a warning about affected todos', async function (this: CustomWorld) {
   await expect(this.page.getByText(/affected.*todos|todos.*affected|will be removed/i)).toBeVisible();

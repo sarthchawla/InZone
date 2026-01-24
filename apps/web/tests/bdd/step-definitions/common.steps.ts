@@ -58,6 +58,15 @@ When('I click the {string} button', async function (this: CustomWorld, buttonTex
   await this.page.getByRole('button', { name: buttonText }).click();
 });
 
+// Deletion confirmation steps - shared across features
+When('I confirm the deletion', async function (this: CustomWorld) {
+  await this.page.getByRole('button', { name: /confirm|yes|delete/i }).click();
+});
+
+When('I cancel the deletion', async function (this: CustomWorld) {
+  await this.page.getByRole('button', { name: /cancel|no/i }).click();
+});
+
 // Loading state checks
 Then('I should see a loading indicator', async function (this: CustomWorld) {
   await expect(this.page.locator('[data-testid="loading"]')).toBeVisible();
@@ -74,4 +83,9 @@ Then('I should see an error message {string}', async function (this: CustomWorld
 
 Then('I should see an error {string}', async function (this: CustomWorld, message: string) {
   await expect(this.page.getByText(message)).toBeVisible();
+});
+
+// Confirmation dialog check - shared across features
+Then('I should see a confirmation dialog', async function (this: CustomWorld) {
+  await expect(this.page.getByRole('dialog')).toBeVisible();
 });

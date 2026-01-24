@@ -77,13 +77,7 @@ When('I click the delete button for {string}', async function (this: CustomWorld
   await boardCard.getByRole('button', { name: /delete/i }).click();
 });
 
-When('I confirm the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /confirm|yes|delete/i }).click();
-});
-
-When('I cancel the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /cancel|no/i }).click();
-});
+// Note: 'I confirm the deletion' and 'I cancel the deletion' are in common.steps.ts
 
 // Assertion steps
 Then('I should see {string} in the boards list', async function (this: CustomWorld, boardName: string) {
@@ -137,9 +131,7 @@ Then('I should see the board columns', async function (this: CustomWorld) {
   await expect(this.page.locator('[data-testid="column"]')).toBeVisible();
 });
 
-Then('I should see a confirmation dialog', async function (this: CustomWorld) {
-  await expect(this.page.getByRole('dialog')).toBeVisible();
-});
+// Note: 'I should see a confirmation dialog' is defined in common.steps.ts
 
 Then('all associated todos should be deleted', async function (this: CustomWorld) {
   // This is verified by the board deletion - todos are cascade deleted
@@ -207,10 +199,7 @@ Given('the templates endpoint returns default templates', async function (this: 
   });
 });
 
-// Description input step
-When('I enter {string} as the description', async function (this: CustomWorld, description: string) {
-  await this.page.getByLabel(/description/i).fill(description);
-});
+// Note: 'I enter {string} as the description' is defined in todo.steps.ts
 
 // Error mock steps for create
 Given('the server will return an error for create', async function (this: CustomWorld) {

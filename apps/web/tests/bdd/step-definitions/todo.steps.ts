@@ -287,25 +287,7 @@ Given('todos {string} exist in {string} column', async function (
   this.context.existingTodos.push(...todos);
 });
 
-Given('labels {string} exist', async function (this: CustomWorld, labelNames: string) {
-  const labels = labelNames.split(', ').map((name, index) => ({
-    id: `label-${index + 1}`,
-    name: name.trim(),
-    color: ['#FF0000', '#00FF00', '#0000FF', '#FFA500'][index % 4],
-  }));
-
-  await this.page.route('**/api/labels', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(labels),
-      });
-    } else {
-      await route.continue();
-    }
-  });
-});
+// Note: 'labels {string} exist' is defined in label.steps.ts
 
 Given('labels {string} are assigned to {string}', async function (
   this: CustomWorld,
@@ -586,9 +568,7 @@ When('I assign labels {string}', async function (this: CustomWorld, labelNames: 
   }
 });
 
-When('I click {string}', async function (this: CustomWorld, buttonText: string) {
-  await this.page.getByRole('button', { name: buttonText }).click();
-});
+// Note: 'I click {string}' is defined in common.steps.ts
 
 When('I try to add a todo to {string} column', async function (
   this: CustomWorld,
@@ -786,13 +766,7 @@ When('I click the delete button in the modal', async function (this: CustomWorld
   await this.page.getByRole('dialog').getByRole('button', { name: /delete/i }).click();
 });
 
-When('I confirm the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /confirm|yes|delete/i }).click();
-});
-
-When('I cancel the deletion', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /cancel|no/i }).click();
-});
+// Note: 'I confirm the deletion' and 'I cancel the deletion' are in common.steps.ts
 
 When('I select the todo {string}', async function (this: CustomWorld, todoTitle: string) {
   const todo = this.page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
@@ -933,9 +907,7 @@ Then('I should see an error {string}', async function (this: CustomWorld, messag
   await expect(this.page.getByText(message)).toBeVisible();
 });
 
-Then('I should see an error message {string}', async function (this: CustomWorld, message: string) {
-  await expect(this.page.getByText(message)).toBeVisible();
-});
+// Note: 'I should see an error message {string}' is defined in common.steps.ts
 
 Then('I should see a warning {string}', async function (this: CustomWorld, message: string) {
   await expect(this.page.getByText(message)).toBeVisible();
@@ -1135,9 +1107,7 @@ Then('I should not see an undo option', async function (this: CustomWorld) {
 // Modal/Dialog Steps
 // ==========================================
 
-Then('I should see a confirmation dialog', async function (this: CustomWorld) {
-  await expect(this.page.getByRole('dialog')).toBeVisible();
-});
+// Note: 'I should see a confirmation dialog' is defined in common.steps.ts
 
 Then('the edit modal should be closed', async function (this: CustomWorld) {
   await expect(this.page.getByRole('dialog')).not.toBeVisible();
