@@ -99,8 +99,18 @@ pnpm --filter api db:studio
 
 | Field | Devcontainer | Local | Docker Standalone |
 |-------|--------------|-------|-------------------|
-| Host | `db` (or `localhost:5434` from host) | `localhost` | `localhost` |
-| Port | `5432` | `5432` | `5434` |
+| Host | `db` (or `localhost:5435` from host) | `localhost` | `localhost` |
+| Port | `5432` (internal) / `5435` (from host) | `5432` | `5434` |
 | Database | `inzone` | `inzone` | `inzone` |
 | Username | `inzone` | Your username | `inzone` |
 | Password | `inzone_dev` | (none) | `inzone_dev` |
+
+## Port Summary
+
+| Setup | Port | Notes |
+|-------|------|-------|
+| Local PostgreSQL | 5432 | Native install |
+| Docker Standalone | 5434 | `docker/docker-compose.db.yml` |
+| Devcontainer | 5435 | `.devcontainer/docker-compose.yml` |
+
+All three can run simultaneously without conflicts.
