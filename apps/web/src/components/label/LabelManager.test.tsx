@@ -254,10 +254,17 @@ describe("LabelManager", () => {
         expect(screen.getByDisplayValue("Bug")).toBeInTheDocument();
       });
 
-      // Find and click the cancel button (X icon in edit mode)
-      const cancelButton = screen.getAllByRole("button").find((btn) =>
-        btn.querySelector('svg.lucide-x')
+      // Find the edit form's cancel button (X icon) - it's the sibling of the save (check) button
+      // The modal header also has an X button, so we need to find the one in the edit form
+      // The edit form buttons are inside a div with "flex gap-1" that contains both Check and X buttons
+      const saveButton = screen.getAllByRole("button").find((btn) =>
+        btn.querySelector('svg.lucide-check')
       );
+      expect(saveButton).toBeTruthy();
+
+      // The cancel button should be in the same container as the save button
+      const buttonContainer = saveButton?.parentElement;
+      const cancelButton = buttonContainer?.querySelector('button:has(svg.lucide-x)');
 
       expect(cancelButton).toBeTruthy();
       if (cancelButton) {
