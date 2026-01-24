@@ -9,7 +9,7 @@ ARG ZSH_IN_DOCKER_VERSION=1.2.0
 # Set timezone
 ENV TZ=${TZ}
 
-# Install system dependencies
+# Install system dependencies including Python 3
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gh \
@@ -30,7 +30,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     aggregate \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# Enable corepack and install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Create python symlink for convenience
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 # Install git-delta for enhanced diff viewing (multi-arch support)
 RUN ARCH=$(dpkg --print-architecture) && \
