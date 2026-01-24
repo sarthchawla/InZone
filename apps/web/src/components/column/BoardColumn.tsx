@@ -7,13 +7,14 @@ import { Plus, MoreHorizontal, GripVertical, Pencil, Trash2, Info, X } from 'luc
 import { cn } from '../../lib/utils';
 import { TodoCard } from '../todo/TodoCard';
 import { Button, Input, Modal } from '../ui';
-import type { Column } from '../../types';
+import type { Column, Todo } from '../../types';
 
 interface BoardColumnProps {
   column: Column;
   onAddTodo: (columnId: string, title: string) => void;
   onUpdateColumn?: (id: string, updates: { name?: string; description?: string | null }) => void;
   onDeleteColumn?: (id: string) => void;
+  onTodoDoubleClick?: (todo: Todo) => void;
   isDragging?: boolean;
 }
 
@@ -22,6 +23,7 @@ export function BoardColumn({
   onAddTodo,
   onUpdateColumn,
   onDeleteColumn,
+  onTodoDoubleClick,
   isDragging
 }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
@@ -264,7 +266,7 @@ export function BoardColumn({
         >
           <SortableContext items={todoIds} strategy={verticalListSortingStrategy}>
             {sortedTodos.map((todo) => (
-              <TodoCard key={todo.id} todo={todo} />
+              <TodoCard key={todo.id} todo={todo} onDoubleClick={onTodoDoubleClick} />
             ))}
           </SortableContext>
         </div>

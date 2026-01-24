@@ -19,18 +19,20 @@ import {
 } from '@dnd-kit/sortable';
 import { ArrowLeft, Plus, Settings, Tags } from 'lucide-react';
 import { useBoard } from '../../hooks/useBoards';
-import { useCreateTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
+import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';
 import { BoardColumn } from '../column/BoardColumn';
-import { TodoCard } from '../todo/TodoCard';
+import { TodoCard, TodoEditModal } from '../todo';
 import { LabelManager } from '../label';
 import { Button, Input } from '../ui';
-import type { Todo, Column } from '../../types';
+import type { Todo, Column, Priority } from '../../types';
 
 export function BoardView() {
   const { boardId } = useParams<{ boardId: string }>();
   const { data: board, isLoading, error } = useBoard(boardId);
   const createTodo = useCreateTodo();
+  const updateTodo = useUpdateTodo();
+  const deleteTodo = useDeleteTodo();
   const moveTodo = useMoveTodo();
   const reorderTodos = useReorderTodos();
   const createColumn = useCreateColumn();
@@ -44,6 +46,7 @@ export function BoardView() {
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -230,6 +233,36 @@ export function BoardView() {
     }
   };
 
+  const handleTodoDoubleClick = (todo: Todo) => {
+    setEditingTodo(todo);
+  };
+
+  const handleTodoSave = (updates: {
+    title?: string;
+    description?: string;
+    priority?: Priority;
+    dueDate?: string | null;
+    labelIds?: string[];
+  }) => {
+    if (!editingTodo || !boardId) return;
+    updateTodo.mutate(
+      { id: editingTodo.id, boardId, ...updates },
+      {
+        onSuccess: () => setEditingTodo(null),
+      }
+    );
+  };
+
+  const handleTodoDelete = () => {
+    if (!editingTodo || !boardId) return;
+    deleteTodo.mutate(
+      { id: editingTodo.id, boardId },
+      {
+        onSuccess: () => setEditingTodo(null),
+      }
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -302,6 +335,7 @@ export function BoardView() {
                   onAddTodo={handleAddTodo}
                   onUpdateColumn={handleUpdateColumn}
                   onDeleteColumn={handleDeleteColumn}
+                  onTodoDoubleClick={handleTodoDoubleClick}
                   isDragging={activeColumn?.id === column.id}
                 />
               ))}
@@ -370,6 +404,16 @@ export function BoardView() {
           </DragOverlay>
         </DndContext>
       </div>
+
+      {/* Todo Edit Modal */}
+      <TodoEditModal
+        todo={editingTodo}
+        isOpen={!!editingTodo}
+        onClose={() => setEditingTodo(null)}
+        onSave={handleTodoSave}
+        onDelete={handleTodoDelete}
+        isLoading={updateTodo.isPending || deleteTodo.isPending}
+      />
     </div>
   );
 }
