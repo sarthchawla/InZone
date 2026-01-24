@@ -765,7 +765,7 @@ Board View:
 - [x] Backend API (boards, columns, todos)
 - [x] Frontend board view with drag-and-drop
 - [x] Built-in board templates (read-only)
-- [ ] Labels support
+- [x] Labels support
 - [ ] Local development setup
 
 ### Phase 2: Polish

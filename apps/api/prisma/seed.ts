@@ -55,6 +55,24 @@ async function main() {
     }
   });
 
+  // Seed default labels
+  const defaultLabels = [
+    { id: 'label-bug', name: 'Bug', color: '#ef4444' },
+    { id: 'label-feature', name: 'Feature', color: '#3b82f6' },
+    { id: 'label-enhancement', name: 'Enhancement', color: '#8b5cf6' },
+    { id: 'label-documentation', name: 'Documentation', color: '#06b6d4' },
+    { id: 'label-urgent', name: 'Urgent', color: '#f97316' },
+    { id: 'label-blocked', name: 'Blocked', color: '#6b7280' },
+  ];
+
+  for (const label of defaultLabels) {
+    await prisma.label.upsert({
+      where: { id: label.id },
+      update: {},
+      create: label,
+    });
+  }
+
   console.log('Seed data created successfully');
 }
 

@@ -14,6 +14,7 @@ export function useCreateTodo() {
       description,
       priority,
       dueDate,
+      labelIds,
     }: {
       columnId: string;
       boardId: string;
@@ -21,6 +22,7 @@ export function useCreateTodo() {
       description?: string;
       priority?: Priority;
       dueDate?: string;
+      labelIds?: string[];
     }) => {
       const { data } = await apiClient.post<Todo>('/todos', {
         columnId,
@@ -28,6 +30,7 @@ export function useCreateTodo() {
         description,
         priority,
         dueDate,
+        labelIds,
       });
       return { ...data, boardId };
     },
@@ -52,6 +55,7 @@ export function useUpdateTodo() {
       description?: string;
       priority?: Priority;
       dueDate?: string | null;
+      labelIds?: string[];
     }) => {
       const { data } = await apiClient.put<Todo>(`/todos/${id}`, updates);
       return { ...data, boardId };

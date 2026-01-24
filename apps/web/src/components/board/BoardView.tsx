@@ -13,11 +13,12 @@ import {
   type DragOverEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Tags } from 'lucide-react';
 import { useBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { BoardColumn } from '../column/BoardColumn';
 import { TodoCard } from '../todo/TodoCard';
+import { LabelManager } from '../label';
 import { Button } from '../ui';
 import type { Todo, Column } from '../../types';
 
@@ -30,6 +31,7 @@ export function BoardView() {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
+  const [showLabelManager, setShowLabelManager] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -176,12 +178,18 @@ export function BoardView() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowLabelManager(true)}>
+            <Tags className="h-4 w-4 mr-2" />
+            Labels
+          </Button>
           <Button variant="ghost" size="sm">
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </Button>
         </div>
       </div>
+
+      <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
 
       {/* Board content */}
       <div className="flex-1 overflow-x-auto p-6 bg-gray-50">
