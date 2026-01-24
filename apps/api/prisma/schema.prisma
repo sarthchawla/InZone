@@ -1,0 +1,103 @@
+// Prisma schema for InZone
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Board {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  position    Int      @default(0)
+  templateId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  columns Column[]
+
+  @@map("boards")
+}
+
+model Column {
+  id        String   @id @default(cuid())
+  name      String
+  position  Int      @default(0)
+  wipLimit  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  todos Todo[]
+
+  @@map("columns")
+}
+
+model Todo {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  priority    Priority  @default(MEDIUM)
+  dueDate     DateTime?
+  position    Int       @default(0)
+  archived    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Future: source tracking for integrations
+  sourceType SourceType?
+  sourceId   String?
+  sourceUrl  String?
+  sourceMeta Json?
+
+  columnId String
+  column   Column @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  labels Label[]
+
+  @@unique([sourceType, sourceId])
+  @@map("todos")
+}
+
+model Label {
+  id    String @id @default(cuid())
+  name  String
+  color String
+
+  todos Todo[]
+
+  @@map("labels")
+}
+
+model BoardTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  columns     Json
+  isBuiltIn   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("board_templates")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SourceType {
+  JIRA
+  SLACK
+  TEAMS
+  OUTLOOK
+  MANUAL
+}

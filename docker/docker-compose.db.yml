@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inzone-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: inzone
+      POSTGRES_PASSWORD: inzone_dev
+      POSTGRES_DB: inzone
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inzone"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

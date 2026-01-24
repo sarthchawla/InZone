@@ -9,11 +9,32 @@ activity.md
 
 # Node
 node_modules/
+dist/
+
+# Build outputs
+.next/
+*.tsbuildinfo
 
 # Environment files
 .env
-.env.*
-*.local
+.env.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo
 
 # Private/company-specific configurations
 .devcontainer/private-domains.sh

@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API: Debug",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "api", "dev"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Web: Debug (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/apps/web/src",
+      "preLaunchTask": "Start Web Dev Server"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack",
+      "configurations": ["API: Debug", "Web: Debug (Chrome)"],
+      "preLaunchTask": "Start Database",
+      "stopAll": true
+    }
+  ]
+}

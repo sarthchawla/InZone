@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Database",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.db.yml up -d",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent" }
+    },
+    {
+      "label": "Stop Database",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.db.yml down",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Web Dev Server",
+      "type": "shell",
+      "command": "pnpm --filter web dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "." },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:.*http"
+        }
+      }
+    },
+    {
+      "label": "Run Migrations",
+      "type": "shell",
+      "command": "pnpm --filter api db:migrate:dev",
+      "problemMatcher": []
+    },
+    {
+      "label": "Seed Database",
+      "type": "shell",
+      "command": "pnpm --filter api db:seed",
+      "problemMatcher": []
+    },
+    {
+      "label": "Generate Prisma Client",
+      "type": "shell",
+      "command": "pnpm --filter api db:generate",
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Prisma Studio",
+      "type": "shell",
+      "command": "pnpm --filter api db:studio",
+      "problemMatcher": []
+    }
+  ]
+}
