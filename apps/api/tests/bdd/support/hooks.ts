@@ -1,48 +1,67 @@
 import { Before, After, BeforeAll, AfterAll, setDefaultTimeout } from '@cucumber/cucumber';
 import { CustomWorld } from './world';
+import {
+  connectTestDatabase,
+  disconnectTestDatabase,
+  cleanTestDatabase,
+  seedTestDatabase,
+} from './test-db';
 
 // Set default timeout for steps (30 seconds for API tests)
 setDefaultTimeout(30 * 1000);
 
 /**
  * BeforeAll hook - runs once before all scenarios
- * Use for global setup like database initialization
+ * Sets up test database connection and seeds initial data
  */
 BeforeAll(async function () {
   console.log('Starting API BDD test suite...');
-  // Global setup could include:
-  // - Verifying API server is running
-  // - Setting up test database
-  // - Creating seed data
+
+  // Connect to test database
+  await connectTestDatabase();
+
+  // Seed the database with built-in templates
+  await seedTestDatabase();
+
+  console.log('Test database initialized and seeded');
 });
 
 /**
  * AfterAll hook - runs once after all scenarios
- * Use for global cleanup
+ * Cleans up database and closes connections
  */
 AfterAll(async function () {
   console.log('API BDD test suite completed.');
-  // Global cleanup could include:
-  // - Resetting database state
-  // - Closing connections
+
+  // Clean up test database
+  await cleanTestDatabase();
+
+  // Disconnect from database
+  await disconnectTestDatabase();
+
+  console.log('Test database cleaned and disconnected');
 });
 
 /**
  * Before hook - runs before each scenario
- * Use for per-scenario setup
+ * Resets scenario state and cleans database for isolation
  */
 Before(async function (this: CustomWorld) {
   // Reset any state from previous scenario
   this.lastResponse = null;
   this.testData = {};
+
+  // Clean database to ensure test isolation
+  // Note: We preserve templates as they are needed for tests
+  await this.cleanDatabaseForScenario();
 });
 
 /**
  * After hook - runs after each scenario
- * Use for per-scenario cleanup
+ * Cleans up any resources created during the scenario
  */
 After(async function (this: CustomWorld) {
-  // Clean up any resources created during the scenario
+  // Clean up any resources created during the scenario via API
   await this.cleanup();
 });
 
@@ -56,11 +75,20 @@ Before({ tags: '@slow' }, async function (this: CustomWorld) {
 
 /**
  * Before hook for scenarios tagged with @database
- * Ensures a clean database state
+ * Ensures a completely clean database state (including templates)
  */
 Before({ tags: '@database' }, async function (this: CustomWorld) {
-  // Could add database reset logic here
-  console.log('Scenario requires clean database state');
+  console.log('Scenario requires completely clean database state');
+  await cleanTestDatabase();
+  await seedTestDatabase();
+});
+
+/**
+ * Before hook for scenarios tagged with @skip-clean
+ * Skips database cleaning (useful for read-only tests)
+ */
+Before({ tags: '@skip-clean' }, async function (this: CustomWorld) {
+  this.skipDatabaseClean = true;
 });
 
 /**
@@ -73,5 +101,10 @@ After({ tags: '@debug' }, async function (this: CustomWorld) {
       status: this.lastResponse.status,
       body: JSON.stringify(this.lastResponse.body, null, 2),
     });
+  }
+
+  // Log any test data that was stored
+  if (Object.keys(this.testData).length > 0) {
+    console.log('Test Data:', JSON.stringify(this.testData, null, 2));
   }
 });

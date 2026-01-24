@@ -16,7 +16,9 @@
     "db:generate": "prisma generate",
     "test:bdd": "cucumber-js --config tests/bdd/cucumber.config.js",
     "test:bdd:watch": "cucumber-js --config tests/bdd/cucumber.config.js --watch",
-    "test:bdd:report": "cucumber-js --config tests/bdd/cucumber.config.js --format html:reports/bdd.html"
+    "test:bdd:report": "cucumber-js --config tests/bdd/cucumber.config.js --format html:reports/bdd.html",
+    "test:db:setup": "tsx tests/bdd/support/setup-test-db.ts",
+    "test:db:reset": "tsx tests/bdd/support/reset-test-db.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.1",
