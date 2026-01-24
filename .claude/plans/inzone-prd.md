@@ -783,7 +783,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Create API helpers for backend tests
 
 #### Frontend BDD Tests
-- [ ] Board feature tests (create, delete, view) - happy & unhappy paths
+- [x] Board feature tests (create, delete, view) - happy & unhappy paths
 - [ ] Column feature tests (add, reorder, delete) - happy & unhappy paths
 - [ ] Todo feature tests (create, edit, move, delete) - happy & unhappy paths
 - [ ] Label feature tests (manage labels) - happy & unhappy paths

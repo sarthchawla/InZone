@@ -2,6 +2,15 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
 import { CustomWorld } from '../support/world';
 
+// Store for tracking created boards in tests
+interface TestBoard {
+  id: string;
+  name: string;
+  description: string;
+  columns: Array<{ id: string; name: string; position: number }>;
+  todoCount: number;
+}
+
 // Board existence setup steps
 Given('no boards exist', async function (this: CustomWorld) {
   // Mock API to return empty boards list
@@ -9,53 +18,8 @@ Given('no boards exist', async function (this: CustomWorld) {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         status: 200,
+        contentType: 'application/json',
         body: JSON.stringify([]),
-      });
-    } else {
-      await route.continue();
-    }
-  });
-});
-
-Given('a board named {string} exists', async function (this: CustomWorld, boardName: string) {
-  await this.page.route('**/api/boards', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        body: JSON.stringify([
-          {
-            id: 'test-board-1',
-            name: boardName,
-            description: '',
-            columns: [],
-            _count: { todos: 0 },
-          },
-        ]),
-      });
-    } else {
-      await route.continue();
-    }
-  });
-});
-
-Given('a board named {string} exists with {int} todos', async function (
-  this: CustomWorld,
-  boardName: string,
-  todoCount: number
-) {
-  await this.page.route('**/api/boards', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        body: JSON.stringify([
-          {
-            id: 'test-board-1',
-            name: boardName,
-            description: '',
-            columns: [],
-            _count: { todos: todoCount },
-          },
-        ]),
       });
     } else {
       await route.continue();
@@ -85,10 +49,6 @@ Given('the following boards exist:', async function (this: CustomWorld, dataTabl
 });
 
 // Board creation steps
-When('I click the "New Board" button', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /new board/i }).click();
-});
-
 When('I enter {string} as the board name', async function (this: CustomWorld, boardName: string) {
   await this.page.getByLabel(/board name/i).fill(boardName);
 });
@@ -199,4 +159,205 @@ Then('I should see a warning about duplicate board name', async function (this: 
 
 Then('boards should eventually appear', async function (this: CustomWorld) {
   await expect(this.page.locator('[data-testid="board-card"]').first()).toBeVisible({ timeout: 10000 });
+});
+
+// Template setup steps
+Given('the templates endpoint returns default templates', async function (this: CustomWorld) {
+  await this.page.route('**/api/templates', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 'kanban-basic',
+          name: 'Basic Kanban',
+          description: 'Simple three-column Kanban board',
+          isBuiltIn: true,
+          columns: [
+            { name: 'Todo' },
+            { name: 'In Progress' },
+            { name: 'Done' }
+          ]
+        },
+        {
+          id: 'dev-workflow',
+          name: 'Development',
+          description: 'Software development workflow',
+          isBuiltIn: true,
+          columns: [
+            { name: 'Backlog' },
+            { name: 'Todo' },
+            { name: 'In Progress' },
+            { name: 'Review' },
+            { name: 'Done' }
+          ]
+        },
+        {
+          id: 'simple',
+          name: 'Simple',
+          description: 'Minimal two-column setup',
+          isBuiltIn: true,
+          columns: [
+            { name: 'Todo' },
+            { name: 'Done' }
+          ]
+        }
+      ]),
+    });
+  });
+});
+
+// Description input step
+When('I enter {string} as the description', async function (this: CustomWorld, description: string) {
+  await this.page.getByLabel(/description/i).fill(description);
+});
+
+// Error mock steps for create
+Given('the server will return an error for create', async function (this: CustomWorld) {
+  await this.page.route('**/api/boards', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Failed to create board' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+// Delete endpoint mock steps
+Given('the delete endpoint returns success', async function (this: CustomWorld) {
+  await this.page.route('**/api/boards/*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({
+        status: 204,
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+Given('the server will return an error for delete', async function (this: CustomWorld) {
+  await this.page.route('**/api/boards/*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Failed to delete board' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+Given('the network is unavailable for delete', async function (this: CustomWorld) {
+  await this.page.route('**/api/boards/*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.abort('connectionfailed');
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+Given('the board is deleted by another user', async function (this: CustomWorld) {
+  // Simulate a 404 response when attempting to delete
+  await this.page.route('**/api/boards/*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Board not found' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+// Board existence step - with todos
+Given('a board named {string} exists with {int} todos', async function (
+  this: CustomWorld,
+  boardName: string,
+  todoCount: number
+) {
+  await this.page.route('**/api/boards', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'test-board-1',
+            name: boardName,
+            description: '',
+            columns: [
+              { id: 'col-1', name: 'Todo', position: 0 }
+            ],
+            todoCount: todoCount,
+          },
+        ]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+// Board existence step - simple
+Given('a board named {string} exists', async function (this: CustomWorld, boardName: string) {
+  await this.page.route('**/api/boards', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'test-board-1',
+            name: boardName,
+            description: '',
+            columns: [
+              { id: 'col-1', name: 'Todo', position: 0 },
+              { id: 'col-2', name: 'In Progress', position: 1 },
+              { id: 'col-3', name: 'Done', position: 2 }
+            ],
+            todoCount: 0,
+          },
+        ]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Also mock the single board endpoint
+  await this.page.route('**/api/boards/test-board-1', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'test-board-1',
+          name: boardName,
+          description: '',
+          columns: [
+            { id: 'col-1', name: 'Todo', position: 0, todos: [] },
+            { id: 'col-2', name: 'In Progress', position: 1, todos: [] },
+            { id: 'col-3', name: 'Done', position: 2, todos: [] }
+          ],
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
+// Dialog closed assertion
+Then('the create dialog should be closed', async function (this: CustomWorld) {
+  await expect(this.page.getByRole('dialog')).not.toBeVisible();
 });
