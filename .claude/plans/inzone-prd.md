@@ -812,7 +812,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Validator tests - happy & unhappy paths
 
 #### CI Pipeline Updates
-- [ ] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
+- [x] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
 - [ ] Add unit test job to CI pipeline (`.github/workflows/unit-tests.yml`)
 - [ ] Configure test database in CI
 - [ ] Add test coverage reporting (codecov integration)
