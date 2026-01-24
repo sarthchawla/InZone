@@ -1,0 +1,52 @@
+# Docker Compose for InZone devcontainer
+# Provides app container + PostgreSQL database
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TZ: ${TZ:-America/Los_Angeles}
+        CLAUDE_CODE_VERSION: latest
+        GIT_DELTA_VERSION: "0.18.2"
+        ZSH_IN_DOCKER_VERSION: "1.2.0"
+    volumes:
+      - ..:/InZone-App:cached
+      - claude-code-bashhistory:/commandhistory
+      - ${HOME}/.claude:/home/node/.claude:cached
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - CLAUDE_CONFIG_DIR=/home/node/.claude
+      - POWERLEVEL9K_DISABLE_GITSTATUS=true
+      - DATABASE_URL=postgresql://inzone:inzone_dev@db:5432/inzone?schema=public
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      db:
+        condition: service_healthy
+    # Keep container running
+    command: sleep infinity
+
+  db:
+    image: postgres:16-alpine
+    container_name: inzone-postgres-dev
+    environment:
+      POSTGRES_USER: inzone
+      POSTGRES_PASSWORD: inzone_dev
+      POSTGRES_DB: inzone
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inzone"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  claude-code-bashhistory:
+  postgres_data:

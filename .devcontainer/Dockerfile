@@ -9,7 +9,7 @@ ARG ZSH_IN_DOCKER_VERSION=1.2.0
 # Set timezone
 ENV TZ=${TZ}
 
-# Install system dependencies including Python 3
+# Install system dependencies including Python 3 and PostgreSQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gh \
@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     aggregate \
     python3 \
     python3-pip \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable corepack and install pnpm

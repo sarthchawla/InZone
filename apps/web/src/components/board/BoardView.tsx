@@ -16,10 +16,11 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ArrowLeft, Plus, Settings, Tags } from 'lucide-react';
 import { useBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
+import { useCreateColumn } from '../../hooks/useColumns';
 import { BoardColumn } from '../column/BoardColumn';
 import { TodoCard } from '../todo/TodoCard';
 import { LabelManager } from '../label';
-import { Button } from '../ui';
+import { Button, Input } from '../ui';
 import type { Todo, Column } from '../../types';
 
 export function BoardView() {
@@ -28,10 +29,13 @@ export function BoardView() {
   const createTodo = useCreateTodo();
   const moveTodo = useMoveTodo();
   const reorderTodos = useReorderTodos();
+  const createColumn = useCreateColumn();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
   const [showLabelManager, setShowLabelManager] = useState(false);
+  const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [newColumnName, setNewColumnName] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -138,6 +142,28 @@ export function BoardView() {
     });
   };
 
+  const handleAddColumn = () => {
+    if (!boardId || !newColumnName.trim()) return;
+    createColumn.mutate(
+      { boardId, name: newColumnName.trim() },
+      {
+        onSuccess: () => {
+          setNewColumnName('');
+          setIsAddingColumn(false);
+        },
+      }
+    );
+  };
+
+  const handleColumnKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAddColumn();
+    } else if (e.key === 'Escape') {
+      setIsAddingColumn(false);
+      setNewColumnName('');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -210,10 +236,45 @@ export function BoardView() {
             ))}
 
             {/* Add column button */}
-            <button className="flex items-center gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-200/50 hover:bg-gray-200 text-gray-600 transition-colors">
-              <Plus className="h-5 w-5" />
-              Add column
-            </button>
+            {isAddingColumn ? (
+              <div className="flex flex-col gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-100">
+                <Input
+                  value={newColumnName}
+                  onChange={(e) => setNewColumnName(e.target.value)}
+                  onKeyDown={handleColumnKeyDown}
+                  placeholder="Enter column name..."
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={handleAddColumn}
+                    disabled={createColumn.isPending}
+                  >
+                    {createColumn.isPending ? 'Adding...' : 'Add'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsAddingColumn(false);
+                      setNewColumnName('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAddingColumn(true)}
+                className="flex items-center gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-200/50 hover:bg-gray-200 text-gray-600 transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+                Add column
+              </button>
+            )}
           </div>
 
           <DragOverlay>

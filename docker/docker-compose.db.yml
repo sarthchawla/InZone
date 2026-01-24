@@ -1,6 +1,14 @@
-# InZone PostgreSQL Database
-# Default port changed to 5434 to avoid conflicts with other local Postgres instances
-# Update DATABASE_URL in apps/api/.env to: postgresql://inzone:inzone_dev@localhost:5434/inzone?schema=public
+# InZone PostgreSQL Database (Standalone)
+# Use this for local development WITHOUT devcontainer
+#
+# Usage:
+#   docker compose -f docker/docker-compose.db.yml up -d
+#
+# DATABASE_URL for apps/api/.env:
+#   postgresql://inzone:inzone_dev@localhost:5434/inzone?schema=public
+#
+# Note: Port 5434 is used to avoid conflicts with local PostgreSQL on 5432
+# For devcontainer setup, use .devcontainer/docker-compose.yml instead
 
 services:
   postgres:
