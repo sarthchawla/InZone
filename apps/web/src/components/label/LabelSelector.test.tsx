@@ -95,7 +95,13 @@ describe("LabelSelector", () => {
       const selectedLabels = [{ id: "label-1", name: "Bug", color: "#FF0000" }];
       render(<LabelSelector {...defaultProps} selectedLabels={selectedLabels} />);
 
-      await user.click(screen.getByRole("button"));
+      // Find and click the main dropdown button (contains the selected label chip)
+      const mainButton = screen.getAllByRole("button").find(btn =>
+        btn.classList.contains("min-h-[40px]") || btn.textContent?.includes("Bug")
+      );
+      if (mainButton) {
+        await user.click(mainButton);
+      }
 
       await waitFor(() => {
         // The selected label should show a check icon - find the button containing Bug text
@@ -144,7 +150,13 @@ describe("LabelSelector", () => {
         />
       );
 
-      await user.click(screen.getByRole("button"));
+      // Find and click the main dropdown button
+      const mainButton = screen.getAllByRole("button").find(btn =>
+        btn.classList.contains("min-h-[40px]") || (btn.textContent?.includes("Bug") && !btn.closest("span"))
+      );
+      if (mainButton) {
+        await user.click(mainButton);
+      }
 
       await waitFor(() => {
         expect(screen.getByText("Create new label")).toBeInTheDocument();

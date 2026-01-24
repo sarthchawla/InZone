@@ -140,13 +140,14 @@ export const testDataFactory = {
   /**
    * Create a test board
    */
-  async createBoard(data: { name: string; description?: string; templateId?: string }) {
+  async createBoard(data: { name: string; description?: string; templateId?: string; position?: number }) {
     const prisma = getTestPrisma();
     return prisma.board.create({
       data: {
         name: data.name,
         description: data.description,
         templateId: data.templateId,
+        position: data.position,
       },
       include: {
         columns: {

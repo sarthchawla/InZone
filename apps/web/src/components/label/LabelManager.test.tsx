@@ -195,16 +195,13 @@ describe("LabelManager", () => {
       });
 
       // Find and click the edit button for Bug label
-      const bugRow = screen.getByText("Bug").closest("div");
-      const editButton = bugRow?.querySelector('button:first-of-type');
-
-      if (editButton) {
-        await user.click(editButton);
-      }
+      const editButton = screen.getByRole("button", { name: /edit bug/i });
+      await user.click(editButton);
 
       // Input should appear with the label name
-      const input = screen.getByDisplayValue("Bug");
-      expect(input).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("Bug")).toBeInTheDocument();
+      });
     });
 
     it("saves edited label on check button click", async () => {
@@ -216,12 +213,13 @@ describe("LabelManager", () => {
       });
 
       // Enter edit mode
-      const bugRow = screen.getByText("Bug").closest("div");
-      const editButton = bugRow?.querySelector('button:first-of-type');
+      const editButton = screen.getByRole("button", { name: /edit bug/i });
+      await user.click(editButton);
 
-      if (editButton) {
-        await user.click(editButton);
-      }
+      // Wait for edit mode
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("Bug")).toBeInTheDocument();
+      });
 
       // Change the name
       const input = screen.getByDisplayValue("Bug");
@@ -230,9 +228,10 @@ describe("LabelManager", () => {
 
       // Find and click the save button (check icon)
       const saveButton = screen.getAllByRole("button").find((btn) =>
-        btn.querySelector('svg.text-green-600')
+        btn.querySelector('svg.lucide-check')
       );
 
+      expect(saveButton).toBeTruthy();
       if (saveButton) {
         await user.click(saveButton);
       }
@@ -247,18 +246,20 @@ describe("LabelManager", () => {
       });
 
       // Enter edit mode
-      const bugRow = screen.getByText("Bug").closest("div");
-      const editButton = bugRow?.querySelector('button:first-of-type');
+      const editButton = screen.getByRole("button", { name: /edit bug/i });
+      await user.click(editButton);
 
-      if (editButton) {
-        await user.click(editButton);
-      }
+      // Wait for edit mode
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("Bug")).toBeInTheDocument();
+      });
 
-      // Find and click the cancel button (X icon)
+      // Find and click the cancel button (X icon in edit mode)
       const cancelButton = screen.getAllByRole("button").find((btn) =>
-        btn.querySelector('svg.text-gray-500')
+        btn.querySelector('svg.lucide-x')
       );
 
+      expect(cancelButton).toBeTruthy();
       if (cancelButton) {
         await user.click(cancelButton);
       }
@@ -279,12 +280,13 @@ describe("LabelManager", () => {
       });
 
       // Enter edit mode
-      const bugRow = screen.getByText("Bug").closest("div");
-      const editButton = bugRow?.querySelector('button:first-of-type');
+      const editButton = screen.getByRole("button", { name: /edit bug/i });
+      await user.click(editButton);
 
-      if (editButton) {
-        await user.click(editButton);
-      }
+      // Wait for edit mode
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("Bug")).toBeInTheDocument();
+      });
 
       await user.keyboard("{Escape}");
 
@@ -305,16 +307,13 @@ describe("LabelManager", () => {
       });
 
       // Find and click the delete button for Bug label
-      const bugRow = screen.getByText("Bug").closest("div");
-      const buttons = bugRow?.querySelectorAll("button");
-      const deleteButton = buttons?.[buttons.length - 1];
-
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
+      const deleteButton = screen.getByRole("button", { name: /delete bug/i });
+      await user.click(deleteButton);
 
       // Should show delete confirmation
-      expect(screen.getByText(/delete "bug"\?/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/delete "bug"\?/i)).toBeInTheDocument();
+      });
       expect(screen.getByText(/this will remove the label from all todos/i)).toBeInTheDocument();
     });
 
@@ -327,13 +326,13 @@ describe("LabelManager", () => {
       });
 
       // Click delete button
-      const bugRow = screen.getByText("Bug").closest("div");
-      const buttons = bugRow?.querySelectorAll("button");
-      const deleteButton = buttons?.[buttons.length - 1];
+      const deleteButton = screen.getByRole("button", { name: /delete bug/i });
+      await user.click(deleteButton);
 
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
+      // Wait for confirmation dialog
+      await waitFor(() => {
+        expect(screen.getByText(/delete "bug"\?/i)).toBeInTheDocument();
+      });
 
       // Confirm deletion
       await user.click(screen.getByRole("button", { name: /^delete$/i }));
@@ -348,13 +347,13 @@ describe("LabelManager", () => {
       });
 
       // Click delete button
-      const bugRow = screen.getByText("Bug").closest("div");
-      const buttons = bugRow?.querySelectorAll("button");
-      const deleteButton = buttons?.[buttons.length - 1];
+      const deleteButton = screen.getByRole("button", { name: /delete bug/i });
+      await user.click(deleteButton);
 
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
+      // Wait for confirmation dialog
+      await waitFor(() => {
+        expect(screen.getByText(/delete "bug"\?/i)).toBeInTheDocument();
+      });
 
       // Cancel deletion
       const cancelButtons = screen.getAllByRole("button", { name: /cancel/i });
@@ -457,18 +456,20 @@ describe("LabelManager", () => {
       });
 
       // Enter edit mode
-      const bugRow = screen.getByText("Bug").closest("div");
-      const editButton = bugRow?.querySelector('button:first-of-type');
+      const editButton = screen.getByRole("button", { name: /edit bug/i });
+      await user.click(editButton);
 
-      if (editButton) {
-        await user.click(editButton);
-      }
+      // Wait for edit mode
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("Bug")).toBeInTheDocument();
+      });
 
       // Try to save
       const saveButton = screen.getAllByRole("button").find((btn) =>
-        btn.querySelector('svg.text-green-600')
+        btn.querySelector('svg.lucide-check')
       );
 
+      expect(saveButton).toBeTruthy();
       if (saveButton) {
         await user.click(saveButton);
       }
@@ -494,13 +495,13 @@ describe("LabelManager", () => {
       });
 
       // Click delete button
-      const bugRow = screen.getByText("Bug").closest("div");
-      const buttons = bugRow?.querySelectorAll("button");
-      const deleteButton = buttons?.[buttons.length - 1];
+      const deleteButton = screen.getByRole("button", { name: /delete bug/i });
+      await user.click(deleteButton);
 
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
+      // Wait for confirmation dialog
+      await waitFor(() => {
+        expect(screen.getByText(/delete "bug"\?/i)).toBeInTheDocument();
+      });
 
       // Confirm deletion
       await user.click(screen.getByRole("button", { name: /^delete$/i }));

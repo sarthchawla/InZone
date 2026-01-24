@@ -180,10 +180,11 @@ export function BoardList() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="template-select" className="block text-sm font-medium text-gray-700 mb-1">
               Template
             </label>
             <select
+              id="template-select"
               value={selectedTemplate}
               onChange={(e) => setSelectedTemplate(e.target.value)}
               className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
