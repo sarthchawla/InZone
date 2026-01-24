@@ -766,7 +766,7 @@ Board View:
 - [x] Frontend board view with drag-and-drop
 - [x] Built-in board templates (read-only)
 - [x] Labels support
-- [ ] Local development setup
+- [x] Local development setup
 
 ### Phase 2: Polish
 - [ ] Search functionality
