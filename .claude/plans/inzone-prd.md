@@ -792,9 +792,9 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 #### Backend BDD Tests
 - [x] Boards API tests - happy & unhappy paths
 - [x] Columns API tests - happy & unhappy paths
-- [ ] Todos API tests - happy & unhappy paths
-- [ ] Labels API tests - happy & unhappy paths
-- [ ] Templates API tests - happy & unhappy paths
+- [x] Todos API tests - happy & unhappy paths
+- [x] Labels API tests - happy & unhappy paths
+- [x] Templates API tests - happy & unhappy paths
 
 #### Frontend Unit Tests
 - [ ] Install Vitest, React Testing Library, MSW
