@@ -800,9 +800,9 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Install Vitest, React Testing Library, MSW
 - [x] Component tests (BoardCard, TodoCard, Column, etc.) - happy & unhappy paths
 - [x] Hook tests (useBoards, useTodos, useDragAndDrop) - happy & unhappy paths
-- [ ] Store tests (Zustand stores) - happy & unhappy paths
-- [ ] Utility function tests - happy & unhappy paths
-- [ ] API client tests - happy & unhappy paths
+- [x] Store tests (Zustand stores) - N/A: App uses React Query hooks for state management (tested in hook tests)
+- [x] Utility function tests - happy & unhappy paths
+- [x] API client tests - happy & unhappy paths
 
 #### Backend Unit Tests
 - [ ] Install Vitest, Supertest, Prisma Mock
