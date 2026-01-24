@@ -30,16 +30,19 @@ export class BoardService {
 
   /**
    * Get all boards with their columns and todo counts
+   * Excludes soft-deleted boards and columns
    */
   async getBoards(): Promise<BoardWithColumns[]> {
     const boards = await this.prisma.board.findMany({
+      where: { isDeleted: false },
       orderBy: { position: "asc" },
       include: {
         columns: {
+          where: { isDeleted: false },
           orderBy: { position: "asc" },
           include: {
             _count: {
-              select: { todos: { where: { archived: false } } },
+              select: { todos: { where: { archived: false, isDeleted: false } } },
             },
           },
         },
@@ -55,16 +58,18 @@ export class BoardService {
 
   /**
    * Get a single board by ID with all details
+   * Excludes soft-deleted items
    */
   async getBoardById(id: string): Promise<BoardWithDetails | null> {
-    return this.prisma.board.findUnique({
-      where: { id },
+    return this.prisma.board.findFirst({
+      where: { id, isDeleted: false },
       include: {
         columns: {
+          where: { isDeleted: false },
           orderBy: { position: "asc" },
           include: {
             todos: {
-              where: { archived: false },
+              where: { archived: false, isDeleted: false },
               orderBy: { position: "asc" },
               include: {
                 labels: true,
@@ -82,8 +87,9 @@ export class BoardService {
   async createBoard(
     input: CreateBoardInput
   ): Promise<Board & { columns: Column[] }> {
-    // Get max position for new board
+    // Get max position for new board (excluding soft-deleted)
     const maxPosition = await this.prisma.board.aggregate({
+      where: { isDeleted: false },
       _max: { position: true },
     });
     const newPosition = (maxPosition._max.position ?? -1) + 1;
@@ -146,29 +152,35 @@ export class BoardService {
   }
 
   /**
-   * Delete a board
+   * Soft-delete a board (sets deletedAt and isDeleted)
    */
   async deleteBoard(id: string): Promise<void> {
-    await this.prisma.board.delete({
+    await this.prisma.board.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        isDeleted: true,
+      },
     });
   }
 
   /**
    * Duplicate a board with all its columns and todos
+   * Excludes soft-deleted items
    */
   async duplicateBoard(
     id: string
   ): Promise<BoardWithDetails | null> {
-    // Get source board with all details
-    const sourceBoard = await this.prisma.board.findUnique({
-      where: { id },
+    // Get source board with all details (excluding soft-deleted)
+    const sourceBoard = await this.prisma.board.findFirst({
+      where: { id, isDeleted: false },
       include: {
         columns: {
+          where: { isDeleted: false },
           orderBy: { position: "asc" },
           include: {
             todos: {
-              where: { archived: false },
+              where: { archived: false, isDeleted: false },
               orderBy: { position: "asc" },
               include: {
                 labels: true,
@@ -183,8 +195,9 @@ export class BoardService {
       return null;
     }
 
-    // Get max position
+    // Get max position (excluding soft-deleted)
     const maxPosition = await this.prisma.board.aggregate({
+      where: { isDeleted: false },
       _max: { position: true },
     });
     const newPosition = (maxPosition._max.position ?? -1) + 1;
@@ -238,20 +251,21 @@ export class BoardService {
   async addColumn(
     boardId: string,
     name: string,
-    wipLimit?: number
+    wipLimit?: number,
+    description?: string
   ): Promise<Column | null> {
-    // Verify board exists
-    const board = await this.prisma.board.findUnique({
-      where: { id: boardId },
+    // Verify board exists and is not soft-deleted
+    const board = await this.prisma.board.findFirst({
+      where: { id: boardId, isDeleted: false },
     });
 
     if (!board) {
       return null;
     }
 
-    // Get max position for new column
+    // Get max position for new column (excluding soft-deleted)
     const maxPosition = await this.prisma.column.aggregate({
-      where: { boardId },
+      where: { boardId, isDeleted: false },
       _max: { position: true },
     });
     const newPosition = (maxPosition._max.position ?? -1) + 1;
@@ -259,6 +273,7 @@ export class BoardService {
     return this.prisma.column.create({
       data: {
         name,
+        description,
         wipLimit,
         position: newPosition,
         boardId,

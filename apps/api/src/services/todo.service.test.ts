@@ -44,7 +44,7 @@ describe("TodoService", () => {
         expect(result).toHaveLength(2);
         expect(prismaMock.todo.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
-            where: { archived: false },
+            where: { archived: false, isDeleted: false },
           })
         );
       });
@@ -69,7 +69,7 @@ describe("TodoService", () => {
         expect(prismaMock.todo.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              column: { boardId: "board-1" },
+              column: { boardId: "board-1", isDeleted: false },
             }),
           })
         );
@@ -178,7 +178,7 @@ describe("TodoService", () => {
           column: { id: "col-1", name: "Todo", boardId: "board-1" },
         };
 
-        prismaMock.todo.findUnique.mockResolvedValue(mockTodo as any);
+        prismaMock.todo.findFirst.mockResolvedValue(mockTodo as any);
 
         const result = await todoService.getTodoById("todo-1");
 
@@ -191,7 +191,7 @@ describe("TodoService", () => {
 
     describe("unhappy path", () => {
       it("returns null when todo not found", async () => {
-        prismaMock.todo.findUnique.mockResolvedValue(null);
+        prismaMock.todo.findFirst.mockResolvedValue(null);
 
         const result = await todoService.getTodoById("non-existent");
 
@@ -212,7 +212,7 @@ describe("TodoService", () => {
           labels: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -254,7 +254,7 @@ describe("TodoService", () => {
           labels: [mockLabel],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: 5 },
         } as any);
@@ -286,7 +286,7 @@ describe("TodoService", () => {
           labels: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: 9 },
         } as any);
@@ -314,7 +314,7 @@ describe("TodoService", () => {
           ],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -340,7 +340,7 @@ describe("TodoService", () => {
 
     describe("unhappy path", () => {
       it("returns null when column not found", async () => {
-        prismaMock.column.findUnique.mockResolvedValue(null);
+        prismaMock.column.findFirst.mockResolvedValue(null);
 
         const result = await todoService.createTodo({
           title: "New Task",
@@ -353,7 +353,7 @@ describe("TodoService", () => {
 
       it("throws error on database error during creation", async () => {
         const mockColumn = createMockColumn({ id: "col-1" });
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -512,19 +512,23 @@ describe("TodoService", () => {
   });
 
   // ===========================================
-  // deleteTodo - Tests
+  // deleteTodo - Soft Delete Tests
   // ===========================================
   describe("deleteTodo", () => {
     describe("happy path", () => {
-      it("deletes todo successfully", async () => {
-        prismaMock.todo.delete.mockResolvedValue(
+      it("soft-deletes todo successfully", async () => {
+        prismaMock.todo.update.mockResolvedValue(
           createMockTodo({ id: "todo-1" }) as any
         );
 
         await todoService.deleteTodo("todo-1");
 
-        expect(prismaMock.todo.delete).toHaveBeenCalledWith({
+        expect(prismaMock.todo.update).toHaveBeenCalledWith({
           where: { id: "todo-1" },
+          data: {
+            deletedAt: expect.any(Date),
+            isDeleted: true,
+          },
         });
       });
     });
@@ -533,7 +537,7 @@ describe("TodoService", () => {
       it("throws error when todo not found", async () => {
         const error = new Error("Record not found");
         (error as any).code = "P2025";
-        prismaMock.todo.delete.mockRejectedValue(error);
+        prismaMock.todo.update.mockRejectedValue(error);
 
         await expect(todoService.deleteTodo("non-existent")).rejects.toThrow(
           "Record not found"
@@ -555,8 +559,8 @@ describe("TodoService", () => {
           labels: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(mockTodo as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.todo.findFirst.mockResolvedValue(mockTodo as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: 4 },
         } as any);
@@ -576,8 +580,8 @@ describe("TodoService", () => {
           labels: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(mockTodo as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.todo.findFirst.mockResolvedValue(mockTodo as any);
         prismaMock.todo.updateMany.mockResolvedValue({ count: 3 });
         prismaMock.todo.update.mockResolvedValue(movedTodo as any);
 
@@ -587,6 +591,7 @@ describe("TodoService", () => {
         expect(prismaMock.todo.updateMany).toHaveBeenCalledWith({
           where: {
             columnId: "col-2",
+            isDeleted: false,
             position: { gte: 2 },
           },
           data: {
@@ -603,8 +608,8 @@ describe("TodoService", () => {
           labels: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(mockTodo as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.todo.findFirst.mockResolvedValue(mockTodo as any);
         prismaMock.todo.updateMany.mockResolvedValue({ count: 5 });
         prismaMock.todo.update.mockResolvedValue(movedTodo as any);
 
@@ -621,8 +626,8 @@ describe("TodoService", () => {
           labels: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(mockTodo as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.todo.findFirst.mockResolvedValue(mockTodo as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -636,7 +641,7 @@ describe("TodoService", () => {
 
     describe("unhappy path", () => {
       it("throws error when target column not found", async () => {
-        prismaMock.column.findUnique.mockResolvedValue(null);
+        prismaMock.column.findFirst.mockResolvedValue(null);
 
         await expect(
           todoService.moveTodo("todo-1", "non-existent")
@@ -645,8 +650,8 @@ describe("TodoService", () => {
 
       it("returns null when todo not found", async () => {
         const mockColumn = createMockColumn({ id: "col-2" });
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(null);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.todo.findFirst.mockResolvedValue(null);
 
         const result = await todoService.moveTodo("non-existent", "col-2");
 

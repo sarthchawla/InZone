@@ -31,18 +31,18 @@ describe("ColumnService", () => {
           todos: mockTodos,
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
 
         const result = await columnService.getColumnById("col-1");
 
         expect(result).not.toBeNull();
         expect(result?.name).toBe("Todo");
         expect(result?.todos).toHaveLength(2);
-        expect(prismaMock.column.findUnique).toHaveBeenCalledWith({
-          where: { id: "col-1" },
+        expect(prismaMock.column.findFirst).toHaveBeenCalledWith({
+          where: { id: "col-1", isDeleted: false },
           include: {
             todos: {
-              where: { archived: false },
+              where: { archived: false, isDeleted: false },
               orderBy: { position: "asc" },
             },
           },
@@ -55,7 +55,7 @@ describe("ColumnService", () => {
           todos: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
 
         const result = await columnService.getColumnById("col-1");
 
@@ -65,7 +65,7 @@ describe("ColumnService", () => {
 
     describe("unhappy path", () => {
       it("returns null when column not found", async () => {
-        prismaMock.column.findUnique.mockResolvedValue(null);
+        prismaMock.column.findFirst.mockResolvedValue(null);
 
         const result = await columnService.getColumnById("non-existent");
 
@@ -73,7 +73,7 @@ describe("ColumnService", () => {
       });
 
       it("throws error on database failure", async () => {
-        prismaMock.column.findUnique.mockRejectedValue(new Error("DB Error"));
+        prismaMock.column.findFirst.mockRejectedValue(new Error("DB Error"));
 
         await expect(columnService.getColumnById("col-1")).rejects.toThrow(
           "DB Error"
@@ -105,7 +105,7 @@ describe("ColumnService", () => {
           data: { name: "Updated Name" },
           include: {
             todos: {
-              where: { archived: false },
+              where: { archived: false, isDeleted: false },
               orderBy: { position: "asc" },
             },
           },
@@ -160,7 +160,7 @@ describe("ColumnService", () => {
           data: { name: "In Progress", wipLimit: 3 },
           include: {
             todos: {
-              where: { archived: false },
+              where: { archived: false, isDeleted: false },
               orderBy: { position: "asc" },
             },
           },
@@ -182,42 +182,52 @@ describe("ColumnService", () => {
   });
 
   // ===========================================
-  // deleteColumn - Tests
+  // deleteColumn - Soft Delete Tests
   // ===========================================
   describe("deleteColumn", () => {
     describe("happy path", () => {
-      it("deletes empty column", async () => {
+      it("soft-deletes empty column", async () => {
         const mockColumn = {
           ...createMockColumn({ id: "col-1", boardId: "board-1" }),
           todos: [],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.column.delete.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         await columnService.deleteColumn("col-1");
 
-        expect(prismaMock.column.delete).toHaveBeenCalledWith({
+        expect(prismaMock.column.update).toHaveBeenCalledWith({
           where: { id: "col-1" },
+          data: {
+            deletedAt: expect.any(Date),
+            isDeleted: true,
+          },
         });
       });
 
-      it("deletes column with todos (cascade delete)", async () => {
+      it("soft-deletes column with todos (todos remain associated)", async () => {
         const mockColumn = {
           ...createMockColumn({ id: "col-1", boardId: "board-1" }),
           todos: [createMockTodo({ id: "todo-1" })],
         };
 
-        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
-        prismaMock.column.delete.mockResolvedValue(mockColumn as any);
+        prismaMock.column.findFirst.mockResolvedValue(mockColumn as any);
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         await columnService.deleteColumn("col-1");
 
-        expect(prismaMock.column.delete).toHaveBeenCalled();
+        expect(prismaMock.column.update).toHaveBeenCalledWith({
+          where: { id: "col-1" },
+          data: {
+            deletedAt: expect.any(Date),
+            isDeleted: true,
+          },
+        });
         expect(prismaMock.todo.update).not.toHaveBeenCalled();
       });
 
-      it("moves todos to target column before deletion", async () => {
+      it("moves todos to target column before soft-deletion", async () => {
         const mockColumn = {
           ...createMockColumn({ id: "col-1", boardId: "board-1" }),
           todos: [
@@ -230,19 +240,25 @@ describe("ColumnService", () => {
           boardId: "board-1",
         });
 
-        prismaMock.column.findUnique
+        prismaMock.column.findFirst
           .mockResolvedValueOnce(mockColumn as any)
           .mockResolvedValueOnce(targetColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: 3 },
         } as any);
         prismaMock.$transaction.mockResolvedValue([]);
-        prismaMock.column.delete.mockResolvedValue(mockColumn as any);
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         await columnService.deleteColumn("col-1", "col-2");
 
         expect(prismaMock.$transaction).toHaveBeenCalled();
-        expect(prismaMock.column.delete).toHaveBeenCalled();
+        expect(prismaMock.column.update).toHaveBeenCalledWith({
+          where: { id: "col-1" },
+          data: {
+            deletedAt: expect.any(Date),
+            isDeleted: true,
+          },
+        });
       });
 
       it("assigns correct positions to moved todos", async () => {
@@ -258,14 +274,14 @@ describe("ColumnService", () => {
           boardId: "board-1",
         });
 
-        prismaMock.column.findUnique
+        prismaMock.column.findFirst
           .mockResolvedValueOnce(mockColumn as any)
           .mockResolvedValueOnce(targetColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: 2 },
         } as any);
         prismaMock.$transaction.mockResolvedValue([]);
-        prismaMock.column.delete.mockResolvedValue(mockColumn as any);
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         await columnService.deleteColumn("col-1", "col-2");
 
@@ -276,7 +292,7 @@ describe("ColumnService", () => {
 
     describe("unhappy path", () => {
       it("throws error when column not found", async () => {
-        prismaMock.column.findUnique.mockResolvedValue(null);
+        prismaMock.column.findFirst.mockResolvedValue(null);
 
         await expect(columnService.deleteColumn("non-existent")).rejects.toThrow(
           "Column not found"
@@ -289,7 +305,7 @@ describe("ColumnService", () => {
           todos: [createMockTodo({ id: "todo-1" })],
         };
 
-        prismaMock.column.findUnique
+        prismaMock.column.findFirst
           .mockResolvedValueOnce(mockColumn as any)
           .mockResolvedValueOnce(null);
 
@@ -308,7 +324,7 @@ describe("ColumnService", () => {
           boardId: "board-2", // Different board
         });
 
-        prismaMock.column.findUnique
+        prismaMock.column.findFirst
           .mockResolvedValueOnce(mockColumn as any)
           .mockResolvedValueOnce(targetColumn as any);
 

@@ -6,6 +6,7 @@ export type ColumnWithTodos = Column & {
 
 export type UpdateColumnInput = {
   name?: string;
+  description?: string | null;
   wipLimit?: number | null;
 };
 
@@ -14,13 +15,14 @@ export class ColumnService {
 
   /**
    * Get a column by ID with its todos
+   * Excludes soft-deleted columns and todos
    */
   async getColumnById(id: string): Promise<ColumnWithTodos | null> {
-    return this.prisma.column.findUnique({
-      where: { id },
+    return this.prisma.column.findFirst({
+      where: { id, isDeleted: false },
       include: {
         todos: {
-          where: { archived: false },
+          where: { archived: false, isDeleted: false },
           orderBy: { position: "asc" },
         },
       },
@@ -29,6 +31,7 @@ export class ColumnService {
 
   /**
    * Update a column
+   * Returns todos excluding soft-deleted ones
    */
   async updateColumn(
     id: string,
@@ -39,7 +42,7 @@ export class ColumnService {
       data: input,
       include: {
         todos: {
-          where: { archived: false },
+          where: { archived: false, isDeleted: false },
           orderBy: { position: "asc" },
         },
       },
@@ -47,24 +50,25 @@ export class ColumnService {
   }
 
   /**
-   * Delete a column, optionally moving its todos to another column
+   * Soft-delete a column, optionally moving its todos to another column
+   * Sets deletedAt and isDeleted on the column
    */
   async deleteColumn(id: string, moveToColumnId?: string): Promise<void> {
-    // Get the column to be deleted
-    const columnToDelete = await this.prisma.column.findUnique({
-      where: { id },
-      include: { todos: true },
+    // Get the column to be deleted (excluding already soft-deleted)
+    const columnToDelete = await this.prisma.column.findFirst({
+      where: { id, isDeleted: false },
+      include: { todos: { where: { isDeleted: false } } },
     });
 
     if (!columnToDelete) {
       throw new Error("Column not found");
     }
 
-    // If there are todos and moveToColumnId is provided, move them
+    // If there are active todos and moveToColumnId is provided, move them
     if (columnToDelete.todos.length > 0 && moveToColumnId) {
-      // Verify target column exists and is in the same board
-      const targetColumn = await this.prisma.column.findUnique({
-        where: { id: moveToColumnId },
+      // Verify target column exists, is not soft-deleted, and is in the same board
+      const targetColumn = await this.prisma.column.findFirst({
+        where: { id: moveToColumnId, isDeleted: false },
       });
 
       if (!targetColumn) {
@@ -75,14 +79,14 @@ export class ColumnService {
         throw new Error("Target column must be in the same board");
       }
 
-      // Get max position in target column
+      // Get max position in target column (excluding soft-deleted)
       const maxPosition = await this.prisma.todo.aggregate({
-        where: { columnId: moveToColumnId },
+        where: { columnId: moveToColumnId, isDeleted: false },
         _max: { position: true },
       });
       let nextPosition = (maxPosition._max.position ?? -1) + 1;
 
-      // Move todos to target column
+      // Move active todos to target column
       await this.prisma.$transaction(
         columnToDelete.todos.map((todo) =>
           this.prisma.todo.update({
@@ -96,24 +100,30 @@ export class ColumnService {
       );
     }
 
-    // Delete the column (cascade will delete todos if not moved)
-    await this.prisma.column.delete({
+    // Soft-delete the column (associated todos remain but column is marked deleted)
+    await this.prisma.column.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        isDeleted: true,
+      },
     });
   }
 
   /**
    * Reorder columns within a board
+   * Excludes soft-deleted columns
    */
   async reorderColumns(
     boardId: string,
     columns: { id: string; position: number }[]
   ): Promise<ColumnWithTodos[]> {
-    // Verify all columns belong to the specified board
+    // Verify all columns belong to the specified board and are not soft-deleted
     const existingColumns = await this.prisma.column.findMany({
       where: {
         id: { in: columns.map((c) => c.id) },
         boardId,
+        isDeleted: false,
       },
     });
 
@@ -131,13 +141,13 @@ export class ColumnService {
       )
     );
 
-    // Fetch updated columns
+    // Fetch updated columns (excluding soft-deleted)
     return this.prisma.column.findMany({
-      where: { boardId },
+      where: { boardId, isDeleted: false },
       orderBy: { position: "asc" },
       include: {
         todos: {
-          where: { archived: false },
+          where: { archived: false, isDeleted: false },
           orderBy: { position: "asc" },
         },
       },
