@@ -762,7 +762,7 @@ Board View:
 - [x] PRD and architecture design
 - [x] Project scaffolding (monorepo setup)
 - [x] Database schema and migrations
-- [ ] Backend API (boards, columns, todos)
+- [x] Backend API (boards, columns, todos)
 - [ ] Frontend board view with drag-and-drop
 - [ ] Built-in board templates (read-only)
 - [ ] Labels support
