@@ -8,6 +8,12 @@ if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
     exit 0
 fi
 
+# Check if iptables is functional (it often isn't in CI containers)
+if ! iptables -L -n >/dev/null 2>&1; then
+    echo "iptables not functional - skipping firewall setup (likely CI environment)"
+    exit 0
+fi
+
 # 1. Extract Docker DNS info BEFORE any flushing
 DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
 
