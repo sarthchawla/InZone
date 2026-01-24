@@ -813,7 +813,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 
 #### CI Pipeline Updates
 - [x] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
-- [ ] Add unit test job to CI pipeline (`.github/workflows/unit-tests.yml`)
+- [x] Add unit test job to CI pipeline (`.github/workflows/unit-tests.yml`)
 - [ ] Configure test database in CI
 - [ ] Add test coverage reporting (codecov integration)
 - [ ] Configure parallel test execution

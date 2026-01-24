@@ -1,0 +1,167 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_ENV: test
+
+jobs:
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build shared packages
+        run: pnpm --filter shared build || true
+
+      - name: Run Frontend Unit Tests with Coverage
+        run: pnpm --filter web test:coverage
+
+      - name: Upload Frontend Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./apps/web/coverage/lcov.info
+          flags: frontend-unit
+          name: frontend-unit-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check Frontend Coverage Threshold
+        run: |
+          if [ -f ./apps/web/coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat ./apps/web/coverage/coverage-summary.json | jq '.total.lines.pct')
+            echo "Frontend line coverage: $COVERAGE%"
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "Frontend coverage $COVERAGE% is below 80% threshold"
+              exit 1
+            fi
+            echo "Frontend coverage $COVERAGE% meets the 80% threshold"
+          else
+            echo "Coverage summary not found, skipping threshold check"
+          fi
+
+      - name: Upload Frontend Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-unit-coverage
+          path: |
+            apps/web/coverage/
+          retention-days: 14
+
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: pnpm --filter api db:generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/inzone_test
+
+      - name: Run Backend Unit Tests with Coverage
+        run: pnpm --filter api test:coverage
+
+      - name: Upload Backend Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./apps/api/coverage/lcov.info
+          flags: backend-unit
+          name: backend-unit-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check Backend Coverage Threshold
+        run: |
+          if [ -f ./apps/api/coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat ./apps/api/coverage/coverage-summary.json | jq '.total.lines.pct')
+            echo "Backend line coverage: $COVERAGE%"
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "Backend coverage $COVERAGE% is below 80% threshold"
+              exit 1
+            fi
+            echo "Backend coverage $COVERAGE% meets the 80% threshold"
+          else
+            echo "Coverage summary not found, skipping threshold check"
+          fi
+
+      - name: Upload Backend Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-unit-coverage
+          path: |
+            apps/api/coverage/
+          retention-days: 14
+
+  unit-test-summary:
+    name: Unit Test Summary
+    runs-on: ubuntu-latest
+    needs: [frontend-unit, backend-unit]
+    if: always()
+
+    steps:
+      - name: Check test results
+        env:
+          FRONTEND_RESULT: ${{ needs.frontend-unit.result }}
+          BACKEND_RESULT: ${{ needs.backend-unit.result }}
+        run: |
+          echo "Frontend Unit Tests: $FRONTEND_RESULT"
+          echo "Backend Unit Tests: $BACKEND_RESULT"
+
+          if [[ "$FRONTEND_RESULT" == "failure" ]]; then
+            echo "Frontend unit tests failed"
+          fi
+
+          if [[ "$BACKEND_RESULT" == "failure" ]]; then
+            echo "Backend unit tests failed"
+          fi
+
+          if [[ "$FRONTEND_RESULT" == "failure" || "$BACKEND_RESULT" == "failure" ]]; then
+            echo "Unit tests failed"
+            exit 1
+          fi
+
+          echo "All unit tests passed successfully!"
