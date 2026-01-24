@@ -20,7 +20,8 @@ export function BoardColumn({ column, onAddTodo }: BoardColumnProps) {
     id: column.id,
   });
 
-  const sortedTodos = [...column.todos].sort((a, b) => a.position - b.position);
+  const todos = column.todos ?? [];
+  const sortedTodos = [...todos].sort((a, b) => a.position - b.position);
   const todoIds = sortedTodos.map((t) => t.id);
 
   const handleAddTodo = () => {
@@ -52,9 +53,9 @@ export function BoardColumn({ column, onAddTodo }: BoardColumnProps) {
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-gray-700">{column.name}</h3>
           <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-            {column.todos.length}
+            {todos.length}
           </span>
-          {column.wipLimit && column.todos.length >= column.wipLimit && (
+          {column.wipLimit && todos.length >= column.wipLimit && (
             <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-600">
               WIP
             </span>

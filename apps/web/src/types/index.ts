@@ -7,6 +7,7 @@ export interface Board {
   createdAt: string;
   updatedAt: string;
   columns: Column[];
+  todoCount?: number;
 }
 
 export interface Column {
@@ -17,7 +18,8 @@ export interface Column {
   boardId: string;
   createdAt: string;
   updatedAt: string;
-  todos: Todo[];
+  todos?: Todo[];
+  _count?: { todos: number };
 }
 
 export interface Todo {

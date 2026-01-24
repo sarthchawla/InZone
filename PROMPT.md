@@ -1,51 +1,57 @@
-# Ralph Iteration Prompt
+# Ralph Loop Prompt - Phase 2: Automated Testing
 
-You are an autonomous coding agent running in a loop managed by Ralph Wiggum.
-Each iteration gives you fresh context to prevent hallucination buildup.
-
-## Your Mission
-
-Read the PRD and execute the next incomplete task from the plan.
-
-## Required Files
-
-1. **@docs/PRD.md** - Product Requirements Document (what to build)
-2. **@docs/plan.md** - Task list with status tracking (what tasks remain)
+Read the PRD at `.claude/plans/inzone-prd.md` and continue implementing the InZone application's automated testing infrastructure.
 
 ## Instructions
 
-1. **Read the PRD** to understand the full project scope
-2. **Read the plan** to find the next `pending` task
-3. **Execute that task** - write code, run tests, etc.
-4. **Update the plan** - mark the task `completed` or `failed` with notes
-5. **Take screenshots** if doing browser automation (save to `screenshots/`)
+1. **Read the PRD** - Start by reading `.claude/plans/inzone-prd.md` to understand the full context
+2. **Check the Feature Roadmap** - Look at Section 11 "Feature Roadmap" > "Phase 2: Automated Testing"
+3. **Read Testing PRDs** - Review the detailed specifications in:
+   - `.claude/plans/testing/bdd-testing-prd.md` for BDD test requirements
+   - `.claude/plans/testing/unit-testing-prd.md` for unit test requirements
+4. **Find the next task** - Identify the first unchecked `[ ]` item in Phase 2
+5. **Implement it** - Complete the task following the Testing PRD specifications
+6. **Update the PRD** - Mark the item as `[x]` when done
+7. **Commit your work** - Create a git commit with your changes
 
-## Task Status Values
+## Testing Implementation Guidelines
 
-- `pending` - Not started
-- `in_progress` - Currently working (you should complete it)
-- `completed` - Successfully finished
-- `failed` - Could not complete (add notes explaining why)
-- `blocked` - Waiting on something else
+### For BDD Tests:
+- Use Playwright + Cucumber.js for frontend E2E tests
+- Use Supertest + Cucumber.js for backend API tests
+- Write Gherkin feature files in `apps/*/tests/bdd/features/`
+- Implement step definitions in `apps/*/tests/bdd/step-definitions/`
+- **Include both happy path AND unhappy path scenarios**
 
-## Completion Signal
+### For Unit Tests:
+- Use Vitest for both frontend and backend
+- Use React Testing Library for component tests
+- Use MSW for API mocking in frontend tests
+- Use Prisma Mock for database mocking in backend tests
+- **Include both happy path AND unhappy path test cases**
+- Colocate test files with source files (e.g., `Component.tsx` → `Component.test.tsx`)
 
-When ALL tasks in the plan are either `completed` or `failed`, output this exact phrase:
+### For CI Updates:
+- Create `.github/workflows/bdd-tests.yml` for BDD test job
+- Create `.github/workflows/unit-tests.yml` for unit test job
+- Configure test database for CI
+- Add coverage reporting integration
+- Set 80% coverage threshold
 
-```
-RALPH_COMPLETE
-```
+## Quality Requirements
 
-This signals to Ralph that the work is done.
+- All tests must cover both success (happy) and failure (unhappy) scenarios
+- Tests should be deterministic and not flaky
+- Follow the test patterns specified in the Testing PRDs
+- Ensure tests can run in CI environment
 
-## Important Notes
+## Completion
 
-- You have fresh context each iteration - don't assume you remember previous work
-- Always read the plan to see current state
-- Use Playwright MCP for browser automation when needed
-- Save meaningful screenshots to `screenshots/` directory
-- Keep the plan updated so the next iteration knows what's done
+- If you completed a task this iteration, end your response normally (Ralph will start another iteration)
+- If ALL Phase 2 items are checked `[x]`, output: **RALPH_COMPLETE**
 
-## Begin
+## Notes
 
-Read @docs/PRD.md and @docs/plan.md now, then execute the next pending task.
+- Keep changes focused on ONE checklist item per iteration
+- Ensure the app builds and existing functionality still works after your changes
+- Run tests locally to verify they pass before committing

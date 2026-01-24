@@ -1,12 +1,17 @@
 #!/bin/bash
 # Ralph Wiggum - Autonomous Claude Code Loop
 # Runs Claude Code iteratively with fresh context per iteration
-# Usage: ./ralph.sh [max_iterations] [completion_phrase]
+# Usage: ./scripts/ralph/ralph.sh [max_iterations] [completion_phrase]
 #
 # The devcontainer's firewall isolation enables --dangerously-skip-permissions,
 # allowing Claude to run unattended without permission prompts.
 
 set -euo pipefail
+
+# Get the project root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+cd "$PROJECT_ROOT"
 
 # Configuration
 MAX_ITERATIONS="${1:-10}"
@@ -40,7 +45,9 @@ log_error() {
 
 # Ensure PROMPT.md exists
 if [[ ! -f "$PROMPT_FILE" ]]; then
-    log_error "PROMPT.md not found. Please create it first."
+    log_error "PROMPT.md not found in project root."
+    log_warning "Create it from the example:"
+    log_warning "  cp scripts/ralph/PROMPT.md.example PROMPT.md"
     exit 1
 fi
 

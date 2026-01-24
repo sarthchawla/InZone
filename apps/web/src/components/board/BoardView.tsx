@@ -48,7 +48,7 @@ export function BoardView() {
     (id: string): { todo: Todo; column: Column } | null => {
       if (!board) return null;
       for (const column of board.columns) {
-        const todo = column.todos.find((t) => t.id === id);
+        const todo = (column.todos ?? []).find((t) => t.id === id);
         if (todo) return { todo, column };
       }
       return null;
@@ -98,14 +98,14 @@ export function BoardView() {
       }
     } else {
       // Dropped on empty column
-      newPosition = targetColumn.todos.length;
+      newPosition = (targetColumn.todos ?? []).length;
     }
 
     if (!targetColumn) return;
 
     // Same column reordering
     if (sourceColumn.id === targetColumn.id) {
-      const sortedTodos = [...sourceColumn.todos].sort((a, b) => a.position - b.position);
+      const sortedTodos = [...(sourceColumn.todos ?? [])].sort((a, b) => a.position - b.position);
       const oldIndex = sortedTodos.findIndex((t) => t.id === activeTodoItem.id);
       const overTodoResult = findTodo(over.id as string);
 

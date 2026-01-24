@@ -758,7 +758,7 @@ Board View:
 
 ## 11. Feature Roadmap
 
-### Phase 1: MVP (Current Focus)
+### Phase 1: MVP (Complete)
 - [x] PRD and architecture design
 - [x] Project scaffolding (monorepo setup)
 - [x] Database schema and migrations
@@ -768,14 +768,68 @@ Board View:
 - [x] Labels support
 - [x] Local development setup
 
-### Phase 2: Polish
+### Phase 2: Automated Testing (Current Focus)
+
+Comprehensive test coverage for MVP features. See detailed PRDs:
+- **[BDD Testing PRD](./testing/bdd-testing-prd.md)** - End-to-end behavior tests
+- **[Unit Testing PRD](./testing/unit-testing-prd.md)** - Component and service tests
+
+#### BDD Tests Setup
+- [ ] Install Playwright and Cucumber.js dependencies (frontend)
+- [ ] Install Supertest and Cucumber.js dependencies (backend)
+- [ ] Configure Cucumber for both frontend and backend
+- [ ] Set up test database for backend tests
+- [ ] Create Page Objects for frontend tests
+- [ ] Create API helpers for backend tests
+
+#### Frontend BDD Tests
+- [ ] Board feature tests (create, delete, view) - happy & unhappy paths
+- [ ] Column feature tests (add, reorder, delete) - happy & unhappy paths
+- [ ] Todo feature tests (create, edit, move, delete) - happy & unhappy paths
+- [ ] Label feature tests (manage labels) - happy & unhappy paths
+- [ ] Search feature tests - happy & unhappy paths
+
+#### Backend BDD Tests
+- [ ] Boards API tests - happy & unhappy paths
+- [ ] Columns API tests - happy & unhappy paths
+- [ ] Todos API tests - happy & unhappy paths
+- [ ] Labels API tests - happy & unhappy paths
+- [ ] Templates API tests - happy & unhappy paths
+
+#### Frontend Unit Tests
+- [ ] Install Vitest, React Testing Library, MSW
+- [ ] Component tests (BoardCard, TodoCard, Column, etc.) - happy & unhappy paths
+- [ ] Hook tests (useBoards, useTodos, useDragAndDrop) - happy & unhappy paths
+- [ ] Store tests (Zustand stores) - happy & unhappy paths
+- [ ] Utility function tests - happy & unhappy paths
+- [ ] API client tests - happy & unhappy paths
+
+#### Backend Unit Tests
+- [ ] Install Vitest, Supertest, Prisma Mock
+- [ ] Service tests (BoardService, TodoService, etc.) - happy & unhappy paths
+- [ ] Route tests (all API endpoints) - happy & unhappy paths
+- [ ] Middleware tests (errorHandler, validation) - happy & unhappy paths
+- [ ] Validator tests - happy & unhappy paths
+
+#### CI Pipeline Updates
+- [ ] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
+- [ ] Add unit test job to CI pipeline (`.github/workflows/unit-tests.yml`)
+- [ ] Configure test database in CI
+- [ ] Add test coverage reporting (codecov integration)
+- [ ] Configure parallel test execution
+- [ ] Add coverage thresholds (80% minimum)
+- [ ] Add test result artifacts
+
+### Phase 3: Polish
 - [ ] Search functionality
 - [ ] Due date display and filtering
 - [ ] Keyboard shortcuts
 - [ ] Board settings (rename, delete)
 - [ ] Archive/restore todos
+- [ ] **Update all tests** (BDD & unit) for new features
+- [ ] **Maintain test coverage** above 80% threshold
 
-### Phase 3: Future Scope
+### Phase 4: Future Scope
 
 | Feature | Design Status | PRD Link |
 |---------|--------------|----------|
@@ -790,6 +844,12 @@ Board View:
 | Mobile App | *Not yet designed* | - |
 
 > **Theming & Beautification** includes: board colors, board backgrounds, column colors, dark mode, app themes, and custom styling.
+
+> **Testing Requirement**: All future features must include:
+> - BDD tests (happy & unhappy paths) per [BDD Testing PRD](./testing/bdd-testing-prd.md)
+> - Unit tests (happy & unhappy paths) per [Unit Testing PRD](./testing/unit-testing-prd.md)
+> - CI pipeline updates for new test suites
+> - Maintained coverage above 80% threshold
 
 ---
 
@@ -840,5 +900,5 @@ pnpm dev
 
 ---
 
-*Document Version: 2.0*
-*Last Updated: 2025-01-24*
+*Document Version: 3.0*
+*Last Updated: 2025-01-25*
