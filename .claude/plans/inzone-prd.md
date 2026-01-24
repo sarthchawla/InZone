@@ -764,7 +764,7 @@ Board View:
 - [x] Database schema and migrations
 - [x] Backend API (boards, columns, todos)
 - [x] Frontend board view with drag-and-drop
-- [ ] Built-in board templates (read-only)
+- [x] Built-in board templates (read-only)
 - [ ] Labels support
 - [ ] Local development setup
 
