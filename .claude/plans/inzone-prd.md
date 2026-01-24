@@ -809,7 +809,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Service tests (BoardService, TodoService, etc.) - happy & unhappy paths
 - [x] Route tests (all API endpoints) - happy & unhappy paths
 - [x] Middleware tests (errorHandler, validation) - happy & unhappy paths
-- [ ] Validator tests - happy & unhappy paths
+- [x] Validator tests - happy & unhappy paths
 
 #### CI Pipeline Updates
 - [ ] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
