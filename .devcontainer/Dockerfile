@@ -32,10 +32,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     aggregate \
     && rm -rf /var/lib/apt/lists/*
 
-# Install git-delta for enhanced diff viewing
-RUN curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_amd64.deb" -o /tmp/git-delta.deb \
-    && dpkg -i /tmp/git-delta.deb \
-    && rm /tmp/git-delta.deb
+# Install git-delta for enhanced diff viewing (multi-arch support)
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "arm64" ]; then \
+        curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_arm64.deb" -o /tmp/git-delta.deb; \
+    else \
+        curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_amd64.deb" -o /tmp/git-delta.deb; \
+    fi && \
+    dpkg -i /tmp/git-delta.deb && \
+    rm /tmp/git-delta.deb
 
 # Install zsh-in-docker for zsh configuration
 RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
