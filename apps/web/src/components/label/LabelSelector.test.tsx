@@ -150,28 +150,26 @@ describe("LabelSelector", () => {
         />
       );
 
-      // Find and click the main dropdown button
+      // Find and click the main dropdown button by looking for min-h-[40px] class
       const mainButton = screen.getAllByRole("button").find(btn =>
-        btn.classList.contains("min-h-[40px]") || (btn.textContent?.includes("Bug") && !btn.closest("span"))
+        btn.classList.contains("min-h-[40px]")
       );
-      if (mainButton) {
-        await user.click(mainButton);
-      }
+      expect(mainButton).toBeTruthy();
+      await user.click(mainButton!);
 
       await waitFor(() => {
         expect(screen.getByText("Create new label")).toBeInTheDocument();
       });
 
-      // Find and click the Bug button in the dropdown to deselect
-      const bugButtons = screen.getAllByText("Bug");
-      const dropdownButton = bugButtons.find((el) =>
-        el.closest('button[type="button"]')?.classList.contains("w-full")
+      // Find the Bug button in the dropdown - it should be inside the dropdown area
+      // The dropdown buttons have bg-blue-50 class when selected
+      const dropdownButtons = screen.getAllByRole("button").filter(btn =>
+        btn.classList.contains("bg-blue-50") && btn.textContent?.includes("Bug")
       );
 
-      if (dropdownButton) {
-        await user.click(dropdownButton);
-        expect(onLabelsChange).toHaveBeenCalled();
-      }
+      expect(dropdownButtons.length).toBeGreaterThan(0);
+      await user.click(dropdownButtons[0]);
+      expect(onLabelsChange).toHaveBeenCalled();
     });
 
     it("removes label when X button on chip is clicked", async () => {
