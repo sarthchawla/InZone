@@ -797,7 +797,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Templates API tests - happy & unhappy paths
 
 #### Frontend Unit Tests
-- [ ] Install Vitest, React Testing Library, MSW
+- [x] Install Vitest, React Testing Library, MSW
 - [ ] Component tests (BoardCard, TodoCard, Column, etc.) - happy & unhappy paths
 - [ ] Hook tests (useBoards, useTodos, useDragAndDrop) - happy & unhappy paths
 - [ ] Store tests (Zustand stores) - happy & unhappy paths
