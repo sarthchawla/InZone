@@ -11,7 +11,58 @@ interface TestBoard {
   todoCount: number;
 }
 
-// Board existence setup steps
+// Board existence setup steps with columns
+Given('a board {string} exists with columns {string}', async function (
+  this: CustomWorld,
+  boardName: string,
+  columnNames: string
+) {
+  const columns = columnNames.split(',').map((name, index) => ({
+    id: `col-${index + 1}`,
+    name: name.trim(),
+    position: index,
+    todos: [],
+  }));
+
+  await this.page.route('**/api/boards', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'test-board-1',
+            name: boardName,
+            description: '',
+            columns,
+            todoCount: 0,
+          },
+        ]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Also mock the single board endpoint
+  await this.page.route('**/api/boards/test-board-1', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'test-board-1',
+          name: boardName,
+          description: '',
+          columns,
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+});
+
 Given('no boards exist', async function (this: CustomWorld) {
   // Mock API to return empty boards list
   await this.page.route('**/api/boards', async (route) => {

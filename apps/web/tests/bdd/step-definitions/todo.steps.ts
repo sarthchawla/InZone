@@ -673,6 +673,21 @@ When('I drag {string} to {string} column', async function (
   await todo.dragTo(target);
 });
 
+When('I try to drag {string} to {string} column', async function (
+  this: CustomWorld,
+  todoTitle: string,
+  targetColumn: string
+) {
+  const todo = this.page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
+  const target = this.page.locator(`[data-testid="column"]:has-text("${targetColumn}")`);
+
+  try {
+    await todo.dragTo(target);
+  } catch {
+    // Drag operation may fail in certain scenarios - that's expected
+  }
+});
+
 When('I drag {string} above {string}', async function (
   this: CustomWorld,
   sourceTodo: string,
@@ -903,11 +918,7 @@ Then('no todo should be created', async function (this: CustomWorld) {
   expect(todoCards).toBe(this.context.initialTodoCount || 0);
 });
 
-Then('I should see an error {string}', async function (this: CustomWorld, message: string) {
-  await expect(this.page.getByText(message)).toBeVisible();
-});
-
-// Note: 'I should see an error message {string}' is defined in common.steps.ts
+// Note: 'I should see an error {string}' and 'I should see an error message {string}' are defined in common.steps.ts
 
 Then('I should see a warning {string}', async function (this: CustomWorld, message: string) {
   await expect(this.page.getByText(message)).toBeVisible();

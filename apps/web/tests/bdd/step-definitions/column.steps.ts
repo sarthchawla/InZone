@@ -171,9 +171,8 @@ Given('the {string} column has been deleted by another user', async function (th
 });
 
 // Column interaction steps
-When('I click "Add column"', async function (this: CustomWorld) {
-  await this.page.getByRole('button', { name: /add column/i }).click();
-});
+// Note: 'I click {string}' is defined in common.steps.ts, but we also have a specific "Add column" button handler
+// Using the common step for "Add column" text
 
 When('I enter {string} as the column name', async function (this: CustomWorld, columnName: string) {
   await this.page.getByLabel(/column name/i).fill(columnName);
