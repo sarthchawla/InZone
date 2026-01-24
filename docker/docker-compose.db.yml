@@ -1,19 +1,20 @@
 # InZone PostgreSQL Database
-# Default port changed to 5434 to avoid conflicts with other local Postgres instances
-# Update DATABASE_URL in apps/api/.env to: postgresql://inzone:inzone_dev@localhost:5434/inzone?schema=public
+# Default port is 5435 (in the worktree port range 5435-5499)
+# For worktree setups, DB_PORT env var is used for unique ports
+# Update DATABASE_URL in apps/api/.env to: postgresql://inzone:inzone_dev@localhost:${DB_PORT:-5435}/inzone?schema=public
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: inzone-postgres
+    container_name: ${DB_CONTAINER_NAME:-inzone-postgres}
     ports:
-      - "5434:5432"
+      - "${DB_PORT:-5435}:5432"
     environment:
       POSTGRES_USER: inzone
       POSTGRES_PASSWORD: inzone_dev
       POSTGRES_DB: inzone
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${DB_VOLUME_NAME:-postgres_data}:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U inzone"]
