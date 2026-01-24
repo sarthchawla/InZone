@@ -1,1 +1,19 @@
 .DS_Store
+
+# Ralph automation
+screenshots/
+activity.md
+
+# Claude local settings (project-level .claude/ can be committed)
+.claude/settings.local.json
+
+# Node
+node_modules/
+
+# Environment files
+.env
+.env.*
+*.local
+
+# Private/company-specific configurations
+.devcontainer/private-domains.sh
