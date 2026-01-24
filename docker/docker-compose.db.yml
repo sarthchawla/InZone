@@ -1,11 +1,13 @@
-version: '3.8'
+# InZone PostgreSQL Database
+# Default port changed to 5434 to avoid conflicts with other local Postgres instances
+# Update DATABASE_URL in apps/api/.env to: postgresql://inzone:inzone_dev@localhost:5434/inzone?schema=public
 
 services:
   postgres:
     image: postgres:16-alpine
     container_name: inzone-postgres
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_USER: inzone
       POSTGRES_PASSWORD: inzone_dev

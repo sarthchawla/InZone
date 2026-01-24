@@ -761,7 +761,7 @@ Board View:
 ### Phase 1: MVP (Current Focus)
 - [x] PRD and architecture design
 - [x] Project scaffolding (monorepo setup)
-- [ ] Database schema and migrations
+- [x] Database schema and migrations
 - [ ] Backend API (boards, columns, todos)
 - [ ] Frontend board view with drag-and-drop
 - [ ] Built-in board templates (read-only)
