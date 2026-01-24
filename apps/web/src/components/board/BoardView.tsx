@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   DndContext,
@@ -17,14 +17,14 @@ import {
   horizontalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Settings, Tags } from 'lucide-react';
-import { useBoard } from '../../hooks/useBoards';
+import { ArrowLeft, Plus, Settings, Tags, ChevronDown, ChevronRight, Pencil, FileText } from 'lucide-react';
+import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';
 import { BoardColumn } from '../column/BoardColumn';
 import { TodoCard, TodoEditModal } from '../todo';
 import { LabelManager } from '../label';
-import { Button, Input } from '../ui';
+import { Button, Input, Modal } from '../ui';
 import type { Todo, Column, Priority } from '../../types';
 
 export function BoardView() {
@@ -39,6 +39,7 @@ export function BoardView() {
   const updateColumn = useUpdateColumn();
   const deleteColumn = useDeleteColumn();
   const reorderColumns = useReorderColumns();
+  const updateBoard = useUpdateBoard();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
@@ -47,6 +48,31 @@ export function BoardView() {
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+
+  // Board editing state
+  const [isEditingBoardName, setIsEditingBoardName] = useState(false);
+  const [editedBoardName, setEditedBoardName] = useState('');
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
+
+  const boardNameInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus board name input when editing starts
+  useEffect(() => {
+    if (isEditingBoardName && boardNameInputRef.current) {
+      boardNameInputRef.current.focus();
+      boardNameInputRef.current.select();
+    }
+  }, [isEditingBoardName]);
+
+  // Sync edited values when board data changes
+  useEffect(() => {
+    if (board) {
+      setEditedBoardName(board.name);
+      setEditedDescription(board.description || '');
+    }
+  }, [board]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -233,6 +259,49 @@ export function BoardView() {
     }
   };
 
+  // Board name inline editing handlers
+  const handleBoardNameDoubleClick = () => {
+    if (board) {
+      setEditedBoardName(board.name);
+      setIsEditingBoardName(true);
+    }
+  };
+
+  const handleBoardNameSave = () => {
+    if (!boardId || !editedBoardName.trim()) {
+      setIsEditingBoardName(false);
+      return;
+    }
+    if (editedBoardName.trim() !== board?.name) {
+      updateBoard.mutate({ id: boardId, name: editedBoardName.trim() });
+    }
+    setIsEditingBoardName(false);
+  };
+
+  const handleBoardNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleBoardNameSave();
+    } else if (e.key === 'Escape') {
+      setEditedBoardName(board?.name || '');
+      setIsEditingBoardName(false);
+    }
+  };
+
+  // Board description modal handlers
+  const handleOpenDescriptionModal = () => {
+    setEditedDescription(board?.description || '');
+    setShowDescriptionModal(true);
+  };
+
+  const handleDescriptionSave = () => {
+    if (!boardId) return;
+    const newDescription = editedDescription.trim();
+    if (newDescription !== (board?.description || '')) {
+      updateBoard.mutate({ id: boardId, description: newDescription || undefined });
+    }
+    setShowDescriptionModal(false);
+  };
+
   const handleTodoDoubleClick = (todo: Todo) => {
     setEditingTodo(todo);
   };
@@ -288,31 +357,97 @@ export function BoardView() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/"
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{board.name}</h1>
-            {board.description && (
-              <p className="text-sm text-gray-500">{board.description}</p>
-            )}
+      <div className="px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div className="flex items-center gap-2">
+              {/* Board name - editable on double-click */}
+              {isEditingBoardName ? (
+                <input
+                  ref={boardNameInputRef}
+                  type="text"
+                  value={editedBoardName}
+                  onChange={(e) => setEditedBoardName(e.target.value)}
+                  onBlur={handleBoardNameSave}
+                  onKeyDown={handleBoardNameKeyDown}
+                  className="text-xl font-bold text-gray-900 bg-white border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                />
+              ) : (
+                <h1
+                  className="text-xl font-bold text-gray-900 cursor-pointer hover:text-blue-600"
+                  onDoubleClick={handleBoardNameDoubleClick}
+                  title="Double-click to edit"
+                >
+                  {board.name}
+                </h1>
+              )}
+              {/* Description indicator */}
+              {board.description && (
+                <button
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                  title={isDescriptionExpanded ? 'Collapse description' : 'Expand description'}
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleOpenDescriptionModal}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Description
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowLabelManager(true)}>
+              <Tags className="h-4 w-4 mr-2" />
+              Labels
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setShowLabelManager(true)}>
-            <Tags className="h-4 w-4 mr-2" />
-            Labels
-          </Button>
-          <Button variant="ghost" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-        </div>
+
+        {/* Collapsible description section */}
+        {board.description && isDescriptionExpanded && (
+          <div className="mt-4 ml-14 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Description
+              </span>
+              <button
+                onClick={() => setIsDescriptionExpanded(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-wrap">
+              {board.description}
+            </div>
+          </div>
+        )}
+
+        {/* Add description prompt when no description exists */}
+        {!board.description && (
+          <div className="mt-2 ml-14">
+            <button
+              onClick={handleOpenDescriptionModal}
+              className="text-sm text-gray-400 hover:text-blue-600 flex items-center gap-1"
+            >
+              <Plus className="h-3 w-3" />
+              Add a description to help your team understand this board...
+            </button>
+          </div>
+        )}
       </div>
 
       <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
@@ -414,6 +549,48 @@ export function BoardView() {
         onDelete={handleTodoDelete}
         isLoading={updateTodo.isPending || deleteTodo.isPending}
       />
+
+      {/* Board Description Modal */}
+      <Modal
+        isOpen={showDescriptionModal}
+        onClose={() => setShowDescriptionModal(false)}
+        title="Edit Board Description"
+        className="max-w-2xl"
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="boardDescription" className="block text-sm font-medium text-gray-700 mb-1">
+              <span className="flex items-center gap-1">
+                <FileText className="h-4 w-4" />
+                Description
+              </span>
+            </label>
+            <textarea
+              id="boardDescription"
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              placeholder="Add a description for this board... (Markdown supported)"
+              rows={10}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm font-mono"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Supports Markdown: **bold**, *italic*, `code`, - lists, ## headers, etc.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+            <Button variant="ghost" onClick={() => setShowDescriptionModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleDescriptionSave}
+              disabled={updateBoard.isPending}
+            >
+              {updateBoard.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
