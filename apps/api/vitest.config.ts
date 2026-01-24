@@ -33,10 +33,12 @@ export default defineConfig({
         },
       },
     },
-    // Ensure tests run sequentially to avoid database conflicts
-    isolate: false,
-    sequence: {
-      concurrent: false,
-    },
+    // Enable parallel test file execution with isolation
+    // Each test file runs in its own environment with isolated mock state
+    isolate: true,
+    fileParallelism: true,
+    // Vitest 4.x: Use maxWorkers for thread pool concurrency
+    maxWorkers: 4,
+    minWorkers: 1,
   },
 });

@@ -9,6 +9,11 @@ on:
 env:
   NODE_ENV: test
 
+# Enable parallel test execution:
+# - Frontend and backend jobs run in parallel (separate GitHub Actions jobs)
+# - Within each job, Vitest runs test files in parallel using thread pool
+# - Test files are isolated to prevent state conflicts
+
 jobs:
   frontend-unit:
     name: Frontend Unit Tests

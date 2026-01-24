@@ -15,6 +15,12 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", "dist", "tests/bdd/**"],
+    // Enable parallel test file execution
+    isolate: true,
+    fileParallelism: true,
+    // Vitest 4.x: Use maxWorkers for thread pool concurrency
+    maxWorkers: 4,
+    minWorkers: 1,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov", "json-summary"],

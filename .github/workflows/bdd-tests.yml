@@ -11,6 +11,11 @@ env:
   # Test database configuration - used by all jobs
   TEST_DATABASE_URL: postgresql://test:test@localhost:5432/inzone_test
 
+# Parallel test execution:
+# - Frontend and backend BDD jobs run in parallel (separate GitHub Actions jobs)
+# - Each job has its own PostgreSQL service container for isolation
+# - Cucumber runs scenarios serially within each job (BDD tests require sequential execution)
+
 jobs:
   frontend-bdd:
     name: Frontend BDD Tests
