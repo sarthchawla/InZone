@@ -777,7 +777,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 #### BDD Tests Setup
 - [x] Install Playwright and Cucumber.js dependencies (frontend)
 - [x] Install Supertest and Cucumber.js dependencies (backend)
-- [ ] Configure Cucumber for both frontend and backend
+- [x] Configure Cucumber for both frontend and backend
 - [ ] Set up test database for backend tests
 - [ ] Create Page Objects for frontend tests
 - [ ] Create API helpers for backend tests

@@ -1,9 +1,8 @@
-import type { IConfiguration } from '@cucumber/cucumber';
-
-const config: IConfiguration = {
+/** @type {import('@cucumber/cucumber').IConfiguration} */
+const config = {
   paths: ['tests/bdd/features/**/*.feature'],
-  require: ['tests/bdd/step-definitions/**/*.ts', 'tests/bdd/support/**/*.ts'],
-  requireModule: ['ts-node/register'],
+  import: ['tests/bdd/step-definitions/**/*.ts', 'tests/bdd/support/**/*.ts'],
+  requireModule: ['tsx'],
   format: [
     'progress-bar',
     'html:reports/bdd-report.html',
@@ -21,4 +20,4 @@ const config: IConfiguration = {
   },
 };
 
-export default config;
+module.exports = { default: config };
