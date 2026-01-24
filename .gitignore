@@ -38,3 +38,5 @@ Thumbs.db
 
 # Private/company-specific configurations
 .devcontainer/private-domains.sh
+
+.pnpm-store/
