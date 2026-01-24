@@ -790,7 +790,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Search feature tests - happy & unhappy paths
 
 #### Backend BDD Tests
-- [ ] Boards API tests - happy & unhappy paths
+- [x] Boards API tests - happy & unhappy paths
 - [ ] Columns API tests - happy & unhappy paths
 - [ ] Todos API tests - happy & unhappy paths
 - [ ] Labels API tests - happy & unhappy paths
