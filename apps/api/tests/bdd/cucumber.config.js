@@ -15,7 +15,7 @@ const config = {
   retry: 0,
   strict: true,
   worldParameters: {
-    apiUrl: process.env.API_URL || 'http://localhost:3000',
+    apiUrl: process.env.API_URL || 'http://localhost:3001',
     testDbUrl: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
   },
 };

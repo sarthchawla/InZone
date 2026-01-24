@@ -56,4 +56,12 @@ async function resetDatabase() {
   }
 }
 
-resetDatabase();
+// Only run when this script is executed directly, not when imported as a module
+// Check if this file was executed directly via tsx or node
+const isDirectExecution =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('reset-test-db.ts');
+
+if (isDirectExecution) {
+  resetDatabase();
+}

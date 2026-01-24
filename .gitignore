@@ -39,4 +39,13 @@ Thumbs.db
 # Private/company-specific configurations
 .devcontainer/private-domains.sh
 
+# Pnpm store
 .pnpm-store/
+
+# Test reports
+apps/api/reports/
+apps/web/reports/
+
+# Test coverage
+apps/api/coverage/
+apps/web/coverage/

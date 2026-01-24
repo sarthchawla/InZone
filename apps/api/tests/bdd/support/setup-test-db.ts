@@ -65,4 +65,12 @@ async function setupTestDatabase() {
   }
 }
 
-setupTestDatabase();
+// Only run when this script is executed directly, not when imported as a module
+// Check if this file was executed directly via tsx or node
+const isDirectExecution =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('setup-test-db.ts');
+
+if (isDirectExecution) {
+  setupTestDatabase();
+}
