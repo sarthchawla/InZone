@@ -1,1 +1,40 @@
 .DS_Store
+
+# Ralph automation
+screenshots/
+activity.md
+
+# Claude local settings (project-level .claude/ can be committed)
+.claude/settings.local.json
+
+# Node
+node_modules/
+dist/
+
+# Build outputs
+.next/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo
+
+# Private/company-specific configurations
+.devcontainer/private-domains.sh

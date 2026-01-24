@@ -1,0 +1,27 @@
+# Ralph Loop Prompt for InZone PRD
+
+Read the PRD at `.claude/plans/inzone-prd.md` and continue implementing the InZone application.
+
+## Instructions
+
+1. **Read the PRD** - Start by reading `.claude/plans/inzone-prd.md` to understand the full context
+2. **Check the Feature Roadmap** - Look at Section 11 "Feature Roadmap" > "Phase 1: MVP" for the checklist
+3. **Find the next task** - Identify the first unchecked `[ ]` item in the Phase 1 list
+4. **Implement it** - Complete the task following the PRD specifications
+5. **Update the PRD** - Mark the item as `[x]` when done
+6. **Commit your work** - Create a git commit with your changes
+
+## Completion
+
+- If you completed a task this iteration, end your response normally (Ralph will start another iteration)
+- If ALL Phase 1 items are checked `[x]`, output: **RALPH_COMPLETE**
+
+## Guidelines
+
+- Follow the tech stack specified in Section 3
+- Follow the project structure in Section 8
+- Use the database schema from Section 5
+- Implement API endpoints as defined in Section 7
+- Keep changes focused on ONE checklist item per iteration
+- Write tests for new functionality
+- Ensure the app builds and runs after your changes

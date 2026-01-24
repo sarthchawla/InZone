@@ -32,10 +32,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     aggregate \
     && rm -rf /var/lib/apt/lists/*
 
-# Install git-delta for enhanced diff viewing
-RUN curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_amd64.deb" -o /tmp/git-delta.deb \
-    && dpkg -i /tmp/git-delta.deb \
-    && rm /tmp/git-delta.deb
+# Install git-delta for enhanced diff viewing (multi-arch support)
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "arm64" ]; then \
+        curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_arm64.deb" -o /tmp/git-delta.deb; \
+    else \
+        curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_amd64.deb" -o /tmp/git-delta.deb; \
+    fi && \
+    dpkg -i /tmp/git-delta.deb && \
+    rm /tmp/git-delta.deb
 
 # Install zsh-in-docker for zsh configuration
 RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
@@ -46,6 +51,7 @@ RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/downloa
 # Configure node user
 RUN usermod -s /bin/zsh node \
     && echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers.d/node-firewall \
+    && echo "node ALL=(ALL) NOPASSWD: /usr/bin/mkdir, /usr/bin/ln" >> /etc/sudoers.d/node-firewall \
     && chmod 0440 /etc/sudoers.d/node-firewall
 
 # Set up bash history persistence
@@ -66,12 +72,24 @@ ENV EDITOR=nano
 # Install Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
+# Install Playwright globally and browser dependencies
+RUN npm install -g playwright@latest \
+    && npx playwright install-deps chromium
+
 # Copy firewall initialization script
 COPY init-firewall.sh /usr/local/bin/init-firewall.sh
 RUN chmod +x /usr/local/bin/init-firewall.sh
 
+# Copy private domains file if it exists (gitignored, contains company-specific domains)
+# Uses wildcard to handle case where file doesn't exist
+COPY private-domains.sh* /usr/local/bin/
+RUN chmod +x /usr/local/bin/private-domains.sh 2>/dev/null || true
+
 # Set working directory
-WORKDIR /workspace
+WORKDIR /InZone-App
 
 # Switch to node user
 USER node
+
+# Install Playwright browsers as node user
+RUN npx playwright install chromium

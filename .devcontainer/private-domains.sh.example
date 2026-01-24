@@ -1,0 +1,9 @@
+#!/bin/bash
+# Private domains template - Copy this to private-domains.sh and add your domains
+# The private-domains.sh file is gitignored
+
+PRIVATE_DOMAINS=(
+    # Add your company-specific domains here, e.g.:
+    # "api.mycompany.com"
+    # "internal-service.mycompany.com"
+)

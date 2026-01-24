@@ -2,6 +2,18 @@
 set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 IFS=$'\n\t'       # Stricter word splitting
 
+# Skip firewall setup in CI environments (iptables doesn't work in CI containers)
+if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "CI environment detected - skipping firewall setup"
+    exit 0
+fi
+
+# Check if iptables is functional (it often isn't in CI containers)
+if ! iptables -L -n >/dev/null 2>&1; then
+    echo "iptables not functional - skipping firewall setup (likely CI environment)"
+    exit 0
+fi
+
 # 1. Extract Docker DNS info BEFORE any flushing
 DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
 
@@ -72,7 +84,9 @@ for domain in \
     "statsig.com" \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+    "update.code.visualstudio.com" \
+    "playwright.azureedge.net" \
+    "playwright-cdn.azureedge.net"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
@@ -89,6 +103,30 @@ for domain in \
         ipset add allowed-domains "$ip"
     done < <(echo "$ips")
 done
+
+# Load private/company-specific domains from separate file (gitignored)
+# Create .devcontainer/private-domains.sh with your custom domains
+PRIVATE_DOMAINS_FILE="/usr/local/bin/private-domains.sh"
+if [ -f "$PRIVATE_DOMAINS_FILE" ]; then
+    echo "Loading private domains from $PRIVATE_DOMAINS_FILE..."
+    source "$PRIVATE_DOMAINS_FILE"
+    for domain in "${PRIVATE_DOMAINS[@]}"; do
+        echo "Resolving private domain $domain..."
+        ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+        if [ -n "$ips" ]; then
+            while read -r ip; do
+                if [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                    echo "Adding $ip for $domain"
+                    ipset add allowed-domains "$ip"
+                fi
+            done < <(echo "$ips")
+        else
+            echo "WARNING: Could not resolve $domain (may not be accessible from this network)"
+        fi
+    done
+else
+    echo "No private domains file found (optional: create .devcontainer/private-domains.sh)"
+fi
 
 # Get host IP from default route
 HOST_IP=$(ip route | grep default | cut -d" " -f3)

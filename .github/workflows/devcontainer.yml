@@ -1,0 +1,63 @@
+name: Devcontainer Build
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - '.devcontainer/**'
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build:
+    name: Build Devcontainer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Claude config directory
+        run: mkdir -p ~/.claude
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build devcontainer (amd64)
+        uses: devcontainers/ci@v0.3
+        env:
+          CI: "true"
+        with:
+          runCmd: echo "Devcontainer build successful (amd64)"
+          platform: linux/amd64
+          noCache: true
+          inheritEnv: true
+
+  build-arm64:
+    name: Build Devcontainer (ARM64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Claude config directory
+        run: mkdir -p ~/.claude
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build devcontainer (arm64)
+        uses: devcontainers/ci@v0.3
+        env:
+          CI: "true"
+        with:
+          runCmd: echo "Devcontainer build successful (arm64)"
+          platform: linux/arm64
+          noCache: true
+          inheritEnv: true
