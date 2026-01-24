@@ -780,7 +780,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Configure Cucumber for both frontend and backend
 - [x] Set up test database for backend tests
 - [x] Create Page Objects for frontend tests
-- [ ] Create API helpers for backend tests
+- [x] Create API helpers for backend tests
 
 #### Frontend BDD Tests
 - [ ] Board feature tests (create, delete, view) - happy & unhappy paths

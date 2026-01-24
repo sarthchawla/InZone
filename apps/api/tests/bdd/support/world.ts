@@ -2,13 +2,26 @@ import { setWorldConstructor, World, IWorldOptions } from '@cucumber/cucumber';
 import supertest, { Test, SuperTest } from 'supertest';
 import { expect } from 'chai';
 import { getTestPrisma, testDataFactory } from './test-db';
+import {
+  ApiHelper,
+  createApiHelper,
+  apiAssertions,
+  testDataGenerators,
+  ApiResponse,
+  Board,
+  Column,
+  Todo,
+  Label,
+  BoardTemplate,
+} from './api-helpers';
 
 export interface CustomWorldParameters {
   apiUrl: string;
   testDbUrl?: string;
 }
 
-export interface ApiResponse {
+// Local ApiResponse type for backward compatibility
+export interface LocalApiResponse {
   status: number;
   body: unknown;
   headers: Record<string, string>;
@@ -16,7 +29,7 @@ export interface ApiResponse {
 
 export class CustomWorld extends World<CustomWorldParameters> {
   // Store the last API response for assertions
-  lastResponse: ApiResponse | null = null;
+  lastResponse: LocalApiResponse | null = null;
 
   // Store created resources for cleanup
   createdBoardIds: string[] = [];
@@ -30,12 +43,40 @@ export class CustomWorld extends World<CustomWorldParameters> {
   // Flag to skip database cleaning for specific scenarios
   skipDatabaseClean: boolean = false;
 
+  // API helper instance for fluent API calls
+  private _api: ApiHelper | null = null;
+
   constructor(options: IWorldOptions<CustomWorldParameters>) {
     super(options);
   }
 
   get apiUrl(): string {
     return this.parameters.apiUrl || 'http://localhost:3000';
+  }
+
+  /**
+   * Get the API helper for making HTTP requests with a fluent interface
+   * This is the preferred way to interact with the API in BDD tests
+   */
+  get api(): ApiHelper {
+    if (!this._api) {
+      this._api = createApiHelper(this.apiUrl);
+    }
+    return this._api;
+  }
+
+  /**
+   * Get assertion helpers for common API response checks
+   */
+  get assert() {
+    return apiAssertions;
+  }
+
+  /**
+   * Get test data generators for creating test fixtures
+   */
+  get generate() {
+    return testDataGenerators;
   }
 
   /**
@@ -54,6 +95,7 @@ export class CustomWorld extends World<CustomWorldParameters> {
 
   /**
    * Create a supertest agent for making HTTP requests
+   * @deprecated Use the `api` property instead for a fluent interface
    */
   getRequest(): SuperTest<Test> {
     return supertest(this.apiUrl);
@@ -246,3 +288,34 @@ export { expect };
 
 // Export test data factory for direct use in step definitions
 export { testDataFactory };
+
+// Re-export API helper types and utilities for direct use in step definitions
+export {
+  ApiHelper,
+  createApiHelper,
+  apiAssertions,
+  testDataGenerators,
+  ApiResponse,
+  Board,
+  Column,
+  Todo,
+  Label,
+  BoardTemplate,
+} from './api-helpers';
+
+// Re-export payload types for type-safe step definitions
+export type {
+  CreateBoardPayload,
+  UpdateBoardPayload,
+  CreateColumnPayload,
+  UpdateColumnPayload,
+  ReorderColumnsPayload,
+  CreateTodoPayload,
+  UpdateTodoPayload,
+  MoveTodoPayload,
+  ReorderTodosPayload,
+  ArchiveTodoPayload,
+  CreateLabelPayload,
+  UpdateLabelPayload,
+  TodoFilterParams,
+} from './api-helpers';
