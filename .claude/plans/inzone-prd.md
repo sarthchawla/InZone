@@ -763,7 +763,7 @@ Board View:
 - [x] Project scaffolding (monorepo setup)
 - [x] Database schema and migrations
 - [x] Backend API (boards, columns, todos)
-- [ ] Frontend board view with drag-and-drop
+- [x] Frontend board view with drag-and-drop
 - [ ] Built-in board templates (read-only)
 - [ ] Labels support
 - [ ] Local development setup
