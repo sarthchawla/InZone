@@ -805,7 +805,7 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] API client tests - happy & unhappy paths
 
 #### Backend Unit Tests
-- [ ] Install Vitest, Supertest, Prisma Mock
+- [x] Install Vitest, Supertest, Prisma Mock
 - [ ] Service tests (BoardService, TodoService, etc.) - happy & unhappy paths
 - [ ] Route tests (all API endpoints) - happy & unhappy paths
 - [ ] Middleware tests (errorHandler, validation) - happy & unhappy paths
