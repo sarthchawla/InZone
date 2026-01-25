@@ -157,7 +157,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: frontend-bdd-blob-*
-          path: all-blob-reports
+          path: apps/web/all-blob-reports
           merge-multiple: true
 
       - name: Merge reports
@@ -167,7 +167,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-bdd-report
-          path: playwright-report/
+          path: apps/web/playwright-report/
           retention-days: 14
 
   backend-bdd:
