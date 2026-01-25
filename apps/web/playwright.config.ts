@@ -52,10 +52,12 @@ export default defineConfig({
   ],
 
   // Dev server configuration
+  // In CI, servers are started manually by the workflow, so always reuse
+  // Locally, start the server if not already running
   webServer: {
     command: 'pnpm dev',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120000,
   },
 });
