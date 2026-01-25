@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText } from 'lucide-react';
+import { AlertCircle, FileText } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { LabelSelector } from '../label';
 import { PriorityBadge } from '../ui/Badge';
@@ -18,6 +18,7 @@ interface TodoEditModalProps {
   }) => void;
   onDelete?: () => void;
   isLoading?: boolean;
+  error?: string | null;
 }
 
 const PRIORITIES: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
@@ -29,12 +30,14 @@ export function TodoEditModal({
   onSave,
   onDelete,
   isLoading,
+  error,
 }: TodoEditModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Priority>('MEDIUM');
   const [dueDate, setDueDate] = useState('');
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Sync state when todo changes
   useEffect(() => {
@@ -44,6 +47,7 @@ export function TodoEditModal({
       setPriority(todo.priority);
       setDueDate(todo.dueDate ? todo.dueDate.split('T')[0] : '');
       setSelectedLabels(todo.labels || []);
+      setShowDeleteConfirm(false);
     }
   }, [todo]);
 
@@ -63,7 +67,8 @@ export function TodoEditModal({
     }
     const currentDueDate = todo?.dueDate ? todo.dueDate.split('T')[0] : '';
     if (dueDate !== currentDueDate) {
-      updates.dueDate = dueDate || null;
+      // Convert YYYY-MM-DD to ISO 8601 datetime format for API
+      updates.dueDate = dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : null;
     }
     const currentLabelIds = (todo?.labels || []).map((l) => l.id).sort();
     const newLabelIds = selectedLabels.map((l) => l.id).sort();
@@ -177,11 +182,52 @@ export function TodoEditModal({
           />
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700"
+          >
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium">Failed to save</p>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation */}
+        {showDeleteConfirm && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-700 mb-3">
+              Are you sure you want to delete this task? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onDelete}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex justify-between pt-4 border-t border-gray-200">
           <div>
-            {onDelete && (
-              <Button variant="danger" onClick={onDelete} disabled={isLoading}>
+            {onDelete && !showDeleteConfirm && (
+              <Button variant="danger" onClick={() => setShowDeleteConfirm(true)} disabled={isLoading}>
                 Delete
               </Button>
             )}

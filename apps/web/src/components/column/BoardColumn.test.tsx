@@ -313,4 +313,384 @@ describe("BoardColumn", () => {
       expect(columnContainer).toBeInTheDocument();
     });
   });
+
+  describe("column options menu", () => {
+    it("opens menu when options button is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+
+      expect(screen.getByText("Edit")).toBeInTheDocument();
+      expect(screen.getByText("Delete")).toBeInTheDocument();
+    });
+
+    it("closes menu when clicking outside", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      expect(screen.getByText("Edit")).toBeInTheDocument();
+
+      // Click outside the menu (on the column header)
+      await user.click(screen.getByTestId("column-header"));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Edit")).not.toBeInTheDocument();
+      });
+    });
+
+    it("opens edit modal when Edit is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+
+      expect(screen.getByText("Edit Column")).toBeInTheDocument();
+      expect(screen.getByLabelText("Name")).toBeInTheDocument();
+      expect(screen.getByLabelText("Description")).toBeInTheDocument();
+    });
+
+    it("opens delete confirmation when Delete is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} onDeleteColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Delete"));
+
+      expect(screen.getByText("Delete Column")).toBeInTheDocument();
+      expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("edit column modal", () => {
+    it("pre-fills current column name", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({ name: "Current Name" });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onUpdateColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+
+      expect(screen.getByLabelText("Name")).toHaveValue("Current Name");
+    });
+
+    it("pre-fills current column description", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({ description: "Current Description" });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onUpdateColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+
+      expect(screen.getByLabelText("Description")).toHaveValue("Current Description");
+    });
+
+    it("calls onUpdateColumn with new values when saved", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      const column = createMockColumn({ name: "Old Name", description: "Old Desc" });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onUpdateColumn={onUpdateColumn} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+
+      const nameInput = screen.getByLabelText("Name");
+      await user.clear(nameInput);
+      await user.type(nameInput, "New Name");
+
+      const descInput = screen.getByLabelText("Description");
+      await user.clear(descInput);
+      await user.type(descInput, "New Description");
+
+      await user.click(screen.getByRole("button", { name: /Save/i }));
+
+      expect(onUpdateColumn).toHaveBeenCalledWith("column-1", {
+        name: "New Name",
+        description: "New Description",
+      });
+    });
+
+    it("does not call onUpdateColumn when no changes made", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={onUpdateColumn} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+      await user.click(screen.getByRole("button", { name: /Save/i }));
+
+      expect(onUpdateColumn).not.toHaveBeenCalled();
+    });
+
+    it("closes modal when Cancel is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+      expect(screen.getByText("Edit Column")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /Cancel/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Edit Column")).not.toBeInTheDocument();
+      });
+    });
+
+    it("disables Save button when name is empty", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Edit"));
+
+      const nameInput = screen.getByLabelText("Name");
+      await user.clear(nameInput);
+
+      expect(screen.getByRole("button", { name: /Save/i })).toBeDisabled();
+    });
+  });
+
+  describe("delete column modal", () => {
+    it("calls onDeleteColumn when confirmed", async () => {
+      const user = userEvent.setup();
+      const onDeleteColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onDeleteColumn={onDeleteColumn} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Delete"));
+      await user.click(screen.getByRole("button", { name: /^Delete$/i }));
+
+      expect(onDeleteColumn).toHaveBeenCalledWith("column-1");
+    });
+
+    it("does not call onDeleteColumn when cancelled", async () => {
+      const user = userEvent.setup();
+      const onDeleteColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onDeleteColumn={onDeleteColumn} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Delete"));
+      await user.click(screen.getByRole("button", { name: /Cancel/i }));
+
+      expect(onDeleteColumn).not.toHaveBeenCalled();
+    });
+
+    it("shows task count warning when column has tasks", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({
+        todos: [createMockTodo({ id: "1" }), createMockTodo({ id: "2" })],
+      });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onDeleteColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Delete"));
+
+      expect(screen.getByText(/will also delete 2 tasks/i)).toBeInTheDocument();
+    });
+
+    it("uses correct grammar for single task", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({
+        todos: [createMockTodo({ id: "1" })],
+      });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onDeleteColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Delete"));
+
+      expect(screen.getByText(/will also delete 1 task\./i)).toBeInTheDocument();
+    });
+
+    it("closes modal after deletion", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} onDeleteColumn={vi.fn()} />);
+
+      await user.click(screen.getByLabelText(/column options/i));
+      await user.click(screen.getByText("Delete"));
+      expect(screen.getByText("Delete Column")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /^Delete$/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Delete Column")).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("inline title editing", () => {
+    it("enters edit mode on double-click", async () => {
+      const user = userEvent.setup();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={vi.fn()} />);
+
+      const title = screen.getByText("Test Column");
+      await user.dblClick(title);
+
+      expect(screen.getByDisplayValue("Test Column")).toBeInTheDocument();
+    });
+
+    it("saves on blur", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={onUpdateColumn} />);
+
+      const title = screen.getByText("Test Column");
+      await user.dblClick(title);
+
+      const input = screen.getByDisplayValue("Test Column");
+      await user.clear(input);
+      await user.type(input, "New Column Name");
+      await user.tab();
+
+      expect(onUpdateColumn).toHaveBeenCalledWith("column-1", { name: "New Column Name" });
+    });
+
+    it("saves on Enter key", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={onUpdateColumn} />);
+
+      const title = screen.getByText("Test Column");
+      await user.dblClick(title);
+
+      const input = screen.getByDisplayValue("Test Column");
+      await user.clear(input);
+      await user.type(input, "Updated Name{Enter}");
+
+      expect(onUpdateColumn).toHaveBeenCalledWith("column-1", { name: "Updated Name" });
+    });
+
+    it("cancels on Escape key", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={onUpdateColumn} />);
+
+      const title = screen.getByText("Test Column");
+      await user.dblClick(title);
+
+      const input = screen.getByDisplayValue("Test Column");
+      await user.type(input, "Changed");
+      await user.keyboard("{Escape}");
+
+      // Should not call update and should show original name
+      expect(onUpdateColumn).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getByText("Test Column")).toBeInTheDocument();
+      });
+    });
+
+    it("does not save empty name", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={onUpdateColumn} />);
+
+      const title = screen.getByText("Test Column");
+      await user.dblClick(title);
+
+      const input = screen.getByDisplayValue("Test Column");
+      await user.clear(input);
+      await user.tab();
+
+      expect(onUpdateColumn).not.toHaveBeenCalled();
+    });
+
+    it("does not save if name unchanged", async () => {
+      const user = userEvent.setup();
+      const onUpdateColumn = vi.fn();
+      renderWithDnd(<BoardColumn {...defaultProps} onUpdateColumn={onUpdateColumn} />);
+
+      const title = screen.getByText("Test Column");
+      await user.dblClick(title);
+
+      const input = screen.getByDisplayValue("Test Column");
+      await user.tab();
+
+      expect(onUpdateColumn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("description tooltip", () => {
+    it("shows info icon when column has description", () => {
+      const column = createMockColumn({ description: "Column description here" });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
+
+      expect(screen.getByLabelText("View description")).toBeInTheDocument();
+    });
+
+    it("does not show info icon when no description", () => {
+      const column = createMockColumn({ description: undefined });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
+
+      expect(screen.queryByLabelText("View description")).not.toBeInTheDocument();
+    });
+
+    it("shows tooltip on hover", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({ description: "Hover description" });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
+
+      const infoButton = screen.getByLabelText("View description");
+      await user.hover(infoButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Hover description")).toBeInTheDocument();
+      });
+    });
+
+    it("hides tooltip on unhover", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({ description: "Hover description" });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
+
+      const infoButton = screen.getByLabelText("View description");
+      await user.hover(infoButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Hover description")).toBeInTheDocument();
+      });
+
+      await user.unhover(infoButton);
+
+      await waitFor(() => {
+        expect(screen.queryByText("Hover description")).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("todo click handler", () => {
+    it("calls onTodoClick when todo is clicked", () => {
+      // Use fireEvent instead of userEvent because DnD kit's useSortable
+      // adds pointer event listeners that can interfere with userEvent
+      const { fireEvent } = require("@testing-library/react");
+      const onTodoClick = vi.fn();
+      const todo = createMockTodo({ id: "todo-1", title: "Clickable Todo" });
+      const column = createMockColumn({ todos: [todo] });
+
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onTodoClick={onTodoClick} />);
+
+      const todoCard = screen.getByTestId("todo-card");
+      fireEvent.click(todoCard);
+
+      expect(onTodoClick).toHaveBeenCalledWith(todo);
+    });
+  });
+
+  describe("dragging state", () => {
+    it("applies dragging styles when isDragging is true", () => {
+      renderWithDnd(<BoardColumn {...defaultProps} isDragging={true} />);
+
+      const column = screen.getByTestId("column");
+      expect(column).toHaveClass("opacity-50");
+      expect(column).toHaveClass("rotate-3");
+    });
+
+    it("does not apply dragging styles when isDragging is false", () => {
+      renderWithDnd(<BoardColumn {...defaultProps} isDragging={false} />);
+
+      const column = screen.getByTestId("column");
+      expect(column).not.toHaveClass("opacity-50");
+    });
+  });
 });

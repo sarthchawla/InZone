@@ -806,23 +806,24 @@ browser_snapshot: Look for "1 task" vs "1 tasks"
 | Priority | Issue | Unit Tests | BDD Tests | Status |
 |----------|-------|------------|-----------|--------|
 | **P0 - Critical** | | | | |
-| P0 | 1.1 Single click task cards | 2 | 2 | Open |
-| P0 | 1.2 Settings button broken | 2 | 2 | Open |
-| P0 | 1.3 Modal buttons outside viewport | 3 | 2 | Open |
-| P0 | 1.4 Due Date API validation bug (NEW) | 2 | 2 | Open |
-| P0 | 1.5 Silent API failures (NEW) | 3 | 2 | Open |
-| P0 | 1.6 Task deletion no confirmation (NEW) | 3 | 3 | Open |
+| P0 | 1.1 Single click task cards | 12 | - | ✅ Fixed |
+| P0 | 1.2 Settings button broken | - | - | ✅ Removed (feature not implemented) |
+| P0 | 1.3 Modal buttons outside viewport | 33 | - | ✅ Fixed |
+| P0 | 1.4 Due Date API validation bug | 2 | - | ✅ Fixed |
+| P0 | 1.5 Silent API failures | 4 | - | ✅ Fixed |
+| P0 | 1.6 Task deletion no confirmation | 5 | - | ✅ Fixed |
 | **P1 - High** | | | | |
-| P1 | 2.0 Edit Column missing name field (NEW) | 3 | 2 | Open |
-| P1 | 2.0.1 Board title not editable (NEW) | 2 | 1 | Open |
-| P1 | 2.1 Mobile responsiveness | 2 | 1 | Open |
-| P1 | 2.2 Horizontal scroll indicator | 1 | 1 | Open |
+| P1 | 2.0 Edit Column missing name field | 7 | - | ✅ Fixed |
+| P1 | 2.0.1 Board title not editable | 5 | - | ✅ Fixed |
+| P1 | 2.1 Mobile responsiveness | 2 | 1 | ✅ Fixed (responsive classes sm:, hidden sm:inline, padding adjustments) |
+| P1 | 2.2 Horizontal scroll indicator | 1 | 1 | ✅ Fixed (scroll-shadow-container with CSS pseudo-element) |
 | **P2 - Medium** | | | | |
-| P2 | 3.1 Empty board onboarding | 1 | 1 | Open |
-| P2 | 3.2 Header link to home | 1 | 1 | Open |
-| P2 | 3.3 Grammar (plural/singular) | 2 | 1 | Open |
+| P2 | 3.1 Empty board onboarding | 1 | 1 | ✅ Fixed (Get started with your board + Add your first column) |
+| P2 | 3.2 Header link to home | 1 | 1 | ✅ Fixed (InZone header wrapped in Link to /) |
+| P2 | 3.3 Grammar (plural/singular) | 3 | - | ✅ Fixed (BoardList + column delete modal) |
 
 **Total Issues:** 14 (6 Critical, 4 High, 4 Medium)
+**Fixed:** 14 | **Open:** 0
 
 ---
 

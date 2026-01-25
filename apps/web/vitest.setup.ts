@@ -3,6 +3,13 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, afterAll } from "vitest";
 import { server } from "./src/test/mocks/server";
 
+// Mock ResizeObserver which is not available in JSDOM
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Clean up after each test
 afterEach(() => {
   cleanup();

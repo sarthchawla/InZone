@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BoardList } from "./BoardList";
 import { server } from "../../test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { mockBoards, mockTemplates, createMockBoard } from "../../test/mocks/handlers";
+import { mockBoards, mockTemplates, createMockBoard, createMockColumn } from "../../test/mocks/handlers";
 
 describe("BoardList", () => {
   // Happy Path Tests
@@ -50,6 +50,48 @@ describe("BoardList", () => {
         expect(screen.getByText(/3 columns/i)).toBeInTheDocument();
       });
       expect(screen.getByText(/5 tasks/i)).toBeInTheDocument();
+    });
+
+    it("uses singular grammar for 1 column", async () => {
+      server.use(
+        http.get("/api/boards", () => {
+          return HttpResponse.json([
+            createMockBoard({
+              id: "board-1",
+              name: "Single Column Board",
+              todoCount: 5,
+              columns: [createMockColumn({ id: "col-1", name: "Todo" })],
+            }),
+          ]);
+        })
+      );
+
+      render(<BoardList />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 column/i)).toBeInTheDocument();
+      });
+    });
+
+    it("uses singular grammar for 1 task", async () => {
+      server.use(
+        http.get("/api/boards", () => {
+          return HttpResponse.json([
+            createMockBoard({
+              id: "board-1",
+              name: "Single Task Board",
+              todoCount: 1,
+              columns: [createMockColumn({ id: "col-1", name: "Todo" })],
+            }),
+          ]);
+        })
+      );
+
+      render(<BoardList />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 task(?!s)/i)).toBeInTheDocument();
+      });
     });
   });
 

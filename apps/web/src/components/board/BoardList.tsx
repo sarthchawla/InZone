@@ -152,9 +152,9 @@ export function BoardList() {
                 </button>
               </div>
               <div className="mt-4 text-xs text-gray-400" data-testid="todo-count">
-                {board.columns?.length ?? 0} columns
+                {board.columns?.length ?? 0} {(board.columns?.length ?? 0) === 1 ? 'column' : 'columns'}
                 {' · '}
-                {board.todoCount ?? 0} tasks
+                {board.todoCount ?? 0} {(board.todoCount ?? 0) === 1 ? 'task' : 'tasks'}
               </div>
             </Link>
           ))}

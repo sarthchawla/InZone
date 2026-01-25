@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "../../test/utils";
+import userEvent from "@testing-library/user-event";
 import { TodoCard } from "./TodoCard";
 import { DndContext } from "@dnd-kit/core";
 import type { Todo } from "../../types";
@@ -224,6 +225,152 @@ describe("TodoCard", () => {
       // Card should be wrapped in a div - find the outer card container
       const card = screen.getByText("Test Todo").closest('[class*="rounded-lg"]');
       expect(card).toBeInTheDocument();
+    });
+  });
+
+  // Click behavior tests (Issue 1.1 - Single click on task cards)
+  // Note: Using fireEvent.click instead of userEvent.click because the DnD kit's
+  // useSortable hook adds pointer event listeners that can interfere with userEvent
+  describe("click behavior", () => {
+    it("calls onClick with todo on single click", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo({ title: "Click Me" });
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const card = screen.getByTestId("todo-card");
+      fireEvent.click(card);
+
+      expect(onClick).toHaveBeenCalledWith(todo);
+    });
+
+    it("calls onClick exactly once on single click", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo();
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const card = screen.getByTestId("todo-card");
+      fireEvent.click(card);
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not require double-click to trigger onClick", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo();
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const card = screen.getByTestId("todo-card");
+      fireEvent.click(card);
+
+      // onClick should be called after single click, not requiring double-click
+      expect(onClick).toHaveBeenCalled();
+    });
+
+    it("does not throw when onClick prop is not provided", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const todo = createMockTodo();
+      renderWithDnd(<TodoCard todo={todo} />);
+
+      const card = screen.getByTestId("todo-card");
+      // Should not throw when clicking without onClick handler
+      expect(() => fireEvent.click(card)).not.toThrow();
+    });
+
+    it("passes the correct todo object to onClick", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo({
+        id: "specific-id",
+        title: "Specific Title",
+        priority: "HIGH",
+      });
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const card = screen.getByTestId("todo-card");
+      fireEvent.click(card);
+
+      expect(onClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "specific-id",
+          title: "Specific Title",
+          priority: "HIGH",
+        })
+      );
+    });
+
+    it("click on title area triggers onClick (event bubbles up)", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo({ title: "Task Title" });
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const title = screen.getByTestId("todo-title");
+      fireEvent.click(title);
+
+      expect(onClick).toHaveBeenCalledWith(todo);
+    });
+
+    it("click on priority badge triggers onClick", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo({ priority: "URGENT" });
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const priorityBadge = screen.getByText("URGENT");
+      fireEvent.click(priorityBadge);
+
+      expect(onClick).toHaveBeenCalledWith(todo);
+    });
+
+    it("click on label triggers onClick", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo({
+        labels: [{ id: "label-1", name: "Bug", color: "#FF0000" }],
+      });
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const label = screen.getByText("Bug");
+      fireEvent.click(label);
+
+      expect(onClick).toHaveBeenCalledWith(todo);
+    });
+
+    it("click on due date triggers onClick", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo({ dueDate: "2026-03-15T00:00:00.000Z" });
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const dueDate = screen.getByTestId("due-date");
+      fireEvent.click(dueDate);
+
+      expect(onClick).toHaveBeenCalledWith(todo);
+    });
+
+    it("card has cursor-pointer style for clickability", () => {
+      const todo = createMockTodo();
+      renderWithDnd(<TodoCard todo={todo} onClick={() => {}} />);
+
+      const card = screen.getByTestId("todo-card");
+      expect(card).toHaveClass("cursor-pointer");
+    });
+
+    it("multiple clicks call onClick multiple times", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onClick = vi.fn();
+      const todo = createMockTodo();
+      renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
+
+      const card = screen.getByTestId("todo-card");
+      fireEvent.click(card);
+      fireEvent.click(card);
+      fireEvent.click(card);
+
+      expect(onClick).toHaveBeenCalledTimes(3);
     });
   });
 });

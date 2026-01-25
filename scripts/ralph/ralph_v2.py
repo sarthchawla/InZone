@@ -654,6 +654,11 @@ Examples:
     activity_log_path = project_root / args.activity_log
     activity_log = ActivityLog(activity_log_path)
 
+    # Create silent mode flag file to suppress Claude Code notification hooks
+    # This is more reliable than environment variables which may not be inherited by hooks
+    silent_flag_file = Path("/tmp/.claude_code_silent")
+    silent_flag_file.touch()
+
     # Run iterations
     completed = 0
     failed = 0
@@ -667,6 +672,8 @@ Examples:
         # Write activity log before exiting
         activity_log.write(completed, failed, early_complete, global_state)
         print(colorize(f"📝 Activity log written to: {activity_log_path}", Colors.CYAN))
+        # Remove silent flag file before sending notification
+        silent_flag_file.unlink(missing_ok=True)
         send_macos_notification(
             "Ralph Loop Interrupted ⚠️",
             f"Stopped after {completed + failed} iterations. Cost: ${global_state.get('total_cost', 0):.2f}"
@@ -690,11 +697,18 @@ Examples:
         else:
             failed += 1
 
+        # Write activity log after each iteration (so progress is saved continuously)
+        activity_log.write(completed, failed, early_complete, global_state)
+
         # Check for early completion
         if is_complete and stop_on_complete:
             print()
             print(colorize("🎉 RALPH_COMPLETE detected! All tasks done.", Colors.GREEN, Colors.BOLD))
             early_complete = True
+            # Write final activity log with early_complete flag
+            activity_log.write(completed, failed, early_complete, global_state)
+            # Remove silent flag file before sending notification
+            silent_flag_file.unlink(missing_ok=True)
             send_macos_notification(
                 "Ralph Loop Complete 🎉",
                 f"RALPH_COMPLETE detected after {i} iterations. Cost: ${global_state.get('total_cost', 0):.2f}"
@@ -708,6 +722,9 @@ Examples:
     # Print summary
     print_summary(completed, failed, early_complete, global_state)
     sys.stdout.flush()
+
+    # Remove silent flag file before sending notification
+    silent_flag_file.unlink(missing_ok=True)
 
     # Send notification for normal completion (if not already sent for early completion)
     if not early_complete:

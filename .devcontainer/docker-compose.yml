@@ -15,11 +15,14 @@ services:
       - ..:/InZone-App:cached
       - claude-code-bashhistory:/commandhistory
       - ${HOME}/.claude:/home/node/.claude:cached
+      # Sync timezone with host
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - NODE_OPTIONS=--max-old-space-size=4096
       - CLAUDE_CONFIG_DIR=/home/node/.claude
       - POWERLEVEL9K_DISABLE_GITSTATUS=true
       - DATABASE_URL=postgresql://inzone:inzone_dev@db:5432/inzone?schema=public
+      - TZ=${TZ:-America/Los_Angeles}
     cap_add:
       - NET_ADMIN
       - NET_RAW

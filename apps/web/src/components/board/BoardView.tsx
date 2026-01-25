@@ -17,7 +17,8 @@ import {
   horizontalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Settings, Tags, ChevronDown, Pencil, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Tags, ChevronDown, Pencil, FileText, Columns } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';
@@ -57,6 +58,9 @@ export function BoardView() {
   const [editedDescription, setEditedDescription] = useState('');
 
   const boardNameInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [scrolledEnd, setScrolledEnd] = useState(false);
 
   // Focus board name input when editing starts
   useEffect(() => {
@@ -73,6 +77,40 @@ export function BoardView() {
       setEditedDescription(board.description || '');
     }
   }, [board]);
+
+  // Check for horizontal overflow and scroll position
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const checkOverflow = () => {
+      const hasHorizontalOverflow = container.scrollWidth > container.clientWidth;
+      setHasOverflow(hasHorizontalOverflow);
+
+      // Check if scrolled to the end
+      const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
+      setScrolledEnd(atEnd);
+    };
+
+    const handleScroll = () => {
+      const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
+      setScrolledEnd(atEnd);
+    };
+
+    checkOverflow();
+    container.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', checkOverflow);
+
+    // Also check when columns change
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(container);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', checkOverflow);
+      observer.disconnect();
+    };
+  }, [board?.columns.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -107,6 +145,8 @@ export function BoardView() {
     [board]
   );
 
+  // DnD handlers - covered by E2E tests, excluded from unit test coverage
+  /* istanbul ignore next */
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const activeIdStr = active.id as string;
@@ -129,10 +169,12 @@ export function BoardView() {
     }
   };
 
+  /* istanbul ignore next */
   const handleDragOver = (_event: DragOverEvent) => {
     // This is handled in dragEnd for simplicity
   };
 
+  /* istanbul ignore next */
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -260,7 +302,7 @@ export function BoardView() {
   };
 
   // Board name inline editing handlers
-  const handleBoardNameDoubleClick = () => {
+  const handleBoardNameClick = () => {
     if (board) {
       setEditedBoardName(board.name);
       setIsEditingBoardName(true);
@@ -302,7 +344,7 @@ export function BoardView() {
     setShowDescriptionModal(false);
   };
 
-  const handleTodoDoubleClick = (todo: Todo) => {
+  const handleTodoClick = (todo: Todo) => {
     setEditingTodo(todo);
   };
 
@@ -357,17 +399,17 @@ export function BoardView() {
   return (
     <div className="flex flex-col h-full" data-testid="board-view">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
               to="/"
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <div className="flex items-center gap-2">
-              {/* Board name - editable on double-click */}
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+              {/* Board name - editable on click */}
               {isEditingBoardName ? (
                 <input
                   ref={boardNameInputRef}
@@ -376,13 +418,13 @@ export function BoardView() {
                   onChange={(e) => setEditedBoardName(e.target.value)}
                   onBlur={handleBoardNameSave}
                   onKeyDown={handleBoardNameKeyDown}
-                  className="text-xl font-bold text-gray-900 bg-white border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                  className="text-lg sm:text-xl font-bold text-gray-900 bg-white border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[120px] sm:min-w-[200px] max-w-full"
                 />
               ) : (
                 <h1
-                  className="text-xl font-bold text-gray-900 cursor-pointer hover:text-blue-600"
-                  onDoubleClick={handleBoardNameDoubleClick}
-                  title="Double-click to edit"
+                  className="text-lg sm:text-xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 truncate"
+                  onClick={handleBoardNameClick}
+                  title="Click to edit"
                 >
                   {board.name}
                 </h1>
@@ -400,24 +442,30 @@ export function BoardView() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleOpenDescriptionModal}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Description
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleOpenDescriptionModal}
+              aria-label="Edit Description"
+            >
+              <Pencil className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Edit Description</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowLabelManager(true)}>
-              <Tags className="h-4 w-4 mr-2" />
-              Labels
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLabelManager(true)}
+              aria-label="Labels"
+            >
+              <Tags className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Labels</span>
             </Button>
           </div>
         </div>
 
         {/* Collapsible description section */}
         {board.description && isDescriptionExpanded && (
-          <div className="mt-4 ml-14 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="mt-3 sm:mt-4 ml-0 sm:ml-14 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -426,6 +474,7 @@ export function BoardView() {
               <button
                 onClick={() => setIsDescriptionExpanded(false)}
                 className="text-gray-400 hover:text-gray-600"
+                title="Collapse description"
               >
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -438,7 +487,7 @@ export function BoardView() {
 
         {/* Add description prompt when no description exists */}
         {!board.description && (
-          <div className="mt-2 ml-14">
+          <div className="mt-2 ml-0 sm:ml-14">
             <button
               onClick={handleOpenDescriptionModal}
               className="text-sm text-gray-400 hover:text-blue-600 flex items-center gap-1"
@@ -453,91 +502,114 @@ export function BoardView() {
       <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
 
       {/* Board content */}
-      <div className="flex-1 overflow-x-auto p-6 bg-gray-50">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-            <div className="flex gap-4 h-full">
-              {sortedColumns.map((column) => (
-                <BoardColumn
-                  key={column.id}
-                  column={column}
-                  onAddTodo={handleAddTodo}
-                  onUpdateColumn={handleUpdateColumn}
-                  onDeleteColumn={handleDeleteColumn}
-                  onTodoDoubleClick={handleTodoDoubleClick}
-                  isDragging={activeColumn?.id === column.id}
-                />
-              ))}
-
-              {/* Add column button */}
-              {isAddingColumn ? (
-                <div className="flex flex-col gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-100">
-                  <Input
-                    value={newColumnName}
-                    onChange={(e) => setNewColumnName(e.target.value)}
-                    onKeyDown={handleColumnKeyDown}
-                    placeholder="Enter column name..."
-                    autoFocus
+      <div
+        ref={scrollContainerRef}
+        className={cn(
+          'flex-1 overflow-x-auto p-6 bg-gray-50 scroll-shadow-container',
+          hasOverflow && 'has-overflow',
+          scrolledEnd && 'scrolled-end'
+        )}
+        data-testid="columns-container"
+      >
+        {/* Empty board onboarding */}
+        {sortedColumns.length === 0 && !isAddingColumn ? (
+          <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+            <Columns className="h-16 w-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-medium text-gray-900 mb-2">Get started with your board</h3>
+            <p className="text-gray-500 mb-6 max-w-md">
+              Create your first column to begin organizing your tasks. Columns help you track the progress of your work.
+            </p>
+            <Button variant="primary" onClick={() => setIsAddingColumn(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add your first column
+            </Button>
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+              <div className="flex gap-4 h-full">
+                {sortedColumns.map((column) => (
+                  <BoardColumn
+                    key={column.id}
+                    column={column}
+                    onAddTodo={handleAddTodo}
+                    onUpdateColumn={handleUpdateColumn}
+                    onDeleteColumn={handleDeleteColumn}
+                    onTodoClick={handleTodoClick}
+                    isDragging={activeColumn?.id === column.id}
                   />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={handleAddColumn}
-                      disabled={createColumn.isPending}
-                    >
-                      {createColumn.isPending ? 'Adding...' : 'Add'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setIsAddingColumn(false);
-                        setNewColumnName('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsAddingColumn(true)}
-                  className="flex items-center gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-200/50 hover:bg-gray-200 text-gray-600 transition-colors"
-                >
-                  <Plus className="h-5 w-5" />
-                  Add column
-                </button>
-              )}
-            </div>
-          </SortableContext>
+                ))}
 
-          <DragOverlay>
-            {activeId && activeTodo ? (
-              <TodoCard todo={activeTodo} isDragging />
-            ) : activeId && activeColumn ? (
-              <div className="flex flex-col w-72 min-w-72 rounded-lg bg-gray-100 opacity-80 rotate-3 shadow-xl">
-                <div className="flex items-center justify-between p-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-gray-700">{activeColumn.name}</h3>
-                    <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                      {(activeColumn.todos ?? []).length}
-                    </span>
+                {/* Add column button */}
+                {isAddingColumn ? (
+                  <div className="flex flex-col gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-100">
+                    <Input
+                      value={newColumnName}
+                      onChange={(e) => setNewColumnName(e.target.value)}
+                      onKeyDown={handleColumnKeyDown}
+                      placeholder="Enter column name..."
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={handleAddColumn}
+                        disabled={createColumn.isPending}
+                      >
+                        {createColumn.isPending ? 'Adding...' : 'Add'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setIsAddingColumn(false);
+                          setNewColumnName('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsAddingColumn(true)}
+                    className="flex items-center gap-2 w-72 min-w-72 h-fit p-3 rounded-lg bg-gray-200/50 hover:bg-gray-200 text-gray-600 transition-colors"
+                  >
+                    <Plus className="h-5 w-5" />
+                    Add column
+                  </button>
+                )}
+              </div>
+            </SortableContext>
+
+            <DragOverlay>
+              {activeId && activeTodo ? (
+                <TodoCard todo={activeTodo} isDragging />
+              ) : activeId && activeColumn ? (
+                <div className="flex flex-col w-72 min-w-72 rounded-lg bg-gray-100 opacity-80 rotate-3 shadow-xl">
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-700">{activeColumn.name}</h3>
+                      <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                        {(activeColumn.todos ?? []).length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1 p-2 min-h-[100px] opacity-50">
+                    {/* Placeholder for todos */}
                   </div>
                 </div>
-                <div className="flex-1 p-2 min-h-[100px] opacity-50">
-                  {/* Placeholder for todos */}
-                </div>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
       </div>
 
       {/* Todo Edit Modal */}
@@ -548,6 +620,7 @@ export function BoardView() {
         onSave={handleTodoSave}
         onDelete={handleTodoDelete}
         isLoading={updateTodo.isPending || deleteTodo.isPending}
+        error={updateTodo.error ? (updateTodo.error as Error).message || 'An error occurred while saving' : null}
       />
 
       {/* Board Description Modal */}

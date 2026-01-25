@@ -14,7 +14,7 @@ interface BoardColumnProps {
   onAddTodo: (columnId: string, title: string) => void;
   onUpdateColumn?: (id: string, updates: { name?: string; description?: string | null }) => void;
   onDeleteColumn?: (id: string) => void;
-  onTodoDoubleClick?: (todo: Todo) => void;
+  onTodoClick?: (todo: Todo) => void;
   isDragging?: boolean;
 }
 
@@ -23,7 +23,7 @@ export function BoardColumn({
   onAddTodo,
   onUpdateColumn,
   onDeleteColumn,
-  onTodoDoubleClick,
+  onTodoClick,
   isDragging
 }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
@@ -32,6 +32,7 @@ export function BoardColumn({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(column.name);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editedName, setEditedName] = useState(column.name);
   const [editedDescription, setEditedDescription] = useState(column.description || '');
   const [showTooltip, setShowTooltip] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -125,6 +126,7 @@ export function BoardColumn({
 
   const handleEditClick = () => {
     setShowMenu(false);
+    setEditedName(column.name);
     setEditedDescription(column.description || '');
     setShowEditModal(true);
   };
@@ -136,6 +138,9 @@ export function BoardColumn({
 
   const handleEditSave = () => {
     const updates: { name?: string; description?: string | null } = {};
+    if (editedName.trim() && editedName.trim() !== column.name) {
+      updates.name = editedName.trim();
+    }
     if (editedDescription !== (column.description || '')) {
       updates.description = editedDescription.trim() || null;
     }
@@ -267,7 +272,7 @@ export function BoardColumn({
         >
           <SortableContext items={todoIds} strategy={verticalListSortingStrategy}>
             {sortedTodos.map((todo) => (
-              <TodoCard key={todo.id} todo={todo} onDoubleClick={onTodoDoubleClick} />
+              <TodoCard key={todo.id} todo={todo} onClick={onTodoClick} />
             ))}
           </SortableContext>
         </div>
@@ -319,6 +324,18 @@ export function BoardColumn({
       >
         <div className="space-y-4">
           <div>
+            <label htmlFor="columnName" className="block text-sm font-medium text-gray-700 mb-1">
+              Name
+            </label>
+            <Input
+              id="columnName"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              placeholder="Column name"
+              autoFocus
+            />
+          </div>
+          <div>
             <label htmlFor="columnDescription" className="block text-sm font-medium text-gray-700 mb-1">
               Description
             </label>
@@ -335,7 +352,7 @@ export function BoardColumn({
             <Button variant="ghost" onClick={() => setShowEditModal(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleEditSave}>
+            <Button variant="primary" onClick={handleEditSave} disabled={!editedName.trim()}>
               Save
             </Button>
           </div>

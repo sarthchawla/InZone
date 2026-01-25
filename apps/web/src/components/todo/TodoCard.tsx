@@ -8,10 +8,10 @@ import type { Todo } from '../../types';
 interface TodoCardProps {
   todo: Todo;
   isDragging?: boolean;
-  onDoubleClick?: (todo: Todo) => void;
+  onClick?: (todo: Todo) => void;
 }
 
-export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
+export function TodoCard({ todo, isDragging, onClick }: TodoCardProps) {
   const {
     attributes,
     listeners,
@@ -35,9 +35,12 @@ export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
 
   const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date();
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Only open edit modal if this is a genuine click, not after a drag
+    // The PointerSensor has an 8px activation constraint, so if we get here
+    // it means the pointer didn't move enough to start a drag
     e.stopPropagation();
-    onDoubleClick?.(todo);
+    onClick?.(todo);
   };
 
   return (
@@ -46,13 +49,13 @@ export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       data-testid="todo-card"
       className={cn(
         'group relative rounded-lg border border-gray-200 bg-white p-3 shadow-sm',
         'hover:border-gray-300 hover:shadow-md transition-all',
-        'cursor-grab active:cursor-grabbing',
-        isBeingDragged && 'opacity-50 shadow-lg ring-2 ring-blue-400 rotate-2'
+        'cursor-pointer',
+        isBeingDragged && 'opacity-50 shadow-lg ring-2 ring-blue-400 rotate-2 cursor-grabbing'
       )}
     >
       <div>
