@@ -17,6 +17,10 @@ services:
       - ${HOME}/.claude:/home/node/.claude:cached
       # Sync timezone with host
       - /etc/localtime:/etc/localtime:ro
+      # Use separate node_modules for Linux binaries (don't share with macOS host)
+      - node_modules:/InZone-App/node_modules
+      - node_modules_web:/InZone-App/apps/web/node_modules
+      - node_modules_api:/InZone-App/apps/api/node_modules
     environment:
       - NODE_OPTIONS=--max-old-space-size=4096
       - CLAUDE_CONFIG_DIR=/home/node/.claude
@@ -53,3 +57,7 @@ services:
 volumes:
   claude-code-bashhistory:
   postgres_data:
+  # Separate node_modules volumes for Linux binaries
+  node_modules:
+  node_modules_web:
+  node_modules_api:
