@@ -7,6 +7,8 @@ import {
   createApiHelper,
   apiAssertions,
   testDataGenerators,
+} from './api-helpers';
+import type {
   ApiResponse,
   Board,
   Column,
@@ -289,12 +291,16 @@ export { expect };
 // Export test data factory for direct use in step definitions
 export { testDataFactory };
 
-// Re-export API helper types and utilities for direct use in step definitions
+// Re-export API helper utilities for direct use in step definitions
 export {
   ApiHelper,
   createApiHelper,
   apiAssertions,
   testDataGenerators,
+} from './api-helpers';
+
+// Re-export API helper types for direct use in step definitions
+export type {
   ApiResponse,
   Board,
   Column,
