@@ -486,7 +486,15 @@ When('I enter {string} as the todo title', async ({ page }, title: string) => {
 });
 
 When('I enter {string} as the description', async ({ page }, description: string) => {
-  await page.getByLabel(/description/i).fill(description);
+  // Try to find description field by label first, fallback to placeholder for board create dialog
+  const byLabel = page.getByLabel(/description/i);
+  const byPlaceholder = page.getByPlaceholder(/description/i);
+
+  if (await byLabel.isVisible().catch(() => false)) {
+    await byLabel.fill(description);
+  } else {
+    await byPlaceholder.fill(description);
+  }
 });
 
 When('I leave the title empty', async ({ page }) => {

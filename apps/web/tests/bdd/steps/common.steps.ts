@@ -3,8 +3,43 @@ import { test, expect } from '../fixtures';
 
 const { Given, When, Then } = createBdd(test);
 
+// Helper to set up default API mocks before navigation
+async function setupDefaultMocks(page: import('@playwright/test').Page) {
+  // Default empty boards list
+  await page.route('**/api/boards', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Note: Don't mock templates here - each scenario that needs templates
+  // should set up its own mock BEFORE navigation. The templates are fetched
+  // when the page loads and cached by React Query.
+
+  // Default empty labels list
+  await page.route('**/api/labels**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+}
+
 // Navigation steps
 Given('I am on the boards list page', async ({ page, baseUrl }) => {
+  // Set up default mocks before navigation to prevent real API calls
+  await setupDefaultMocks(page);
   await page.goto(baseUrl);
   await page.waitForLoadState('networkidle');
 });
@@ -15,6 +50,8 @@ Given('I am on the board view page', async ({ page }) => {
 });
 
 Given('I navigate to the boards list', async ({ page, baseUrl }) => {
+  // Set up default mocks before navigation to prevent real API calls
+  await setupDefaultMocks(page);
   await page.goto(baseUrl);
   await page.waitForLoadState('networkidle');
 });
@@ -52,10 +89,34 @@ Given('the network is unavailable', async ({ page }) => {
 
 // Common UI interactions
 When('I click {string}', async ({ page }, buttonText: string) => {
+  // Try to click within a dialog first (modal context), then fallback to page
+  const dialog = page.getByRole('dialog');
+  const dialogButton = dialog.getByRole('button', { name: buttonText });
+
+  if (await dialog.isVisible().catch(() => false)) {
+    if (await dialogButton.isVisible().catch(() => false)) {
+      await dialogButton.click();
+      return;
+    }
+  }
+
+  // Fallback to page-level button
   await page.getByRole('button', { name: buttonText }).click();
 });
 
 When('I click the {string} button', async ({ page }, buttonText: string) => {
+  // Try to click within a dialog first (modal context), then fallback to page
+  const dialog = page.getByRole('dialog');
+  const dialogButton = dialog.getByRole('button', { name: buttonText });
+
+  if (await dialog.isVisible().catch(() => false)) {
+    if (await dialogButton.isVisible().catch(() => false)) {
+      await dialogButton.click();
+      return;
+    }
+  }
+
+  // Fallback to page-level button
   await page.getByRole('button', { name: buttonText }).click();
 });
 

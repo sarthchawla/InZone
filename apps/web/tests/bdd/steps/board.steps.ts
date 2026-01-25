@@ -52,16 +52,40 @@ Given('a board {string} exists with columns {string}', async ({ page }, boardNam
 });
 
 Given('no boards exist', async ({ page }) => {
-  // Mock API to return empty boards list
+  // Store for created boards during the test
+  const createdBoards: Array<{ id: string; name: string; description: string; columns: unknown[]; todoCount: number }> = [];
+
+  // Mock API to return empty boards list initially, update after creation
   await page.route('**/api/boards', async (route) => {
-    if (route.request().method() === 'GET') {
+    const method = route.request().method();
+    if (method === 'GET') {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([]),
+        body: JSON.stringify(createdBoards),
+      });
+    } else if (method === 'POST') {
+      // Handle board creation
+      const body = JSON.parse(route.request().postData() || '{}');
+      const newBoard = {
+        id: `board-${Date.now()}`,
+        name: body.name,
+        description: body.description || '',
+        columns: [],
+        todoCount: 0,
+      };
+      createdBoards.push(newBoard);
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(newBoard),
       });
     } else {
-      await route.continue();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
     }
   });
 });
@@ -89,21 +113,21 @@ Given('the following boards exist:', async ({ page }, dataTable) => {
 
 // Board creation steps
 When('I enter {string} as the board name', async ({ page }, boardName: string) => {
-  await page.getByLabel(/board name/i).fill(boardName);
+  await page.getByPlaceholder(/enter board name/i).fill(boardName);
 });
 
 When('I leave the board name empty', async ({ page }) => {
-  await page.getByLabel(/board name/i).clear();
+  await page.getByPlaceholder(/enter board name/i).clear();
 });
 
 When('I enter a {int} character board name', async ({ page }, length: number) => {
   const longName = 'A'.repeat(length);
-  await page.getByLabel(/board name/i).fill(longName);
+  await page.getByPlaceholder(/enter board name/i).fill(longName);
 });
 
 When('I select {string} template', async ({ page }, templateName: string) => {
-  await page.getByRole('combobox', { name: /template/i }).click();
-  await page.getByRole('option', { name: templateName }).click();
+  // Native <select> element - use selectOption
+  await page.locator('#template-select').selectOption({ label: templateName });
 });
 
 When('I click on {string} board', async ({ page }, boardName: string) => {
@@ -189,49 +213,86 @@ Then('boards should eventually appear', async ({ page }) => {
 });
 
 // Template setup steps
-Given('the templates endpoint returns default templates', async ({ page }) => {
+Given('the templates endpoint returns default templates', async ({ page, baseUrl }) => {
+  // Clear any existing routes for templates
+  await page.unroute('**/api/templates');
+
+  const templates = [
+    {
+      id: 'kanban-basic',
+      name: 'Basic Kanban',
+      description: 'Simple three-column Kanban board',
+      isBuiltIn: true,
+      columns: [
+        { name: 'Todo' },
+        { name: 'In Progress' },
+        { name: 'Done' }
+      ]
+    },
+    {
+      id: 'dev-workflow',
+      name: 'Development',
+      description: 'Software development workflow',
+      isBuiltIn: true,
+      columns: [
+        { name: 'Backlog' },
+        { name: 'Todo' },
+        { name: 'In Progress' },
+        { name: 'Review' },
+        { name: 'Done' }
+      ]
+    },
+    {
+      id: 'simple',
+      name: 'Simple',
+      description: 'Minimal two-column setup',
+      isBuiltIn: true,
+      columns: [
+        { name: 'Todo' },
+        { name: 'Done' }
+      ]
+    }
+  ];
+
+  // Set up the templates mock
   await page.route('**/api/templates', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([
-        {
-          id: 'kanban-basic',
-          name: 'Basic Kanban',
-          description: 'Simple three-column Kanban board',
-          isBuiltIn: true,
-          columns: [
-            { name: 'Todo' },
-            { name: 'In Progress' },
-            { name: 'Done' }
-          ]
-        },
-        {
-          id: 'dev-workflow',
-          name: 'Development',
-          description: 'Software development workflow',
-          isBuiltIn: true,
-          columns: [
-            { name: 'Backlog' },
-            { name: 'Todo' },
-            { name: 'In Progress' },
-            { name: 'Review' },
-            { name: 'Done' }
-          ]
-        },
-        {
-          id: 'simple',
-          name: 'Simple',
-          description: 'Minimal two-column setup',
-          isBuiltIn: true,
-          columns: [
-            { name: 'Todo' },
-            { name: 'Done' }
-          ]
-        }
-      ]),
+      body: JSON.stringify(templates),
     });
   });
+
+  // Also set up default boards mock in case it was overwritten
+  await page.route('**/api/boards', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    } else if (route.request().method() === 'POST') {
+      const body = JSON.parse(route.request().postData() || '{}');
+      const newBoard = {
+        id: `board-${Date.now()}`,
+        name: body.name,
+        description: body.description || '',
+        columns: [],
+        todoCount: 0,
+      };
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(newBoard),
+      });
+    } else {
+      await route.fulfill({ status: 200, body: '{}' });
+    }
+  });
+
+  // Navigate fresh to ensure templates are fetched with new mock
+  await page.goto(baseUrl);
+  await page.waitForLoadState('networkidle');
 });
 
 // Error mock steps for create
