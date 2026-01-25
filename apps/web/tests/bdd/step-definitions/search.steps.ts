@@ -315,13 +315,7 @@ When('I select {string} board filter', async function (this: CustomWorld, boardN
   await boardFilter.selectOption({ label: boardName });
 });
 
-When('I filter by {string} label', async function (this: CustomWorld, labelName: string) {
-  const labelFilter = this.page.getByRole('combobox', { name: /label/i }).or(
-    this.page.locator('[data-testid="label-filter"]')
-  );
-  await labelFilter.click();
-  await this.page.getByRole('option', { name: labelName }).click();
-});
+// Note: 'I filter by {string} label' is defined in label.steps.ts
 
 When('I toggle {string} option', async function (this: CustomWorld, optionName: string) {
   const toggle = this.page.getByLabel(optionName).or(
@@ -481,14 +475,7 @@ Then('the search should complete safely', async function (this: CustomWorld) {
   expect(criticalErrors).toHaveLength(0);
 });
 
-Then('no script should execute', async function (this: CustomWorld) {
-  let alertTriggered = false;
-  this.page.on('dialog', () => {
-    alertTriggered = true;
-  });
-  await this.page.waitForTimeout(500);
-  expect(alertTriggered).toBe(false);
-});
+// Note: 'no script should execute' is defined in label.steps.ts
 
 Then('the search query should be properly escaped', async function (this: CustomWorld) {
   // Verify the HTML is not interpreted
@@ -588,4 +575,19 @@ Then('my search query should be preserved', async function (this: CustomWorld) {
     this.page.locator('[data-testid="search-input"]')
   );
   await expect(searchInput).not.toHaveValue('');
+});
+
+Then('I should see appropriate results', async function (this: CustomWorld) {
+  // Either see results or "No results found"
+  const hasResults = await this.page.locator('[data-testid="search-results"]').isVisible();
+  const hasEmptyState = await this.page.getByText(/no results/i).isVisible();
+  expect(hasResults || hasEmptyState).toBe(true);
+});
+
+Then('I should see current search results', async function (this: CustomWorld) {
+  // Verify search results are displayed (may be empty or with results)
+  const searchResults = this.page.locator('[data-testid="search-results"]').or(
+    this.page.locator('.search-results')
+  );
+  await expect(searchResults).toBeVisible({ timeout: 5000 });
 });
