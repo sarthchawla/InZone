@@ -5,6 +5,7 @@ import { columnsRouter } from './routes/columns.js';
 import { todosRouter } from './routes/todos.js';
 import { templatesRouter } from './routes/templates.js';
 import { labelsRouter } from './routes/labels.js';
+import { webhooksRouter } from './routes/webhooks.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/columns', columnsRouter);
 app.use('/api/todos', todosRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/labels', labelsRouter);
+app.use('/api/webhooks', webhooksRouter);
 
 // Error handling
 app.use(errorHandler);

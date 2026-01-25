@@ -1,121 +1,150 @@
 # Slack Integration - Product Requirements Document
 
-> **Status**: Future Scope
+> **Status**: In Progress
 > **Parent PRD**: [InZone PRD](../inzone-prd.md)
-> **Priority**: P2
+> **Priority**: P1
 
 ---
 
 ## Overview
 
-Enable users to create todos from Slack messages via reactions, shortcuts, or bot mentions. Slack pushes events to InZone which processes and creates corresponding todos.
+Enable users to create todos from Slack messages using **Slack Workflow Builder**. Users trigger a workflow via emoji reaction, which opens a form to capture task details and sends data to InZone webhook.
 
 ---
 
-## Authentication
+## Architecture: Slack Workflow Approach
 
-### OAuth 2.0 + Bot Token
+### Why Workflows Instead of Full Integration?
 
-**Bot Token Scopes**:
-- `channels:history` - Read messages in public channels
-- `groups:history` - Read messages in private channels
-- `im:history` - Read direct messages
-- `reactions:read` - Read reactions
-- `chat:write` - Post messages (confirmations)
-- `commands` - Slash commands
-- `users:read` - User information
+| Aspect | Full Slack App | Workflow Builder |
+|--------|---------------|------------------|
+| Setup complexity | High (OAuth, scopes, app review) | Low (no-code) |
+| Maintenance | Ongoing token management | Minimal |
+| Customization | Full control | Form-based |
+| Time to implement | Weeks | Hours |
 
-**User Token Scopes**:
-- `identity.basic` - User identity
+### How It Works
 
----
-
-## Event Subscriptions
-
-### Events API
-
-| Event | Trigger | Action |
-|-------|---------|--------|
-| `reaction_added` | User adds `:todo:` or `:task:` | Create todo from message |
-| `app_mention` | User mentions @InZone | Parse command, create todo |
-| `message.channels` | Message with trigger word | Optional: auto-create |
-
-### Message Shortcuts
-
-Right-click context menu → "Create Todo in InZone"
-
-### Slash Commands
-
-```
-/inzone "Buy groceries" - Create quick todo
-/inzone help - Show help
-/inzone boards - List boards
-```
+1. User reacts to message with designated emoji (e.g., `:inzone:` or `:todo:`)
+2. Slack Workflow triggers, opens a form modal
+3. User fills in task details (title pre-populated from message)
+4. Workflow sends form data via HTTP POST to InZone webhook
+5. InZone creates the todo
 
 ---
 
-## Data Mapping
+## Phase 1: Webhook Receiver (MVP)
 
-### Slack Message → InZone Todo
-
-| Slack Field | InZone Field |
-|-------------|--------------|
-| `message.text` | `title` (first line or truncated) |
-| `message.text` | `description` (full text) |
-| `message.ts` | `sourceId` |
-| `message.permalink` | `sourceUrl` |
-| `channel.name` | Label (optional) |
-| - | `priority` = MEDIUM (default) |
-
----
-
-## Webhook Endpoint
+### Endpoint
 
 ```
-POST /api/webhooks/slack
-Headers:
-  X-Slack-Signature: v0=<signature>
-  X-Slack-Request-Timestamp: <timestamp>
+POST /api/webhooks/slack-workflow
+Content-Type: application/json
 ```
 
-### Signature Verification
+### Phase 1 Implementation
+
+Simple endpoint that accepts and logs the payload for analysis:
 
 ```typescript
-function verifySlackRequest(
-  timestamp: string,
-  body: string,
-  signature: string,
-  signingSecret: string
-): boolean {
-  const sigBasestring = `v0:${timestamp}:${body}`;
-  const mySignature = 'v0=' + crypto
-    .createHmac('sha256', signingSecret)
-    .update(sigBasestring)
-    .digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(mySignature),
-    Buffer.from(signature)
-  );
-}
+// apps/api/src/routes/webhooks/slack-workflow.ts
+import { Router } from 'express';
+
+const router = Router();
+
+router.post('/slack-workflow', (req, res) => {
+  console.log('=== Slack Workflow Payload ===');
+  console.log(JSON.stringify(req.body, null, 2));
+  console.log('=== Headers ===');
+  console.log(JSON.stringify(req.headers, null, 2));
+
+  res.status(200).json({
+    success: true,
+    message: 'Payload received',
+    timestamp: new Date().toISOString()
+  });
+});
+
+export default router;
+```
+
+### Security (Phase 2)
+
+- Add webhook secret validation
+- Rate limiting
+- IP allowlist (Slack IPs)
+
+---
+
+## Recommended Slack Form Fields
+
+### Essential Fields
+
+| Field | Type | Description | Maps To |
+|-------|------|-------------|---------|
+| **Task Title** | Short text | Pre-filled from message text | `title` |
+| **Description** | Long text | Additional context | `description` |
+| **Priority** | Select | Low / Medium / High / Urgent | `priority` |
+| **Due Date** | Date picker | When task is due | `dueDate` |
+
+### Optional Fields (Consider Adding)
+
+| Field | Type | Description | Maps To |
+|-------|------|-------------|---------|
+| **Board** | Select | Which board to add to | `boardId` |
+| **Column** | Select | Which column (Todo/In Progress/Done) | `columnId` |
+| **Labels/Tags** | Multi-select | Categorization | `labels` |
+| **Assignee** | User select | Who should do this | `assigneeEmail` |
+| **Message Link** | Hidden/Auto | Permalink to original message | `sourceUrl` |
+| **Channel Name** | Hidden/Auto | Where it came from | `sourceChannel` |
+
+### Suggested Form Layout
+
+```
+┌─────────────────────────────────────────┐
+│  📋 Create InZone Task                  │
+├─────────────────────────────────────────┤
+│  Task Title *                           │
+│  ┌─────────────────────────────────────┐│
+│  │ [Pre-filled from message]           ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  Description                            │
+│  ┌─────────────────────────────────────┐│
+│  │                                     ││
+│  │                                     ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  Priority          Due Date             │
+│  ┌──────────┐     ┌──────────────┐     │
+│  │ Medium ▼ │     │ 📅 Select    │     │
+│  └──────────┘     └──────────────┘     │
+│                                         │
+│  Board (optional)                       │
+│  ┌─────────────────────────────────────┐│
+│  │ Default Board ▼                     ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│         [Cancel]  [Create Task]         │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## User Configuration
+## Expected Webhook Payload
 
-```typescript
-interface SlackIntegrationConfig {
-  // Trigger settings
-  todoReactions: string[];        // e.g., ["todo", "task", "white_check_mark"]
-  triggerKeywords: string[];      // e.g., ["TODO:", "ACTION:"]
+Based on Slack Workflow webhook step, expect something like:
 
-  // Board mapping
-  defaultBoardId: string;
-  channelBoardMapping: Record<string, string>;  // channel → board
-
-  // Behavior
-  confirmInSlack: boolean;        // Post confirmation message
-  includeThread: boolean;         // Include thread context
+```json
+{
+  "task_title": "Review the Q4 budget proposal",
+  "description": "Need to check the marketing allocation",
+  "priority": "high",
+  "due_date": "2026-02-01",
+  "board": "Work",
+  "message_link": "https://workspace.slack.com/archives/C123/p1234567890",
+  "channel_name": "finance-team",
+  "submitted_by": "user@company.com"
 }
 ```
 
@@ -123,15 +152,56 @@ interface SlackIntegrationConfig {
 
 ## Implementation Checklist
 
-- [ ] Slack App setup (api.slack.com)
-- [ ] OAuth flow
-- [ ] Events API subscription
-- [ ] Webhook receiver
-- [ ] Reaction handler
-- [ ] Message shortcut handler
-- [ ] Slash command handler
-- [ ] Confirmation messages
-- [ ] Configuration UI
+### Phase 1: Webhook Receiver (Current)
+- [ ] Create `/api/webhooks/slack-workflow` endpoint
+- [ ] Log incoming payloads for analysis
+- [ ] Return success response
+- [ ] Test with Slack Workflow
+
+### Phase 2: Data Processing
+- [ ] Parse and validate payload
+- [ ] Map fields to Todo schema
+- [ ] Create todo in database
+- [ ] Return created todo ID
+
+### Phase 3: Enhancements
+- [ ] Webhook secret validation
+- [ ] Board/column lookup by name
+- [ ] User mapping (Slack email → InZone user)
+- [ ] Error handling and retry logic
+- [ ] Slack confirmation message (optional)
+
+---
+
+## Slack Workflow Setup Guide
+
+### Prerequisites
+- Slack workspace with Workflow Builder access
+- Custom emoji (`:inzone:`) or use existing (`:white_check_mark:`)
+
+### Steps
+
+1. **Create Workflow**
+   - Go to Slack → Tools → Workflow Builder
+   - Click "Create Workflow"
+   - Select trigger: "When an emoji reaction is added"
+
+2. **Configure Trigger**
+   - Choose emoji: `:inzone:` (or your preference)
+   - Select channels: All or specific
+
+3. **Add Form Step**
+   - Add step: "Send a form"
+   - Add fields as described above
+   - Pre-fill title with `{{message_text}}`
+
+4. **Add Webhook Step**
+   - Add step: "Send a webhook"
+   - URL: `https://your-domain.com/api/webhooks/slack-workflow`
+   - Method: POST
+   - Add form variables to payload
+
+5. **Publish Workflow**
 
 ---
 
