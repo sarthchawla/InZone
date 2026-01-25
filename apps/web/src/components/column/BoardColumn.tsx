@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, MoreHorizontal, GripVertical, Pencil, Trash2, Info, X } from 'lucide-react';
+import { Plus, MoreHorizontal, GripVertical, Pencil, Trash2, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TodoCard } from '../todo/TodoCard';
 import { Button, Input, Modal } from '../ui';

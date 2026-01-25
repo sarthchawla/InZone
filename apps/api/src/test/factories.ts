@@ -33,6 +33,8 @@ export function createMockBoard(overrides: Partial<Board> = {}): Board {
     templateId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    deletedAt: null,
+    isDeleted: false,
     ...overrides,
   };
 }
@@ -45,11 +47,14 @@ export function createMockColumn(overrides: Partial<Column> = {}): Column {
   return {
     id,
     name: `Test Column ${id}`,
+    description: null,
     position: 0,
     wipLimit: null,
     boardId: "board-1",
     createdAt: new Date(),
     updatedAt: new Date(),
+    deletedAt: null,
+    isDeleted: false,
     ...overrides,
   };
 }
@@ -74,6 +79,8 @@ export function createMockTodo(overrides: Partial<Todo> = {}): Todo {
     columnId: "column-1",
     createdAt: new Date(),
     updatedAt: new Date(),
+    deletedAt: null,
+    isDeleted: false,
     ...overrides,
   };
 }

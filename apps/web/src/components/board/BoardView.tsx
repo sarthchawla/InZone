@@ -17,7 +17,7 @@ import {
   horizontalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Settings, Tags, ChevronDown, ChevronRight, Pencil, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Tags, ChevronDown, Pencil, FileText } from 'lucide-react';
 import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';

@@ -1,4 +1,4 @@
-import { PrismaClient, Todo, Label, Priority, Column } from "@prisma/client";
+import { PrismaClient, Todo, Label, Priority } from "@prisma/client";
 
 export type TodoWithLabels = Todo & {
   labels: Label[];
