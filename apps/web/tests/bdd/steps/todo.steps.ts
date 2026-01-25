@@ -654,9 +654,9 @@ When('I create a todo titled {string}', async ({ page }, title: string) => {
 // ==========================================
 
 When('I click on the todo {string}', async ({ page }, todoTitle: string) => {
-  // TodoCard component uses onDoubleClick to open the edit modal
+  // TodoCard component uses onClick to open the edit modal (fix 1.1: single click)
   const todo = page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
-  await todo.dblclick();
+  await todo.click();
   // Wait for the edit modal to appear
   await page.getByRole('dialog').waitFor({ state: 'visible' });
 });
@@ -671,12 +671,14 @@ When('I clear the title', async ({ page }) => {
 });
 
 When('I change the description to {string}', async ({ page }, newDescription: string) => {
-  await page.getByLabel(/description/i).clear();
-  await page.getByLabel(/description/i).fill(newDescription);
+  // Use getByRole('textbox') to avoid ambiguity with "Edit Description" button
+  await page.getByRole('textbox', { name: /description/i }).clear();
+  await page.getByRole('textbox', { name: /description/i }).fill(newDescription);
 });
 
 When('I clear the description', async ({ page }) => {
-  await page.getByLabel(/description/i).clear();
+  // Use getByRole('textbox') to avoid ambiguity with "Edit Description" button
+  await page.getByRole('textbox', { name: /description/i }).clear();
 });
 
 When('I change the priority to {string}', async ({ page }, newPriority: string) => {
@@ -895,19 +897,21 @@ Then('the todo {string} should not display {string} label', async ({ page }, tod
 
 Then('the todo {string} should have description {string}', async ({ page }, todoTitle: string, description: string) => {
   const todo = page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
-  // Double-click to open the edit modal
-  await todo.dblclick();
+  // Single click to open the edit modal (fix 1.1)
+  await todo.click();
   await page.getByRole('dialog').waitFor({ state: 'visible' });
-  await expect(page.getByLabel(/description/i)).toHaveValue(description);
+  // Use getByRole('textbox') to avoid ambiguity with "Edit Description" button
+  await expect(page.getByRole('textbox', { name: /description/i })).toHaveValue(description);
   await page.keyboard.press('Escape');
 });
 
 Then('the todo {string} should have no description', async ({ page }, todoTitle: string) => {
   const todo = page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
-  // Double-click to open the edit modal
-  await todo.dblclick();
+  // Single click to open the edit modal (fix 1.1)
+  await todo.click();
   await page.getByRole('dialog').waitFor({ state: 'visible' });
-  await expect(page.getByLabel(/description/i)).toHaveValue('');
+  // Use getByRole('textbox') to avoid ambiguity with "Edit Description" button
+  await expect(page.getByRole('textbox', { name: /description/i })).toHaveValue('');
   await page.keyboard.press('Escape');
 });
 
