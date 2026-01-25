@@ -10,6 +10,7 @@ Enhanced version with:
 - Completion detection (<promise>COMPLETE</promise> or RALPH_COMPLETE)
 - Cost and token statistics
 - Activity log generation (activity.md)
+- macOS notifications when loop finishes (completion, early completion, or interrupt)
 
 Usage:
     python ralph_v2.py <iterations> [--prompt-file PROMPT.md]
@@ -209,6 +210,22 @@ class ActivityLog:
 
         # Write to file
         self.output_path.write_text("\n".join(lines))
+
+
+def send_macos_notification(title: str, message: str, sound: str = "default") -> None:
+    """Send a macOS notification using osascript."""
+    try:
+        script = f'''
+        display notification "{message}" with title "{title}" sound name "{sound}"
+        '''
+        subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True,
+            timeout=5
+        )
+    except Exception:
+        # Silently fail if notification can't be sent
+        pass
 
 
 def colorize(text: str, *styles: str) -> str:
@@ -455,12 +472,18 @@ def run_iteration(
 
     process = None
     try:
+        # Set CLAUDE_CODE_SILENT=1 to suppress Claude Code notification hooks
+        # Ralph has its own notification system, so we don't want duplicates
+        env = os.environ.copy()
+        env["CLAUDE_CODE_SILENT"] = "1"
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            env=env,
         )
 
         for line in process.stdout:
@@ -645,6 +668,10 @@ Examples:
         # Write activity log before exiting
         activity_log.write(completed, failed, early_complete, global_state)
         print(colorize(f"📝 Activity log written to: {activity_log_path}", Colors.CYAN))
+        send_macos_notification(
+            "Ralph Loop Interrupted ⚠️",
+            f"Stopped after {completed + failed} iterations. Cost: ${global_state.get('total_cost', 0):.2f}"
+        )
         sys.exit(130)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -669,6 +696,10 @@ Examples:
             print()
             print(colorize("🎉 RALPH_COMPLETE detected! All tasks done.", Colors.GREEN, Colors.BOLD))
             early_complete = True
+            send_macos_notification(
+                "Ralph Loop Complete 🎉",
+                f"RALPH_COMPLETE detected after {i} iterations. Cost: ${global_state.get('total_cost', 0):.2f}"
+            )
             break
 
     # Write activity log
@@ -678,6 +709,14 @@ Examples:
     # Print summary
     print_summary(completed, failed, early_complete, global_state)
     sys.stdout.flush()
+
+    # Send notification for normal completion (if not already sent for early completion)
+    if not early_complete:
+        status = "completed" if failed == 0 else f"finished with {failed} failures"
+        send_macos_notification(
+            "Ralph Loop Finished",
+            f"{completed + failed} iterations {status}. Cost: ${global_state.get('total_cost', 0):.2f}"
+        )
 
     # Exit with appropriate code
     exit_code = 1 if failed > 0 and not early_complete else 0

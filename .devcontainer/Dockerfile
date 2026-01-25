@@ -78,8 +78,10 @@ ENV PATH=/home/node/.npm-global/bin:$PATH
 ENV HISTFILE=/commandhistory/.bash_history
 ENV EDITOR=nano
 
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+# Install Claude Code CLI and Agent Browser CLI
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+    && npm install -g @anthropic-ai/agent-browser@latest \
+    && agent-browser install
 
 # Install Playwright globally and browser dependencies
 RUN npm install -g playwright@latest \
