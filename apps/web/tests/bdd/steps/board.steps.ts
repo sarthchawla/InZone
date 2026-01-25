@@ -234,7 +234,12 @@ When('I select {string} template', async ({ page }, templateName: string) => {
 });
 
 When('I click on {string} board', async ({ page }, boardName: string) => {
-  await page.getByText(boardName).click();
+  // Click on the board card - use the board card locator for more precision
+  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
+  await expect(boardCard).toBeVisible({ timeout: 10000 });
+  await boardCard.click();
+  // Wait for navigation to complete
+  await page.waitForURL(/\/board\//, { timeout: 10000 });
 });
 
 // Board deletion steps
@@ -302,12 +307,13 @@ Then('the board should have columns {string}', async ({ page }, columnNames: str
 });
 
 Then('I should be navigated to the board view', async ({ page }) => {
-  await expect(page.locator('[data-testid="board-view"]')).toBeVisible();
+  // Wait for navigation to complete and board view to render (allow extra time for CI)
+  await expect(page.locator('[data-testid="board-view"]')).toBeVisible({ timeout: 15000 });
 });
 
 Then('I should see the board columns', async ({ page }) => {
   // Check that at least one column is visible (use first() to avoid strict mode violation)
-  await expect(page.locator('[data-testid="column"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="column"]').first()).toBeVisible({ timeout: 15000 });
 });
 
 Then('all associated todos should be deleted', async () => {

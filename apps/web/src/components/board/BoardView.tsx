@@ -342,7 +342,7 @@ export function BoardView() {
 
   if (error || !board) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
+      <div className="flex flex-col items-center justify-center h-64 gap-4" data-testid="board-not-found">
         <p className="text-gray-500">Board not found</p>
         <Link to="/">
           <Button variant="primary">Back to Boards</Button>
@@ -355,7 +355,7 @@ export function BoardView() {
   const columnIds = sortedColumns.map((c) => `column-${c.id}`);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="board-view">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">

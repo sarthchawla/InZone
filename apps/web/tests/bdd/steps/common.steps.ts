@@ -231,7 +231,8 @@ When('I cancel the deletion', async ({ page }) => {
 
 // Loading state checks
 Then('I should see a loading indicator', async ({ page }) => {
-  await expect(page.locator('[data-testid="loading"]')).toBeVisible();
+  // Loading indicator might appear briefly - use shorter timeout but allow for timing variance
+  await expect(page.locator('[data-testid="loading"]')).toBeVisible({ timeout: 3000 });
 });
 
 Then('I should see a {string} button', async ({ page }, buttonText: string) => {

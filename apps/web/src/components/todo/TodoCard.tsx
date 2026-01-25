@@ -47,6 +47,7 @@ export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
       {...attributes}
       {...listeners}
       onDoubleClick={handleDoubleClick}
+      data-testid="todo-card"
       className={cn(
         'group relative rounded-lg border border-gray-200 bg-white p-3 shadow-sm',
         'hover:border-gray-300 hover:shadow-md transition-all',
@@ -56,7 +57,7 @@ export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
     >
       <div>
         <div className="flex items-start gap-2 mb-2">
-          <h4 className="text-sm font-medium text-gray-900 flex-1">{todo.title}</h4>
+          <h4 data-testid="todo-title" className="text-sm font-medium text-gray-900 flex-1">{todo.title}</h4>
           {/* Description indicator */}
           {todo.description && (
             <span className="text-gray-400 flex-shrink-0" title="Has description">
@@ -71,6 +72,7 @@ export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
           {todo.labels.map((label) => (
             <span
               key={label.id}
+              data-testid="label"
               className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
               style={{
                 backgroundColor: `${label.color}20`,
@@ -83,6 +85,7 @@ export function TodoCard({ todo, isDragging, onDoubleClick }: TodoCardProps) {
 
           {todo.dueDate && (
             <span
+              data-testid="due-date"
               className={cn(
                 'inline-flex items-center gap-1 text-xs',
                 isOverdue ? 'text-red-600' : 'text-gray-500'

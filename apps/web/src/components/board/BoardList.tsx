@@ -19,6 +19,11 @@ export function BoardList() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Delete confirmation modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const handleCreateBoard = () => {
     if (newBoardName.trim()) {
       setCreateError(null);
@@ -53,24 +58,39 @@ export function BoardList() {
     setSelectedTemplate('');
   };
 
-  const handleDeleteBoard = (e: React.MouseEvent, boardId: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, boardId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this board?')) {
-      deleteBoard.mutate(boardId, {
+    setBoardToDelete(boardId);
+    setDeleteError(null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (boardToDelete) {
+      deleteBoard.mutate(boardToDelete, {
         onSuccess: () => {
+          setIsDeleteModalOpen(false);
+          setBoardToDelete(null);
           toast.success('Board deleted');
         },
         onError: (error) => {
-          toast.error(getErrorMessage(error));
+          const message = getErrorMessage(error);
+          setDeleteError(message);
         },
       });
     }
   };
 
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setBoardToDelete(null);
+    setDeleteError(null);
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64" data-testid="loading">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
@@ -81,14 +101,17 @@ export function BoardList() {
       <div className="flex flex-col items-center justify-center h-64 text-center p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <h3 className="text-lg font-medium text-red-800 mb-2">Failed to load boards</h3>
-          <p className="text-red-600 text-sm">{getErrorMessage(loadError)}</p>
+          <p className="text-red-600 text-sm mb-4">{getErrorMessage(loadError)}</p>
+          <Button variant="primary" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6" data-testid="board-list">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Your Boards</h2>
         <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
@@ -103,6 +126,7 @@ export function BoardList() {
             <Link
               key={board.id}
               to={`/board/${board.id}`}
+              data-testid="board-card"
               className="group relative block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between">
@@ -120,13 +144,14 @@ export function BoardList() {
                   </div>
                 </div>
                 <button
-                  onClick={(e) => handleDeleteBoard(e, board.id)}
+                  onClick={(e) => handleDeleteClick(e, board.id)}
                   className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Delete board"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              <div className="mt-4 text-xs text-gray-400">
+              <div className="mt-4 text-xs text-gray-400" data-testid="todo-count">
                 {board.columns?.length ?? 0} columns
                 {' · '}
                 {board.todoCount ?? 0} tasks
@@ -207,6 +232,37 @@ export function BoardList() {
               disabled={!newBoardName.trim() || createBoard.isPending}
             >
               {createBoard.isPending ? 'Creating...' : 'Create Board'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        title="Delete Board"
+      >
+        <div className="space-y-4">
+          {deleteError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+              {deleteError}
+            </div>
+          )}
+          <p className="text-gray-600">
+            Are you sure you want to delete this board? This action cannot be undone
+            and all associated todos will be permanently removed.
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" onClick={handleCloseDeleteModal}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={deleteBoard.isPending}
+            >
+              {deleteBoard.isPending ? 'Deleting...' : 'Confirm Delete'}
             </Button>
           </div>
         </div>

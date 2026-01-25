@@ -155,6 +155,7 @@ export function BoardColumn({
       <div
         ref={setSortableRef}
         style={style}
+        data-testid="column"
         className={cn(
           'flex flex-col w-72 min-w-72 rounded-lg bg-gray-100',
           isOver && 'ring-2 ring-blue-400',
@@ -162,7 +163,7 @@ export function BoardColumn({
         )}
       >
         {/* Column header */}
-        <div className="flex items-center justify-between p-3">
+        <div className="flex items-center justify-between p-3" data-testid="column-header">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {/* Drag handle */}
             <button
@@ -196,13 +197,13 @@ export function BoardColumn({
             )}
 
             {/* Todo count badge */}
-            <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600 flex-shrink-0">
+            <span data-testid="todo-count" className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600 flex-shrink-0">
               {todos.length}
             </span>
 
             {/* WIP limit indicator */}
             {column.wipLimit && todos.length >= column.wipLimit && (
-              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-600 flex-shrink-0">
+              <span data-testid="wip-indicator" className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-600 flex-shrink-0">
                 WIP
               </span>
             )}
