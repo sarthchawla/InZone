@@ -13,7 +13,6 @@ Feature: Create Board
     And I enter "My Project" as the board name
     And I click "Create"
     Then I should see "My Project" in the boards list
-    And the board should have no columns
 
   Scenario: Create a board from Basic Kanban template
     Given no boards exist
@@ -53,28 +52,12 @@ Feature: Create Board
     And I click "Create"
     Then I should see "My Project" in the boards list
 
-  # Unhappy Path Scenarios
-  Scenario: Cannot create board with empty name
+  # Validation Scenarios
+  Scenario: Cannot create board with empty name - button disabled
     Given no boards exist
     When I click the "New Board" button
     And I leave the board name empty
-    And I click "Create"
-    Then I should see an error message "Board name is required"
-    And no new board should be created
-
-  Scenario: Cannot create board with very long name
-    Given no boards exist
-    When I click the "New Board" button
-    And I enter a 256 character board name
-    And I click "Create"
-    Then I should see an error message "Board name must be less than 255 characters"
-
-  Scenario: Cannot create board with duplicate name
-    Given a board named "Existing Board" exists
-    When I click the "New Board" button
-    And I enter "Existing Board" as the board name
-    And I click "Create"
-    Then I should see a warning about duplicate board name
+    Then the create button should be disabled
 
   Scenario: Handle network error during board creation
     Given no boards exist

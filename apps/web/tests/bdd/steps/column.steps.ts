@@ -1,24 +1,17 @@
 import { createBdd } from 'playwright-bdd';
 import { test, expect } from '../fixtures';
+import {
+  sharedState,
+  getColumnByName,
+  addColumn,
+  removeColumn,
+  type Column,
+} from './shared-state';
 
 const { Given, When, Then } = createBdd(test);
 
-// Store for test data
-interface TestState {
-  boardId: string;
-  columns: Array<{
-    id: string;
-    name: string;
-    position: number;
-    wipLimit?: number;
-    todos: Array<{ id: string; title: string; position: number }>;
-  }>;
-}
-
-let testState: TestState = {
-  boardId: 'test-board-1',
-  columns: [],
-};
+// Use shared state - this is the same object used by todo.steps.ts
+const testState = sharedState;
 
 Given('columns {string} exist in that order', async ({}, _columnNames: string) => {
   // Columns are already set up in the background step
@@ -26,7 +19,7 @@ Given('columns {string} exist in that order', async ({}, _columnNames: string) =
 });
 
 Given('the {string} column has {int} todos', async ({}, columnName: string, todoCount: number) => {
-  const column = testState.columns.find(c => c.name === columnName);
+  const column = getColumnByName(columnName);
   if (column) {
     column.todos = Array.from({ length: todoCount }, (_, i) => ({
       id: `todo-${column.id}-${i + 1}`,
@@ -37,7 +30,7 @@ Given('the {string} column has {int} todos', async ({}, columnName: string, todo
 });
 
 Given('the {string} column has no todos', async ({}, columnName: string) => {
-  const column = testState.columns.find(c => c.name === columnName);
+  const column = getColumnByName(columnName);
   if (column) {
     column.todos = [];
   }
@@ -47,18 +40,25 @@ Given('the create column endpoint returns success', async ({ page }) => {
   await page.route('**/api/boards/*/columns', async (route) => {
     if (route.request().method() === 'POST') {
       const body = JSON.parse(route.request().postData() || '{}');
-      const newColumn = {
+      // Extract boardId from URL (e.g., /api/boards/test-board/columns)
+      const urlParts = route.request().url().split('/');
+      const boardIdIndex = urlParts.indexOf('boards') + 1;
+      const boardId = urlParts[boardIdIndex] || 'test-board';
+
+      const newColumn: Column = {
         id: `col-${Date.now()}`,
         name: body.name,
         position: testState.columns.length,
         wipLimit: body.wipLimit,
         todos: [],
       };
-      testState.columns.push(newColumn);
+      // Add to shared state so board refetch sees the new column
+      addColumn(newColumn);
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify(newColumn),
+        // Include boardId in response so React Query can invalidate the correct board query
+        body: JSON.stringify({ ...newColumn, boardId }),
       });
     } else {
       await route.continue();
@@ -70,7 +70,7 @@ Given('the reorder columns endpoint returns success', async ({ page }) => {
   await page.route('**/api/columns/reorder', async (route) => {
     if (route.request().method() === 'PATCH') {
       const body = JSON.parse(route.request().postData() || '{}');
-      // Update positions in testState based on the reorder request
+      // Update positions in shared state based on the reorder request
       if (body.columns) {
         body.columns.forEach((col: { id: string; position: number }) => {
           const column = testState.columns.find(c => c.id === col.id);
@@ -96,7 +96,8 @@ Given('the delete column endpoint returns success', async ({ page }) => {
     if (route.request().method() === 'DELETE') {
       const urlParts = route.request().url().split('/');
       const columnId = urlParts[urlParts.length - 1];
-      testState.columns = testState.columns.filter(c => c.id !== columnId);
+      // Remove from shared state
+      removeColumn(columnId);
       await route.fulfill({
         status: 204,
         body: '',
@@ -151,7 +152,10 @@ Given('the server will return an error for column deletion', async ({ page }) =>
 
 Given('another user deletes the {string} column', async ({}, columnName: string) => {
   // Simulate column being deleted - will cause error on next operation
-  testState.columns = testState.columns.filter(c => c.name !== columnName);
+  const column = getColumnByName(columnName);
+  if (column) {
+    removeColumn(column.id);
+  }
 });
 
 Given('the {string} column has been deleted by another user', async ({ page }, _columnName: string) => {
@@ -171,16 +175,38 @@ Given('the {string} column has been deleted by another user', async ({ page }, _
 
 // Column interaction steps
 When('I enter {string} as the column name', async ({ page }, columnName: string) => {
-  await page.getByLabel(/column name/i).fill(columnName);
+  // Try placeholder first (inline form), then label (modal form)
+  const byPlaceholder = page.getByPlaceholder(/enter column name/i);
+  const byLabel = page.getByLabel(/column name/i);
+
+  if (await byPlaceholder.isVisible().catch(() => false)) {
+    await byPlaceholder.fill(columnName);
+  } else {
+    await byLabel.fill(columnName);
+  }
 });
 
 When('I leave the column name empty', async ({ page }) => {
-  await page.getByLabel(/column name/i).clear();
+  const byPlaceholder = page.getByPlaceholder(/enter column name/i);
+  const byLabel = page.getByLabel(/column name/i);
+
+  if (await byPlaceholder.isVisible().catch(() => false)) {
+    await byPlaceholder.clear();
+  } else {
+    await byLabel.clear();
+  }
 });
 
 When('I enter a 256 character column name', async ({ page }) => {
   const longName = 'a'.repeat(256);
-  await page.getByLabel(/column name/i).fill(longName);
+  const byPlaceholder = page.getByPlaceholder(/enter column name/i);
+  const byLabel = page.getByLabel(/column name/i);
+
+  if (await byPlaceholder.isVisible().catch(() => false)) {
+    await byPlaceholder.fill(longName);
+  } else {
+    await byLabel.fill(longName);
+  }
 });
 
 When('I set WIP limit to {int}', async ({ page }, limit: number) => {
@@ -188,9 +214,28 @@ When('I set WIP limit to {int}', async ({ page }, limit: number) => {
 });
 
 When('I add a column named {string}', async ({ page }, columnName: string) => {
+  // Click the add column area (which might show inline form)
   await page.getByRole('button', { name: /add column/i }).click();
-  await page.getByLabel(/column name/i).fill(columnName);
-  await page.getByRole('button', { name: /save/i }).click();
+
+  // Try placeholder first (inline form), then label (modal form)
+  const byPlaceholder = page.getByPlaceholder(/enter column name/i);
+  const byLabel = page.getByLabel(/column name/i);
+
+  if (await byPlaceholder.isVisible().catch(() => false)) {
+    await byPlaceholder.fill(columnName);
+  } else {
+    await byLabel.fill(columnName);
+  }
+
+  // Click Save or Add button
+  const addBtn = page.getByRole('button', { name: /^add$/i });
+  const saveBtn = page.getByRole('button', { name: /save/i });
+
+  if (await addBtn.isVisible().catch(() => false)) {
+    await addBtn.click();
+  } else {
+    await saveBtn.click();
+  }
   await page.waitForTimeout(500); // Wait for column to be added
 });
 
@@ -284,7 +329,10 @@ When('I try to drag {string}', async ({ page }, columnName: string) => {
 
 When('I click the delete button for {string} column', async ({ page }, columnName: string) => {
   const column = page.locator(`[data-testid="column"]:has-text("${columnName}")`);
-  await column.getByRole('button', { name: /delete/i }).click();
+  // Click the three dots menu button first (column options)
+  await column.getByRole('button', { name: /column options/i }).click();
+  // Then click Delete from the dropdown menu
+  await page.getByRole('button', { name: /delete/i }).click();
 });
 
 When('I choose to move todos to {string} column', async ({ page }, targetColumn: string) => {
@@ -293,18 +341,25 @@ When('I choose to move todos to {string} column', async ({ page }, targetColumn:
 
 // Column assertion steps
 Then('I should see {string} column after {string}', async ({ page }, newColumn: string, afterColumn: string) => {
-  const columns = page.locator('[data-testid="column"]');
-  const columnTexts: string[] = [];
+  // Wait for the new column to appear first
+  await expect(page.getByRole('heading', { level: 3, name: newColumn })).toBeVisible({ timeout: 5000 });
 
-  const count = await columns.count();
+  // Get all column headings directly using role selector
+  const headings = page.getByRole('heading', { level: 3 });
+  const columnNames: string[] = [];
+
+  const count = await headings.count();
   for (let i = 0; i < count; i++) {
-    const text = await columns.nth(i).locator('[data-testid="column-header"]').textContent();
-    if (text) columnTexts.push(text);
+    const text = await headings.nth(i).textContent();
+    if (text) columnNames.push(text.trim());
   }
 
-  const afterIndex = columnTexts.findIndex(t => t.includes(afterColumn));
-  const newIndex = columnTexts.findIndex(t => t.includes(newColumn));
+  const afterIndex = columnNames.findIndex(name => name === afterColumn);
+  const newIndex = columnNames.findIndex(name => name === newColumn);
 
+  // Both columns should exist
+  expect(afterIndex, `Column "${afterColumn}" not found. Found: ${columnNames.join(', ')}`).toBeGreaterThanOrEqual(0);
+  expect(newIndex, `Column "${newColumn}" not found. Found: ${columnNames.join(', ')}`).toBeGreaterThanOrEqual(0);
   expect(newIndex).toBeGreaterThan(afterIndex);
 });
 
@@ -320,25 +375,27 @@ Then('I should see {int} columns on the board', async ({ page }, expectedCount: 
 
 Then('columns should be ordered {string}', async ({ page }, expectedOrder: string) => {
   const expectedColumns = expectedOrder.split(', ').map(c => c.trim());
-  const columns = page.locator('[data-testid="column-header"]');
+  // Target the h3 element inside column header to get just the column name (not the count badge)
+  const columns = page.locator('[data-testid="column-header"] h3');
 
   const count = await columns.count();
   expect(count).toBe(expectedColumns.length);
 
   for (let i = 0; i < count; i++) {
     const text = await columns.nth(i).textContent();
-    expect(text).toContain(expectedColumns[i]);
+    expect(text?.trim()).toBe(expectedColumns[i]);
   }
 });
 
 Then('columns should remain {string}', async ({ page }, expectedOrder: string) => {
   const expectedColumns = expectedOrder.split(', ').map(c => c.trim());
-  const columns = page.locator('[data-testid="column-header"]');
+  // Target the h3 element inside column header to get just the column name (not the count badge)
+  const columns = page.locator('[data-testid="column-header"] h3');
 
   const count = await columns.count();
   for (let i = 0; i < count; i++) {
     const text = await columns.nth(i).textContent();
-    expect(text).toContain(expectedColumns[i]);
+    expect(text?.trim()).toBe(expectedColumns[i]);
   }
 });
 

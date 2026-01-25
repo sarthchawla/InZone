@@ -1,5 +1,5 @@
 import { createBdd } from 'playwright-bdd';
-import { test, expect } from '../fixtures';
+import { test, expect, MockedRoutes } from '../fixtures';
 
 const { Given, When, Then } = createBdd(test);
 
@@ -85,19 +85,25 @@ async function setupLabelRoutes(page: import('@playwright/test').Page) {
 }
 
 // Label setup steps
-Given('a label {string} with color {string} exists', async ({ page }, labelName: string, color: string) => {
+Given('a label {string} with color {string} exists', async ({ page, mockedRoutes }, labelName: string, color: string) => {
+  // Mark labels route as mocked to prevent default mock from overwriting
+  mockedRoutes.add('labels');
   resetMockLabels();
   mockLabels.push({ id: `label-${labelIdCounter++}`, name: labelName, color });
   await setupLabelRoutes(page);
 });
 
-Given('a label {string} exists', async ({ page }, labelName: string) => {
+Given('a label {string} exists', async ({ page, mockedRoutes }, labelName: string) => {
+  // Mark labels route as mocked to prevent default mock from overwriting
+  mockedRoutes.add('labels');
   resetMockLabels();
   mockLabels.push({ id: `label-${labelIdCounter++}`, name: labelName, color: '#FF0000' });
   await setupLabelRoutes(page);
 });
 
-Given('labels {string} exist', async ({ page }, labelNames: string) => {
+Given('labels {string} exist', async ({ page, mockedRoutes }, labelNames: string) => {
+  // Mark labels route as mocked to prevent default mock from overwriting
+  mockedRoutes.add('labels');
   resetMockLabels();
   const names = labelNames.split(',').map((n) => n.trim());
   names.forEach((name) => {

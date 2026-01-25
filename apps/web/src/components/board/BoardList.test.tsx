@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "../../test/utils";
 import userEvent from "@testing-library/user-event";
 import { BoardList } from "./BoardList";
@@ -182,9 +182,8 @@ describe("BoardList", () => {
   });
 
   describe("delete board", () => {
-    it("shows confirmation dialog when delete button is clicked", async () => {
+    it("shows confirmation modal when delete button is clicked", async () => {
       const user = userEvent.setup();
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
 
       render(<BoardList />);
 
@@ -196,19 +195,20 @@ describe("BoardList", () => {
       const boardCard = screen.getByText("Project Alpha").closest("a");
       const deleteButton = boardCard?.querySelector("button");
 
+      expect(deleteButton).toBeTruthy();
       if (deleteButton) {
         await user.click(deleteButton);
-        expect(confirmSpy).toHaveBeenCalledWith(
-          "Are you sure you want to delete this board?"
-        );
       }
 
-      confirmSpy.mockRestore();
+      // Check that the confirmation modal appears
+      await waitFor(() => {
+        expect(screen.getByText("Delete Board")).toBeInTheDocument();
+      });
+      expect(screen.getByText(/Are you sure you want to delete this board/)).toBeInTheDocument();
     });
 
     it("deletes board when confirmed", async () => {
       const user = userEvent.setup();
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
       render(<BoardList />);
 
@@ -223,12 +223,22 @@ describe("BoardList", () => {
         await user.click(deleteButton);
       }
 
-      confirmSpy.mockRestore();
+      // Wait for confirmation modal
+      await waitFor(() => {
+        expect(screen.getByText("Delete Board")).toBeInTheDocument();
+      });
+
+      // Click confirm delete button
+      await user.click(screen.getByRole("button", { name: /confirm delete/i }));
+
+      // Modal should close after successful deletion
+      await waitFor(() => {
+        expect(screen.queryByText("Delete Board")).not.toBeInTheDocument();
+      });
     });
 
     it("does not delete board when cancelled", async () => {
       const user = userEvent.setup();
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
 
       render(<BoardList />);
 
@@ -243,10 +253,21 @@ describe("BoardList", () => {
         await user.click(deleteButton);
       }
 
+      // Wait for confirmation modal
+      await waitFor(() => {
+        expect(screen.getByText("Delete Board")).toBeInTheDocument();
+      });
+
+      // Click cancel button
+      await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByText("Delete Board")).not.toBeInTheDocument();
+      });
+
       // Board should still be visible
       expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-
-      confirmSpy.mockRestore();
     });
   });
 

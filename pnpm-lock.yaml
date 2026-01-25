@@ -118,9 +118,6 @@ importers:
         specifier: ^2.6.0
         version: 2.6.0
     devDependencies:
-      '@cucumber/cucumber':
-        specifier: ^12.6.0
-        version: 12.6.0
       '@eslint/js':
         specifier: ^9.18.0
         version: 9.39.2
@@ -187,12 +184,6 @@ importers:
       tailwindcss:
         specifier: ^3.4.17
         version: 3.4.19(tsx@4.21.0)(yaml@2.8.2)
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.19.7)(typescript@5.9.3)
-      tsx:
-        specifier: ^4.19.2
-        version: 4.21.0
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -4475,7 +4466,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@22.19.7)(@vitest/ui@4.0.18)(jiti@1.21.7)(jsdom@27.4.0(@noble/hashes@1.8.0))(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 4.0.18(@types/node@22.19.7)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/expect@4.0.18':
     dependencies:
@@ -4530,7 +4521,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@22.19.7)(@vitest/ui@4.0.18)(jiti@1.21.7)(jsdom@27.4.0(@noble/hashes@1.8.0))(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.2)
+      vitest: 4.0.18(@types/node@22.19.7)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/utils@4.0.18':
     dependencies:

@@ -56,7 +56,7 @@ Feature: Delete Board
     And the network is unavailable for delete
     When I click the delete button for "Test Board"
     And I confirm the deletion
-    Then I should see an error message "Failed to delete board"
+    Then I should see an error message "Unable to connect to server"
     And "Test Board" should still appear in the boards list
 
   Scenario: Attempt to delete board that no longer exists

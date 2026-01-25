@@ -1,50 +1,38 @@
 import { createBdd, DataTable } from 'playwright-bdd';
 import { test, expect } from '../fixtures';
+import {
+  sharedState,
+  resetSharedState,
+  getColumnNameById as getColumnNameByIdFromState,
+  buildColumnsWithTodos,
+  type Todo,
+} from './shared-state';
 
 const { Given, When, Then } = createBdd(test);
 
-// Context store for test data
-interface TestContext {
-  columns: Array<{ id: string; name: string; position: number; todos: unknown[] }>;
-  existingTodos: Array<{
-    id: string;
-    title: string;
-    columnName: string;
-    priority?: string;
-    description?: string;
-    dueDate?: string;
-    labels?: Array<{ id: string; name: string; color: string }>;
-    position?: number;
-  }>;
-  columnWipLimits: Record<string, number>;
-  columnCounts: Record<string, number>;
-  deletedColumn?: string;
-  initialTodoCount?: number;
-}
-
-let testContext: TestContext = {
-  columns: [],
-  existingTodos: [],
-  columnWipLimits: {},
-  columnCounts: {},
-};
+// Use shared state - this is the same object used by column.steps.ts
+const testContext = sharedState;
 
 // Reset context for each scenario
 function resetContext() {
-  testContext = {
-    columns: [],
-    existingTodos: [],
-    columnWipLimits: {},
-    columnCounts: {},
-  };
+  resetSharedState();
+}
+
+// Helper to get column name by ID - uses shared state
+function getColumnNameById(columnId: string): string {
+  return getColumnNameByIdFromState(columnId);
 }
 
 // ==========================================
 // Background Setup Steps
 // ==========================================
 
-Given('I am viewing a board with columns {string}', async ({ page, baseUrl }, columnNames: string) => {
+Given('I am viewing a board with columns {string}', async ({ page, baseUrl, mockedRoutes }, columnNames: string) => {
   resetContext();
+
+  // Mark routes as mocked to prevent default mock from overwriting
+  mockedRoutes.add('boards');
+  mockedRoutes.add('labels');
 
   const columns = columnNames.split(', ').map((name, index) => ({
     id: `col-${index + 1}`,
@@ -53,28 +41,29 @@ Given('I am viewing a board with columns {string}', async ({ page, baseUrl }, co
     todos: [],
   }));
 
-  // Store columns for later use
+  // Store columns in shared state for later use by other step files
   testContext.columns = columns;
   testContext.existingTodos = [];
 
-  // Mock the board endpoint
+  // Mock the labels endpoint - required for board view
+  await page.route('**/api/labels**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Mock the board endpoint - uses buildColumnsWithTodos() to get current state
+  // This allows column.steps.ts to add columns and have them appear in board refetch
   await page.route('**/api/boards/test-board', async (route) => {
     if (route.request().method() === 'GET') {
-      // Build columns with todos
-      const columnsWithTodos = columns.map(col => ({
-        ...col,
-        todos: (testContext.existingTodos || [])
-          .filter((t) => t.columnName === col.name)
-          .map((t, idx) => ({
-            id: t.id,
-            title: t.title,
-            priority: t.priority || 'MEDIUM',
-            description: t.description || '',
-            dueDate: t.dueDate || null,
-            position: idx,
-            labels: t.labels || [],
-          })),
-      }));
+      // Build columns with todos from shared state (dynamic)
+      const columnsWithTodos = buildColumnsWithTodos();
 
       await route.fulfill({
         status: 200,
@@ -113,18 +102,33 @@ Given('I am viewing a board with columns {string}', async ({ page, baseUrl }, co
   await page.route('**/api/todos', async (route) => {
     if (route.request().method() === 'POST') {
       const body = JSON.parse(route.request().postData() || '{}');
+      const newTodoId = `todo-${Date.now()}`;
+      const columnName = getColumnNameById(body.columnId);
+      const newTodo = {
+        id: newTodoId,
+        ...body,
+        priority: body.priority || 'MEDIUM',
+        position: testContext.existingTodos.filter(t => t.columnName === columnName).length,
+        labels: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Add to test context so board re-fetch includes this todo
+      testContext.existingTodos.push({
+        id: newTodoId,
+        title: body.title,
+        columnName,
+        priority: body.priority || 'MEDIUM',
+        description: body.description || '',
+        dueDate: body.dueDate,
+        labels: [],
+      });
+
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({
-          id: `todo-${Date.now()}`,
-          ...body,
-          priority: body.priority || 'MEDIUM',
-          position: 0,
-          labels: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }),
+        body: JSON.stringify(newTodo),
       });
     } else {
       await route.continue();
@@ -134,17 +138,45 @@ Given('I am viewing a board with columns {string}', async ({ page, baseUrl }, co
   // Mock todo update endpoint
   await page.route('**/api/todos/*', async (route) => {
     const method = route.request().method();
+    const url = route.request().url();
+    // Extract todo ID from URL (e.g., /api/todos/todo-1)
+    const todoIdMatch = url.match(/\/api\/todos\/([^/]+)$/);
+    const todoId = todoIdMatch ? todoIdMatch[1] : null;
+
     if (method === 'PUT' || method === 'PATCH') {
       const body = JSON.parse(route.request().postData() || '{}');
+
+      // Update testContext.existingTodos so subsequent board fetches return updated data
+      if (todoId && testContext.existingTodos) {
+        const todoIndex = testContext.existingTodos.findIndex(t => t.id === todoId);
+        if (todoIndex !== -1) {
+          const existingTodo = testContext.existingTodos[todoIndex];
+          testContext.existingTodos[todoIndex] = {
+            ...existingTodo,
+            title: body.title ?? existingTodo.title,
+            description: body.description ?? existingTodo.description,
+            priority: body.priority ?? existingTodo.priority,
+            dueDate: body.dueDate !== undefined ? body.dueDate : existingTodo.dueDate,
+            labels: existingTodo.labels,
+          };
+        }
+      }
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
+          id: todoId,
           ...body,
           updatedAt: new Date().toISOString(),
         }),
       });
     } else if (method === 'DELETE') {
+      // Remove todo from testContext so subsequent board fetches don't include it
+      if (todoId && testContext.existingTodos) {
+        testContext.existingTodos = testContext.existingTodos.filter(t => t.id !== todoId);
+      }
+
       await route.fulfill({
         status: 204,
       });
@@ -175,7 +207,7 @@ Given('I am viewing a board with columns {string}', async ({ page, baseUrl }, co
 // Todo Data Setup Steps
 // ==========================================
 
-Given('a todo {string} exists in {string} column', async ({}, todoTitle: string, columnName: string) => {
+Given('a todo {string} exists in {string} column', async ({ page }, todoTitle: string, columnName: string) => {
   testContext.existingTodos = testContext.existingTodos || [];
   testContext.existingTodos.push({
     id: `todo-${testContext.existingTodos.length + 1}`,
@@ -184,9 +216,12 @@ Given('a todo {string} exists in {string} column', async ({}, todoTitle: string,
     priority: 'MEDIUM',
     description: '',
   });
+  // Reload the page so the mock route handler picks up the new todo
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('a todo {string} exists in {string} column with details:', async ({}, todoTitle: string, columnName: string, dataTable: DataTable) => {
+Given('a todo {string} exists in {string} column with details:', async ({ page }, todoTitle: string, columnName: string, dataTable: DataTable) => {
   const details = dataTable.rowsHash();
   testContext.existingTodos = testContext.existingTodos || [];
 
@@ -212,9 +247,12 @@ Given('a todo {string} exists in {string} column with details:', async ({}, todo
   }
 
   testContext.existingTodos.push(todo);
+  // Reload the page so the mock route handler picks up the new todo
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('a todo {string} exists in {string} column with priority {string}', async ({}, todoTitle: string, columnName: string, priority: string) => {
+Given('a todo {string} exists in {string} column with priority {string}', async ({ page }, todoTitle: string, columnName: string, priority: string) => {
   testContext.existingTodos = testContext.existingTodos || [];
   testContext.existingTodos.push({
     id: `todo-${testContext.existingTodos.length + 1}`,
@@ -223,9 +261,12 @@ Given('a todo {string} exists in {string} column with priority {string}', async 
     priority,
     description: '',
   });
+  // Reload the page so the mock route handler picks up the new todo
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('a todo {string} exists in {string} column with due date in {int} days', async ({}, todoTitle: string, columnName: string, days: number) => {
+Given('a todo {string} exists in {string} column with due date in {int} days', async ({ page }, todoTitle: string, columnName: string, days: number) => {
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + days);
 
@@ -238,9 +279,12 @@ Given('a todo {string} exists in {string} column with due date in {int} days', a
     description: '',
     dueDate: futureDate.toISOString(),
   });
+  // Reload the page so the mock route handler picks up the new todo
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('a todo {string} exists in {string} column with label {string}', async ({}, todoTitle: string, columnName: string, labelName: string) => {
+Given('a todo {string} exists in {string} column with label {string}', async ({ page }, todoTitle: string, columnName: string, labelName: string) => {
   testContext.existingTodos = testContext.existingTodos || [];
   testContext.existingTodos.push({
     id: `todo-${testContext.existingTodos.length + 1}`,
@@ -250,17 +294,23 @@ Given('a todo {string} exists in {string} column with label {string}', async ({}
     description: '',
     labels: [{ id: 'label-1', name: labelName, color: '#FF0000' }],
   });
+  // Reload the page so the mock route handler picks up the new todo
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('{string} and {string} exist in {string} column', async ({}, todo1: string, todo2: string, columnName: string) => {
+Given('{string} and {string} exist in {string} column', async ({ page }, todo1: string, todo2: string, columnName: string) => {
   testContext.existingTodos = testContext.existingTodos || [];
   testContext.existingTodos.push(
     { id: 'todo-1', title: todo1, columnName, priority: 'MEDIUM' },
     { id: 'todo-2', title: todo2, columnName, priority: 'MEDIUM' }
   );
+  // Reload the page so the mock route handler picks up the new todos
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('todos {string} exist in {string} column in that order', async ({}, todoNames: string, columnName: string) => {
+Given('todos {string} exist in {string} column in that order', async ({ page }, todoNames: string, columnName: string) => {
   const todos = todoNames.split(', ').map((name, index) => ({
     id: `todo-${index + 1}`,
     title: name.trim(),
@@ -271,9 +321,12 @@ Given('todos {string} exist in {string} column in that order', async ({}, todoNa
 
   testContext.existingTodos = testContext.existingTodos || [];
   testContext.existingTodos.push(...todos);
+  // Reload the page so the mock route handler picks up the new todos
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
-Given('todos {string} exist in {string} column', async ({}, todoNames: string, columnName: string) => {
+Given('todos {string} exist in {string} column', async ({ page }, todoNames: string, columnName: string) => {
   const todos = todoNames.split(', ').map((name, index) => ({
     id: `todo-${index + 1}`,
     title: name.trim(),
@@ -284,6 +337,9 @@ Given('todos {string} exist in {string} column', async ({}, todoNames: string, c
 
   testContext.existingTodos = testContext.existingTodos || [];
   testContext.existingTodos.push(...todos);
+  // Reload the page so the mock route handler picks up the new todos
+  await page.reload();
+  await page.waitForLoadState('networkidle');
 });
 
 Given('labels {string} are assigned to {string}', async ({}, labelNames: string, todoTitle: string) => {
@@ -478,22 +534,53 @@ Given('the network is now available', async ({ page }) => {
 
 When('I click "Add card" in the {string} column', async ({ page }, columnName: string) => {
   const column = page.locator(`[data-testid="column"]:has-text("${columnName}")`);
-  await column.getByRole('button', { name: /add card/i }).click();
+  // Use text-based locator since the button contains an icon + text
+  await column.locator('button:has-text("Add a card")').click();
 });
 
 When('I enter {string} as the todo title', async ({ page }, title: string) => {
-  await page.getByLabel(/title/i).fill(title);
+  // The inline todo form uses placeholder, modal uses label
+  const byPlaceholder = page.getByPlaceholder(/enter todo title/i);
+  const byLabel = page.getByLabel(/title/i);
+
+  if (await byPlaceholder.isVisible().catch(() => false)) {
+    await byPlaceholder.fill(title);
+  } else {
+    await byLabel.fill(title);
+  }
 });
 
 When('I enter {string} as the description', async ({ page }, description: string) => {
-  // Try to find description field by label first, fallback to placeholder for board create dialog
+  // For todo creation, description is only available in edit modal, not inline form
+  // For board creation, it's in the create dialog
+  // Try modal/dialog description field by label first
   const byLabel = page.getByLabel(/description/i);
-  const byPlaceholder = page.getByPlaceholder(/description/i);
+  const byPlaceholder = page.getByPlaceholder(/description|optional description/i);
 
+  // Check if we're in a dialog (board creation or todo edit modal)
+  const dialog = page.getByRole('dialog');
+  if (await dialog.isVisible().catch(() => false)) {
+    const dialogDesc = dialog.getByLabel(/description/i);
+    if (await dialogDesc.isVisible().catch(() => false)) {
+      await dialogDesc.fill(description);
+      return;
+    }
+    const dialogPlaceholder = dialog.getByPlaceholder(/description|optional description/i);
+    if (await dialogPlaceholder.isVisible().catch(() => false)) {
+      await dialogPlaceholder.fill(description);
+      return;
+    }
+  }
+
+  // Fallback to page-level elements
   if (await byLabel.isVisible().catch(() => false)) {
     await byLabel.fill(description);
-  } else {
+  } else if (await byPlaceholder.isVisible().catch(() => false)) {
     await byPlaceholder.fill(description);
+  } else {
+    // For inline todo creation, description isn't available
+    // We'd need to save the todo first, then edit it
+    throw new Error('Description field not found. For inline todo creation, save the todo first then edit to add description.');
   }
 });
 
@@ -567,8 +654,11 @@ When('I create a todo titled {string}', async ({ page }, title: string) => {
 // ==========================================
 
 When('I click on the todo {string}', async ({ page }, todoTitle: string) => {
+  // TodoCard component uses onDoubleClick to open the edit modal
   const todo = page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
-  await todo.click();
+  await todo.dblclick();
+  // Wait for the edit modal to appear
+  await page.getByRole('dialog').waitFor({ state: 'visible' });
 });
 
 When('I change the title to {string}', async ({ page }, newTitle: string) => {
@@ -590,8 +680,9 @@ When('I clear the description', async ({ page }) => {
 });
 
 When('I change the priority to {string}', async ({ page }, newPriority: string) => {
-  await page.getByRole('combobox', { name: /priority/i }).click();
-  await page.getByRole('option', { name: newPriority }).click();
+  // TodoEditModal uses buttons for priority selection, not a combobox
+  // The PriorityBadge component renders the priority text inside the button
+  await page.getByRole('button', { name: new RegExp(newPriority, 'i') }).click();
 });
 
 When('I clear the due date', async ({ page }) => {
@@ -804,14 +895,18 @@ Then('the todo {string} should not display {string} label', async ({ page }, tod
 
 Then('the todo {string} should have description {string}', async ({ page }, todoTitle: string, description: string) => {
   const todo = page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
-  await todo.click();
+  // Double-click to open the edit modal
+  await todo.dblclick();
+  await page.getByRole('dialog').waitFor({ state: 'visible' });
   await expect(page.getByLabel(/description/i)).toHaveValue(description);
   await page.keyboard.press('Escape');
 });
 
 Then('the todo {string} should have no description', async ({ page }, todoTitle: string) => {
   const todo = page.locator(`[data-testid="todo-card"]:has-text("${todoTitle}")`);
-  await todo.click();
+  // Double-click to open the edit modal
+  await todo.dblclick();
+  await page.getByRole('dialog').waitFor({ state: 'visible' });
   await expect(page.getByLabel(/description/i)).toHaveValue('');
   await page.keyboard.press('Escape');
 });

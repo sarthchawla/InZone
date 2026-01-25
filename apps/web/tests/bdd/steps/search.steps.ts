@@ -1,5 +1,5 @@
 import { createBdd, DataTable } from 'playwright-bdd';
-import { test, expect } from '../fixtures';
+import { test, expect, MockedRoutes } from '../fixtures';
 
 const { Given, When, Then } = createBdd(test);
 
@@ -121,7 +121,10 @@ async function setupSearchRoutes(page: import('@playwright/test').Page) {
 }
 
 // Setup step for boards and todos
-Given('the following boards with todos exist:', async ({ page }, dataTable: DataTable) => {
+Given('the following boards with todos exist:', async ({ page, mockedRoutes }, dataTable: DataTable) => {
+  // Mark boards route as mocked to prevent default mock from overwriting
+  mockedRoutes.add('boards');
+
   resetMockData();
   const rows = dataTable.hashes() as Array<{ boardName: string; todoTitle: string; todoDescription: string }>;
 

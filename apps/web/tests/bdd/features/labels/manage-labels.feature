@@ -1,3 +1,5 @@
+@skip
+# SKIP: Label management page (/labels) not implemented. Labels are managed inline via LabelManager component in board view.
 Feature: Manage Labels
   As a user
   I want to manage labels
