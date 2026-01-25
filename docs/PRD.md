@@ -67,6 +67,18 @@
 
 ---
 
+## Post-Implementation Verification
+
+After implementing features from this PRD, use agent-browser to visually verify the changes:
+
+1. **Visual Verification**: Navigate to the relevant pages using agent-browser tools to capture screenshots and verify UI changes
+2. **Functional Testing**: Use agent-browser to interact with the new features (click buttons, fill forms, etc.)
+3. **Cross-browser Check**: Verify the feature works correctly in the browser environment
+
+**Important**: Always use agent-browser CLI (browser_navigate, browser_snapshot, browser_click, etc.) for post-implementation verification. This provides real-time visual feedback and interaction testing.
+
+---
+
 ## Notes for Ralph
 
 When Ralph reads this PRD, it will use it to understand:

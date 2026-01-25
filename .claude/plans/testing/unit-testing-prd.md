@@ -1524,6 +1524,20 @@ jobs:
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2025-01-25*
+---
+
+## Post-Implementation Verification
+
+After implementing or updating unit tests, use **agent-browser** to verify the application works correctly in the browser:
+
+1. **Integration Check**: Use browser_navigate to verify components render correctly in the actual app
+2. **Visual Verification**: Capture browser_snapshot to confirm UI matches test expectations
+3. **Interactive Testing**: Use browser_click and browser_type to verify user interactions work as tested
+
+**Important**: Unit tests validate code in isolation. For visual verification, always use agent-browser CLI.
+
+---
+
+*Document Version: 1.1*
+*Last Updated: 2026-01-26*
 *Parent PRD: [InZone PRD](../inzone-prd.md)*

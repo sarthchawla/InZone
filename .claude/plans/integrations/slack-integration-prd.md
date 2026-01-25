@@ -135,5 +135,19 @@ interface SlackIntegrationConfig {
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2025-01-24*
+---
+
+## Post-Implementation Verification
+
+After implementing Slack integration, use **agent-browser** to verify:
+
+1. **OAuth Flow**: Navigate to integration settings, click "Connect Slack", verify OAuth redirect
+2. **Configuration UI**: Verify settings page displays correctly using browser_snapshot
+3. **Task Sync**: After Slack reaction, verify task appears in InZone via browser_navigate
+
+**Important**: Always use agent-browser CLI for verification.
+
+---
+
+*Document Version: 1.1*
+*Last Updated: 2026-01-26*

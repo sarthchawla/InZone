@@ -465,4 +465,18 @@ Remove after validation:
 
 ---
 
-*Last updated: 2026-01-25*
+---
+
+## Post-Migration Verification
+
+After completing the Playwright-BDD migration, use **agent-browser** to manually verify the application still works correctly:
+
+1. **Smoke Test**: Use browser_navigate and browser_snapshot to verify main pages load
+2. **Feature Verification**: Manually test key features with browser_click and browser_type
+3. **Compare with Automated Tests**: Ensure manual testing matches Playwright-BDD test scenarios
+
+**Important**: The Playwright-BDD framework handles automated testing. For manual verification, always use agent-browser CLI tools.
+
+---
+
+*Last updated: 2026-01-26*

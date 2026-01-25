@@ -900,5 +900,44 @@ pnpm dev
 
 ---
 
-*Document Version: 3.0*
-*Last Updated: 2025-01-25*
+---
+
+## 14. Post-Implementation Verification
+
+After implementing features from this PRD, use **agent-browser** to visually verify the changes:
+
+### Verification Steps
+
+1. **Visual Verification**
+   - Navigate to the homepage using `browser_navigate`
+   - Capture page snapshot with `browser_snapshot` to verify UI
+   - Check board cards display correctly
+
+2. **Functional Testing**
+   - Use `browser_click` to interact with buttons and links
+   - Use `browser_type` to test form inputs
+   - Verify drag-and-drop by capturing before/after snapshots
+
+3. **Feature-Specific Checks**
+   - Board creation: Navigate to homepage → click "New Board" → verify modal
+   - Task management: Navigate to board → add task → verify it appears
+   - Labels: Open task → assign label → verify label displays
+
+### Example Verification Flow
+
+```
+1. browser_navigate → http://localhost:5173
+2. browser_snapshot → Capture homepage state
+3. browser_click → "New Board" button
+4. browser_snapshot → Verify modal opened
+5. browser_type → Enter board name
+6. browser_click → Submit button
+7. browser_snapshot → Verify board created
+```
+
+**Important**: Always use agent-browser CLI (browser_navigate, browser_snapshot, browser_click, etc.) for post-implementation verification. This provides real-time visual feedback and interaction testing.
+
+---
+
+*Document Version: 3.1*
+*Last Updated: 2026-01-26*

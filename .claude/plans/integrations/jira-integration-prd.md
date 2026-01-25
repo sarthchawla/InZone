@@ -198,5 +198,31 @@ No schema changes required - uses existing `Integration` and `Todo` models.
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2025-01-24*
+---
+
+## Post-Implementation Verification
+
+After implementing Jira integration, use **agent-browser** to verify:
+
+1. **OAuth Flow**
+   - Navigate to integration settings page
+   - Click "Connect Jira" button
+   - Verify OAuth redirect works
+   - Confirm connection success message
+
+2. **Task Sync**
+   - Create task in Jira
+   - Wait for webhook processing
+   - Use browser_navigate to verify task appears in InZone board
+   - browser_snapshot to document sync result
+
+3. **Configuration UI**
+   - Verify field mapping interface displays correctly
+   - Test form interactions with browser_click/browser_type
+
+**Important**: Always use agent-browser CLI for verification.
+
+---
+
+*Document Version: 1.1*
+*Last Updated: 2026-01-26*
