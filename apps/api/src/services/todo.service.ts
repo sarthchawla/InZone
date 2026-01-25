@@ -37,6 +37,7 @@ export type TodoFilter = {
   priority?: Priority;
   labelId?: string;
   search?: string;
+  includeDeleted?: boolean;
 };
 
 export class TodoService {
@@ -44,12 +45,14 @@ export class TodoService {
 
   /**
    * Get todos with filters
+   * Excludes soft-deleted todos by default
    */
   async getTodos(filter: TodoFilter = {}): Promise<TodoWithDetails[]> {
     const where: {
       columnId?: string;
-      column?: { boardId: string };
+      column?: { boardId: string; isDeleted: boolean };
       archived?: boolean;
+      isDeleted?: boolean;
       priority?: Priority;
       labels?: { some: { id: string } };
       title?: { contains: string; mode: "insensitive" };
@@ -60,13 +63,18 @@ export class TodoService {
     }
 
     if (filter.boardId) {
-      where.column = { boardId: filter.boardId };
+      where.column = { boardId: filter.boardId, isDeleted: false };
     }
 
     if (filter.archived !== undefined) {
       where.archived = filter.archived;
     } else {
       where.archived = false; // Default to non-archived
+    }
+
+    // Filter out soft-deleted by default
+    if (!filter.includeDeleted) {
+      where.isDeleted = false;
     }
 
     if (filter.priority) {
@@ -95,10 +103,11 @@ export class TodoService {
 
   /**
    * Get a single todo by ID
+   * Excludes soft-deleted todos
    */
   async getTodoById(id: string): Promise<TodoWithDetails | null> {
-    return this.prisma.todo.findUnique({
-      where: { id },
+    return this.prisma.todo.findFirst({
+      where: { id, isDeleted: false },
       include: {
         labels: true,
         column: {
@@ -112,18 +121,18 @@ export class TodoService {
    * Create a new todo
    */
   async createTodo(input: CreateTodoInput): Promise<TodoWithLabels | null> {
-    // Verify column exists
-    const column = await this.prisma.column.findUnique({
-      where: { id: input.columnId },
+    // Verify column exists and is not soft-deleted
+    const column = await this.prisma.column.findFirst({
+      where: { id: input.columnId, isDeleted: false },
     });
 
     if (!column) {
       return null;
     }
 
-    // Get max position for new todo
+    // Get max position for new todo (excluding soft-deleted)
     const maxPosition = await this.prisma.todo.aggregate({
-      where: { columnId: input.columnId },
+      where: { columnId: input.columnId, isDeleted: false },
       _max: { position: true },
     });
     const newPosition = (maxPosition._max.position ?? -1) + 1;
@@ -183,34 +192,39 @@ export class TodoService {
   }
 
   /**
-   * Delete a todo
+   * Soft-delete a todo (sets deletedAt and isDeleted)
    */
   async deleteTodo(id: string): Promise<void> {
-    await this.prisma.todo.delete({
+    await this.prisma.todo.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        isDeleted: true,
+      },
     });
   }
 
   /**
    * Move a todo to a different column
+   * Excludes soft-deleted columns and todos
    */
   async moveTodo(
     id: string,
     columnId: string,
     position?: number
   ): Promise<TodoWithLabels | null> {
-    // Verify target column exists
-    const targetColumn = await this.prisma.column.findUnique({
-      where: { id: columnId },
+    // Verify target column exists and is not soft-deleted
+    const targetColumn = await this.prisma.column.findFirst({
+      where: { id: columnId, isDeleted: false },
     });
 
     if (!targetColumn) {
       throw new Error("Target column not found");
     }
 
-    // Get the todo
-    const existingTodo = await this.prisma.todo.findUnique({
-      where: { id },
+    // Get the todo (excluding soft-deleted)
+    const existingTodo = await this.prisma.todo.findFirst({
+      where: { id, isDeleted: false },
     });
 
     if (!existingTodo) {
@@ -219,18 +233,19 @@ export class TodoService {
 
     let newPosition = position;
 
-    // If position not specified, add to end
+    // If position not specified, add to end (excluding soft-deleted)
     if (newPosition === undefined) {
       const maxPosition = await this.prisma.todo.aggregate({
-        where: { columnId },
+        where: { columnId, isDeleted: false },
         _max: { position: true },
       });
       newPosition = (maxPosition._max.position ?? -1) + 1;
     } else {
-      // Shift existing todos if inserting at specific position
+      // Shift existing todos if inserting at specific position (excluding soft-deleted)
       await this.prisma.todo.updateMany({
         where: {
           columnId,
+          isDeleted: false,
           position: { gte: newPosition },
         },
         data: {
@@ -253,16 +268,18 @@ export class TodoService {
 
   /**
    * Reorder todos within a column
+   * Excludes soft-deleted todos
    */
   async reorderTodos(
     columnId: string,
     todos: { id: string; position: number }[]
   ): Promise<TodoWithLabels[]> {
-    // Verify all todos belong to the specified column
+    // Verify all todos belong to the specified column and are not soft-deleted
     const existingTodos = await this.prisma.todo.findMany({
       where: {
         id: { in: todos.map((t) => t.id) },
         columnId,
+        isDeleted: false,
       },
     });
 
@@ -280,9 +297,9 @@ export class TodoService {
       )
     );
 
-    // Fetch updated todos
+    // Fetch updated todos (excluding soft-deleted)
     return this.prisma.todo.findMany({
-      where: { columnId, archived: false },
+      where: { columnId, archived: false, isDeleted: false },
       orderBy: { position: "asc" },
       include: {
         labels: true,

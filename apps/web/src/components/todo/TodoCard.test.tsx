@@ -34,16 +34,18 @@ describe("TodoCard", () => {
       expect(screen.getByText("My Todo Task")).toBeInTheDocument();
     });
 
-    it("renders todo description when provided", () => {
+    it("shows description indicator when description provided", () => {
       const todo = createMockTodo({ description: "This is a description" });
       renderWithDnd(<TodoCard todo={todo} />);
-      expect(screen.getByText("This is a description")).toBeInTheDocument();
+      // Description content is NOT shown (per PRD), but indicator icon should be present
+      expect(screen.queryByText("This is a description")).not.toBeInTheDocument();
+      expect(screen.getByTitle("Has description")).toBeInTheDocument();
     });
 
-    it("does not render description when not provided", () => {
+    it("does not show description indicator when no description", () => {
       const todo = createMockTodo({ description: undefined });
       renderWithDnd(<TodoCard todo={todo} />);
-      expect(screen.queryByText(/description/i)).not.toBeInTheDocument();
+      expect(screen.queryByTitle("Has description")).not.toBeInTheDocument();
     });
 
     it("renders priority badge", () => {
@@ -148,12 +150,13 @@ describe("TodoCard", () => {
       expect(screen.getByText(longTitle)).toBeInTheDocument();
     });
 
-    it("handles very long description", () => {
+    it("handles very long description (shows indicator only)", () => {
       const longDescription = "B".repeat(1000);
       const todo = createMockTodo({ description: longDescription });
       renderWithDnd(<TodoCard todo={todo} />);
-      // Description should be truncated via CSS (line-clamp-2)
-      expect(screen.getByText(longDescription)).toBeInTheDocument();
+      // Description content is NOT shown (per PRD), only indicator
+      expect(screen.queryByText(longDescription)).not.toBeInTheDocument();
+      expect(screen.getByTitle("Has description")).toBeInTheDocument();
     });
 
     it("handles special characters in title", () => {

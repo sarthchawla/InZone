@@ -125,8 +125,21 @@ describe("BoardView", () => {
       });
     });
 
-    it("renders board description", async () => {
+    it("renders board description indicator when description exists", async () => {
+      const user = userEvent.setup();
       renderBoardView();
+
+      // Wait for board to load
+      await waitFor(() => {
+        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
+      });
+
+      // Description is collapsed by default - check for FileText icon button (description indicator)
+      const descriptionIndicator = screen.getByTitle(/expand description/i);
+      expect(descriptionIndicator).toBeInTheDocument();
+
+      // Click to expand and see full description
+      await user.click(descriptionIndicator);
 
       await waitFor(() => {
         expect(screen.getByText("Main project board")).toBeInTheDocument();

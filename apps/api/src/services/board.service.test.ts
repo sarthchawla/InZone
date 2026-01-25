@@ -59,13 +59,15 @@ describe("BoardService", () => {
         expect(result[0].todoCount).toBe(5); // 3 + 2
         expect(result[1].todoCount).toBe(5);
         expect(prismaMock.board.findMany).toHaveBeenCalledWith({
+          where: { isDeleted: false },
           orderBy: { position: "asc" },
           include: {
             columns: {
+              where: { isDeleted: false },
               orderBy: { position: "asc" },
               include: {
                 _count: {
-                  select: { todos: { where: { archived: false } } },
+                  select: { todos: { where: { archived: false, isDeleted: false } } },
                 },
               },
             },
@@ -130,7 +132,7 @@ describe("BoardService", () => {
           columns: [mockColumn],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
 
         const result = await boardService.getBoardById("board-1");
 
@@ -147,7 +149,7 @@ describe("BoardService", () => {
           columns: [],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
 
         const result = await boardService.getBoardById("board-1");
 
@@ -157,7 +159,7 @@ describe("BoardService", () => {
 
     describe("unhappy path", () => {
       it("returns null when board not found", async () => {
-        prismaMock.board.findUnique.mockResolvedValue(null);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const result = await boardService.getBoardById("non-existent");
 
@@ -165,7 +167,7 @@ describe("BoardService", () => {
       });
 
       it("throws error on database error", async () => {
-        prismaMock.board.findUnique.mockRejectedValue(new Error("DB Error"));
+        prismaMock.board.findFirst.mockRejectedValue(new Error("DB Error"));
 
         await expect(boardService.getBoardById("board-1")).rejects.toThrow(
           "DB Error"
@@ -470,19 +472,23 @@ describe("BoardService", () => {
   });
 
   // ===========================================
-  // deleteBoard - Happy Path Tests
+  // deleteBoard - Soft Delete Tests
   // ===========================================
   describe("deleteBoard", () => {
     describe("happy path", () => {
-      it("deletes board successfully", async () => {
-        prismaMock.board.delete.mockResolvedValue(
+      it("soft-deletes board successfully", async () => {
+        prismaMock.board.update.mockResolvedValue(
           createMockBoard({ id: "board-1" }) as any
         );
 
         await boardService.deleteBoard("board-1");
 
-        expect(prismaMock.board.delete).toHaveBeenCalledWith({
+        expect(prismaMock.board.update).toHaveBeenCalledWith({
           where: { id: "board-1" },
+          data: {
+            deletedAt: expect.any(Date),
+            isDeleted: true,
+          },
         });
       });
     });
@@ -491,7 +497,7 @@ describe("BoardService", () => {
       it("throws error when board not found", async () => {
         const error = new Error("Record not found");
         (error as any).code = "P2025";
-        prismaMock.board.delete.mockRejectedValue(error);
+        prismaMock.board.update.mockRejectedValue(error);
 
         await expect(boardService.deleteBoard("non-existent")).rejects.toThrow(
           "Record not found"
@@ -545,7 +551,7 @@ describe("BoardService", () => {
           ],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockSourceBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockSourceBoard as any);
         prismaMock.board.aggregate.mockResolvedValue({
           _max: { position: 0 },
         } as any);
@@ -576,7 +582,7 @@ describe("BoardService", () => {
           columns: [],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockSourceBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockSourceBoard as any);
         prismaMock.board.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -590,7 +596,7 @@ describe("BoardService", () => {
 
     describe("unhappy path", () => {
       it("returns null when source board not found", async () => {
-        prismaMock.board.findUnique.mockResolvedValue(null);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const result = await boardService.duplicateBoard("non-existent");
 
@@ -613,7 +619,7 @@ describe("BoardService", () => {
           boardId: "board-1",
         });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: 2 },
         } as any);
@@ -626,6 +632,7 @@ describe("BoardService", () => {
         expect(prismaMock.column.create).toHaveBeenCalledWith({
           data: {
             name: "New Column",
+            description: undefined,
             wipLimit: undefined,
             position: 3,
             boardId: "board-1",
@@ -641,7 +648,7 @@ describe("BoardService", () => {
           wipLimit: 5,
         });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -657,6 +664,7 @@ describe("BoardService", () => {
         expect(prismaMock.column.create).toHaveBeenCalledWith({
           data: {
             name: "In Progress",
+            description: undefined,
             wipLimit: 5,
             position: 0,
             boardId: "board-1",
@@ -668,7 +676,7 @@ describe("BoardService", () => {
         const mockBoard = createMockBoard({ id: "board-1" });
         const mockColumn = createMockColumn({ position: 0 });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -688,7 +696,7 @@ describe("BoardService", () => {
 
     describe("unhappy path", () => {
       it("returns null when board not found", async () => {
-        prismaMock.board.findUnique.mockResolvedValue(null);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const result = await boardService.addColumn(
           "non-existent",

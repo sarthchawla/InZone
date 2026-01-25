@@ -38,6 +38,7 @@ export const updateBoardSchema = z.object({
  */
 export const createColumnSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be at most 100 characters'),
+  description: z.string().max(100000, 'Description must be at most 100KB').optional(),
   wipLimit: z.number().int('WIP limit must be an integer').min(1, 'WIP limit must be at least 1').optional(),
 });
 
@@ -46,6 +47,7 @@ export const createColumnSchema = z.object({
  */
 export const updateColumnSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be at most 100 characters').optional(),
+  description: z.string().max(100000, 'Description must be at most 100KB').nullable().optional(),
   wipLimit: z.number().int('WIP limit must be an integer').min(1, 'WIP limit must be at least 1').nullable().optional(),
 });
 
