@@ -591,7 +591,6 @@ Examples:
     parser.add_argument(
         "iterations",
         type=int,
-        default=10,
         help="Number of iterations to run",
     )
 

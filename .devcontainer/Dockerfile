@@ -80,7 +80,7 @@ ENV EDITOR=nano
 
 # Install Claude Code CLI and Agent Browser CLI
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
-    && npm install -g @anthropic-ai/agent-browser@latest \
+    && npm install -g agent-browser@latest \
     && agent-browser install
 
 # Install Playwright globally and browser dependencies
