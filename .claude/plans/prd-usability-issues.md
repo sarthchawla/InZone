@@ -234,7 +234,373 @@ Feature: Edit Task Modal Accessibility
 
 ---
 
+### 1.4 Due Date API Validation Bug (NEW - v3.0)
+
+- **Location:** Board view > Edit Task modal > Due Date field
+- **Current Behavior:** When saving a task with a due date, API returns 400 Bad Request with error: `{"errors":[{"code":"invalid_string","validation":"datetime","message":"Invalid datetime","path":["dueDate"]}]}`
+- **Root Cause:** Frontend sends date in `YYYY-MM-DD` format, but API expects full ISO datetime format `YYYY-MM-DDTHH:mm:ss.sssZ`
+- **Expected Behavior:** Due date should save successfully
+- **Impact:** Critical - Users cannot set due dates on tasks
+
+#### Unit Tests (EditTodoModal.test.tsx)
+
+```typescript
+describe("Due date handling", () => {
+  it("converts date input to ISO datetime format before API call", async () => {
+    const mockUpdateTodo = vi.fn();
+    render(<EditTodoModal todo={mockTodo} onSave={mockUpdateTodo} />);
+
+    await userEvent.type(screen.getByLabelText("Due Date"), "2026-02-15");
+    await userEvent.click(screen.getByRole("button", { name: /Save/i }));
+
+    expect(mockUpdateTodo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dueDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+      })
+    );
+  });
+
+  it("handles empty due date correctly", async () => {
+    const mockUpdateTodo = vi.fn();
+    render(<EditTodoModal todo={mockTodo} onSave={mockUpdateTodo} />);
+    await userEvent.click(screen.getByRole("button", { name: /Save/i }));
+
+    expect(mockUpdateTodo).toHaveBeenCalledWith(
+      expect.objectContaining({ dueDate: null })
+    );
+  });
+});
+```
+
+#### BDD Tests (due-date-save.feature)
+
+```gherkin
+Feature: Due Date Saving
+  As a user
+  I want to set due dates on tasks
+  So that I can track deadlines
+
+  Scenario: Save task with due date
+    Given I am viewing a board with a todo "Test Task"
+    When I open the edit modal for "Test Task"
+    And I set the due date to "2026-02-15"
+    And I click "Save"
+    Then the todo should show the due date "Feb 15"
+    And the modal should close
+
+  Scenario: Clear due date from task
+    Given I have a todo with due date "2026-02-15"
+    When I open the edit modal
+    And I clear the due date
+    And I click "Save"
+    Then the todo should not show a due date
+```
+
+#### Browser Verification
+
+```
+1. browser_navigate: url=http://localhost:5173/board/{board-id}
+2. browser_click: ref=<task-card> (double-click to open)
+3. browser_type: ref=<due-date-input>, text="2026-02-15"
+4. browser_click: ref=<save-button>
+5. browser_network_requests: Check for 200 OK (not 400)
+6. browser_take_screenshot: filename=fix-1.4-verified.png
+```
+
+---
+
+### 1.5 Silent API Failures - No Error Messages (NEW - v3.0)
+
+- **Location:** All modals with Save functionality
+- **Current Behavior:** When API calls fail (e.g., due date validation error), the modal stays open with no error message shown to user. User has no idea their changes weren't saved.
+- **Expected Behavior:** Display clear error message to user when save fails
+- **Impact:** Critical - Users think their data is saved when it isn't
+
+#### Unit Tests (EditTodoModal.test.tsx)
+
+```typescript
+describe("Error handling", () => {
+  it("displays error message when save fails", async () => {
+    const mockUpdateTodo = vi.fn().mockRejectedValue(new Error("Validation failed"));
+    render(<EditTodoModal todo={mockTodo} onSave={mockUpdateTodo} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Save/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
+    });
+  });
+
+  it("keeps modal open on save failure", async () => {
+    const mockUpdateTodo = vi.fn().mockRejectedValue(new Error("API Error"));
+    render(<EditTodoModal todo={mockTodo} onSave={mockUpdateTodo} isOpen={true} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Save/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+  });
+
+  it("displays specific validation errors from API", async () => {
+    const apiError = { errors: [{ message: "Invalid datetime", path: ["dueDate"] }] };
+    const mockUpdateTodo = vi.fn().mockRejectedValue(apiError);
+    render(<EditTodoModal todo={mockTodo} onSave={mockUpdateTodo} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Save/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid datetime/i)).toBeInTheDocument();
+    });
+  });
+});
+```
+
+#### BDD Tests (api-error-handling.feature)
+
+```gherkin
+Feature: API Error Handling
+  As a user
+  I want to see error messages when operations fail
+  So that I know my changes weren't saved
+
+  Scenario: Show error when save fails
+    Given I am editing a todo
+    And the API will return an error
+    When I click "Save"
+    Then I should see an error message
+    And the modal should remain open
+
+  Scenario: Show validation error details
+    Given I am editing a todo with an invalid due date format
+    When I click "Save"
+    Then I should see "Invalid datetime" error message
+```
+
+#### Browser Verification
+
+```
+1. browser_navigate: url=http://localhost:5173/board/{board-id}
+2. browser_click: ref=<task-card> (open edit modal)
+3. browser_type: ref=<due-date-input>, text="invalid-date"
+4. browser_click: ref=<save-button>
+5. browser_snapshot: Check for error message element
+6. browser_take_screenshot: filename=fix-1.5-verified.png
+```
+
+---
+
+### 1.6 Task Deletion Without Confirmation (NEW - v3.0)
+
+- **Location:** Board view > Edit Task modal > Delete button
+- **Current Behavior:** Clicking Delete immediately deletes the task without any confirmation dialog
+- **Expected Behavior:** Show confirmation dialog before deleting task
+- **Impact:** High - Users can accidentally delete tasks with no way to recover
+
+#### Unit Tests (EditTodoModal.test.tsx)
+
+```typescript
+describe("Delete confirmation", () => {
+  it("shows confirmation dialog before deleting", async () => {
+    render(<EditTodoModal todo={mockTodo} isOpen={true} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Delete/i }));
+
+    expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Confirm/i })).toBeInTheDocument();
+  });
+
+  it("does not delete when confirmation is cancelled", async () => {
+    const onDelete = vi.fn();
+    render(<EditTodoModal todo={mockTodo} isOpen={true} onDelete={onDelete} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Delete/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Cancel/i }));
+
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it("deletes when confirmation is confirmed", async () => {
+    const onDelete = vi.fn();
+    render(<EditTodoModal todo={mockTodo} isOpen={true} onDelete={onDelete} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Delete/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Confirm/i }));
+
+    expect(onDelete).toHaveBeenCalledWith(mockTodo.id);
+  });
+});
+```
+
+#### BDD Tests (task-deletion.feature)
+
+```gherkin
+Feature: Task Deletion Confirmation
+  As a user
+  I want to confirm before deleting tasks
+  So that I don't accidentally lose data
+
+  Scenario: Confirm before deleting task
+    Given I am editing a todo "Important Task"
+    When I click "Delete"
+    Then I should see a confirmation dialog
+    And the dialog should say "Are you sure you want to delete this task?"
+
+  Scenario: Cancel deletion
+    Given I am editing a todo "Important Task"
+    When I click "Delete"
+    And I click "Cancel" on the confirmation
+    Then the todo should still exist
+
+  Scenario: Confirm deletion
+    Given I am editing a todo "Task to Delete"
+    When I click "Delete"
+    And I click "Confirm" on the confirmation
+    Then the todo should be deleted
+    And I should not see "Task to Delete" on the board
+```
+
+#### Browser Verification
+
+```
+1. browser_navigate: url=http://localhost:5173/board/{board-id}
+2. browser_click: ref=<task-card> (open edit modal)
+3. browser_click: ref=<delete-button>
+4. browser_snapshot: Check for confirmation dialog
+5. browser_take_screenshot: filename=fix-1.6-verified.png
+```
+
+---
+
 ## 2. High Priority Issues
+
+### 2.0 Edit Column Modal Missing Name Field (NEW - v3.0)
+
+- **Location:** Board view > Column options > Edit
+- **Current Behavior:** Edit Column modal only has Description field. No way to edit column name.
+- **Expected Behavior:** Modal should include editable column name field
+- **Impact:** High - Users cannot rename columns at all
+
+#### Unit Tests (EditColumnModal.test.tsx)
+
+```typescript
+describe("EditColumnModal", () => {
+  it("includes name field", () => {
+    render(<EditColumnModal column={mockColumn} isOpen={true} />);
+    expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+  });
+
+  it("pre-fills current column name", () => {
+    const column = { id: "1", name: "Todo", description: "" };
+    render(<EditColumnModal column={column} isOpen={true} />);
+    expect(screen.getByLabelText(/name/i)).toHaveValue("Todo");
+  });
+
+  it("saves updated column name", async () => {
+    const onSave = vi.fn();
+    render(<EditColumnModal column={mockColumn} isOpen={true} onSave={onSave} />);
+
+    await userEvent.clear(screen.getByLabelText(/name/i));
+    await userEvent.type(screen.getByLabelText(/name/i), "New Name");
+    await userEvent.click(screen.getByRole("button", { name: /Save/i }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "New Name" })
+    );
+  });
+});
+```
+
+#### BDD Tests (edit-column.feature)
+
+```gherkin
+Feature: Edit Column
+  As a user
+  I want to edit column name and description
+  So that I can organize my board
+
+  Scenario: Edit column name
+    Given I am viewing a board with column "Todo"
+    When I click column options for "Todo"
+    And I click "Edit"
+    Then I should see the "Edit Column" modal
+    And I should see a "Name" field with value "Todo"
+    When I change the name to "Backlog"
+    And I click "Save"
+    Then I should see "Backlog" column on the board
+
+  Scenario: Edit column description
+    Given I am viewing a board with column "Todo"
+    When I edit the column "Todo"
+    And I change the description to "Tasks to be done"
+    And I click "Save"
+    Then the column should have description "Tasks to be done"
+```
+
+#### Browser Verification
+
+```
+1. browser_navigate: url=http://localhost:5173/board/{board-id}
+2. browser_click: ref=<column-options>
+3. browser_click: ref=<edit-option>
+4. browser_snapshot: Check for Name field in modal
+5. browser_take_screenshot: filename=fix-2.0-verified.png
+```
+
+---
+
+### 2.0.1 Board Title Not Editable (NEW - v3.0)
+
+- **Location:** Board view > Board title heading
+- **Current Behavior:** Clicking on board title does nothing
+- **Expected Behavior:** Should open inline editor or modal to edit board name
+- **Impact:** Medium - Users expect to be able to rename boards by clicking title
+
+#### Unit Tests (BoardHeader.test.tsx)
+
+```typescript
+describe("Board title editing", () => {
+  it("shows edit mode when clicking board title", async () => {
+    render(<BoardHeader board={mockBoard} />);
+    await userEvent.click(screen.getByRole("heading", { name: mockBoard.name }));
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("saves new title on blur", async () => {
+    const onUpdateBoard = vi.fn();
+    render(<BoardHeader board={mockBoard} onUpdateBoard={onUpdateBoard} />);
+
+    await userEvent.click(screen.getByRole("heading", { name: mockBoard.name }));
+    await userEvent.clear(screen.getByRole("textbox"));
+    await userEvent.type(screen.getByRole("textbox"), "New Board Name");
+    await userEvent.tab(); // blur
+
+    expect(onUpdateBoard).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "New Board Name" })
+    );
+  });
+});
+```
+
+#### BDD Tests (board-title-edit.feature)
+
+```gherkin
+Feature: Edit Board Title
+  As a user
+  I want to click on board title to edit it
+  So that I can quickly rename my board
+
+  Scenario: Edit board title inline
+    Given I am viewing a board named "My Board"
+    When I click on the board title "My Board"
+    Then I should see an editable text field
+    When I type "Renamed Board" and press Enter
+    Then the board title should be "Renamed Board"
+```
+
+---
 
 ### 2.1 Mobile Responsiveness Problems
 
@@ -437,16 +803,26 @@ browser_snapshot: Look for "1 task" vs "1 tasks"
 
 ## 5. Priority Matrix
 
-| Priority | Issue | Unit Tests | BDD Tests |
-|----------|-------|------------|-----------|
-| P0 | Single click task cards | 2 | 2 |
-| P0 | Settings button broken | 2 | 2 |
-| P0 | Modal buttons outside viewport | 3 | 2 |
-| P1 | Mobile responsiveness | 2 | 1 |
-| P1 | Horizontal scroll indicator | 1 | 1 |
-| P2 | Empty board onboarding | 1 | 1 |
-| P2 | Header link to home | 1 | 1 |
-| P2 | Grammar (plural/singular) | 2 | 1 |
+| Priority | Issue | Unit Tests | BDD Tests | Status |
+|----------|-------|------------|-----------|--------|
+| **P0 - Critical** | | | | |
+| P0 | 1.1 Single click task cards | 2 | 2 | Open |
+| P0 | 1.2 Settings button broken | 2 | 2 | Open |
+| P0 | 1.3 Modal buttons outside viewport | 3 | 2 | Open |
+| P0 | 1.4 Due Date API validation bug (NEW) | 2 | 2 | Open |
+| P0 | 1.5 Silent API failures (NEW) | 3 | 2 | Open |
+| P0 | 1.6 Task deletion no confirmation (NEW) | 3 | 3 | Open |
+| **P1 - High** | | | | |
+| P1 | 2.0 Edit Column missing name field (NEW) | 3 | 2 | Open |
+| P1 | 2.0.1 Board title not editable (NEW) | 2 | 1 | Open |
+| P1 | 2.1 Mobile responsiveness | 2 | 1 | Open |
+| P1 | 2.2 Horizontal scroll indicator | 1 | 1 | Open |
+| **P2 - Medium** | | | | |
+| P2 | 3.1 Empty board onboarding | 1 | 1 | Open |
+| P2 | 3.2 Header link to home | 1 | 1 | Open |
+| P2 | 3.3 Grammar (plural/singular) | 2 | 1 | Open |
+
+**Total Issues:** 14 (6 Critical, 4 High, 4 Medium)
 
 ---
 
@@ -481,39 +857,80 @@ browser_snapshot: Look for "1 task" vs "1 tasks"
 ```
 apps/web/tests/bdd/features/
 ├── todos/
-│   ├── task-card-click.feature          # NEW
-│   └── edit-todo-modal-viewport.feature # NEW
+│   ├── task-card-click.feature          # NEW (1.1)
+│   ├── edit-todo-modal-viewport.feature # NEW (1.3)
+│   ├── due-date-save.feature            # NEW (1.4) - v3.0
+│   ├── api-error-handling.feature       # NEW (1.5) - v3.0
+│   └── task-deletion.feature            # NEW (1.6) - v3.0
 ├── boards/
-│   ├── board-settings.feature           # NEW
-│   ├── empty-board.feature              # NEW
-│   └── mobile-board-view.feature        # NEW
+│   ├── board-settings.feature           # NEW (1.2)
+│   ├── board-title-edit.feature         # NEW (2.0.1) - v3.0
+│   ├── empty-board.feature              # NEW (3.1)
+│   └── mobile-board-view.feature        # NEW (2.1)
 ├── columns/
-│   └── scroll-indicator.feature         # NEW
+│   ├── edit-column.feature              # NEW (2.0) - v3.0
+│   └── scroll-indicator.feature         # NEW (2.2)
 └── navigation/
-    └── header-navigation.feature        # NEW
+    └── header-navigation.feature        # NEW (3.2)
+```
+
+### New Unit Test Files to Create/Update
+
+```
+apps/web/src/components/
+├── todo/
+│   ├── TodoCard.test.tsx                # UPDATE - add click tests
+│   └── EditTodoModal.test.tsx           # UPDATE - add error handling, delete confirmation
+├── column/
+│   └── EditColumnModal.test.tsx         # UPDATE - add name field tests
+├── board/
+│   └── BoardHeader.test.tsx             # UPDATE - add title editing tests
+└── common/
+    └── Modal.test.tsx                   # UPDATE - add viewport tests
 ```
 
 ---
 
 ## 8. Implementation Order
 
-### Phase 1 (Critical)
-1. Fix single-click on task cards
-2. Fix or remove Settings button
-3. Fix modal viewport/scrolling
+### Phase 1 (Critical - Must Fix Immediately)
+1. **Fix Due Date API validation** (1.4) - Convert date to ISO datetime format
+2. **Add error message display** (1.5) - Show user-friendly errors on API failures
+3. **Fix modal viewport/scrolling** (1.3) - Ensure buttons are always clickable
+4. **Fix single-click on task cards** (1.1) - Open modal on single click
+5. **Add task deletion confirmation** (1.6) - Show "Are you sure?" dialog
+6. **Fix or remove Settings button** (1.2) - Implement or hide broken feature
 
-### Phase 2 (UX)
-4. Mobile responsiveness
-5. Scroll indicators
-6. Empty state onboarding
-7. Grammar fixes
-8. Header link
+### Phase 2 (High Priority - UX Improvements)
+7. **Add column name field to Edit Column modal** (2.0)
+8. **Make board title editable** (2.0.1)
+9. Mobile responsiveness (2.1)
+10. Scroll indicators (2.2)
 
-### Phase 3 (Features)
-9. Search functionality
-10. Keyboard shortcuts
-11. Due date visualization
+### Phase 3 (Medium Priority - Polish)
+11. Empty state onboarding (3.1)
+12. Header link to home (3.2)
+13. Grammar fixes (3.3)
+
+### Phase 4 (Features - Future)
+14. Search functionality
+15. Keyboard shortcuts
+16. Due date visualization
+17. Undo functionality
 
 ---
 
-*Document Version: 2.0 | Last Updated: 2026-01-26*
+## 9. Summary of New Issues Found (v3.0)
+
+| # | Issue | Severity | Description |
+|---|-------|----------|-------------|
+| 1 | Due Date API Bug | Critical | API rejects dates - format mismatch |
+| 2 | Silent Failures | Critical | No error shown when save fails |
+| 3 | No Delete Confirm | High | Tasks deleted without confirmation |
+| 4 | Column No Name | High | Cannot rename columns |
+| 5 | Board Title | Medium | Cannot edit board title by clicking |
+| 6 | InZone Header | Medium | Not a link to homepage |
+
+---
+
+*Document Version: 3.0 | Last Updated: 2026-01-26*
