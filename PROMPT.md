@@ -1,57 +1,116 @@
-# Ralph Loop Prompt - Phase 2: Automated Testing
+# Ralph Loop Prompt - Playwright-BDD Migration
 
-Read the PRD at `.claude/plans/inzone-prd.md` and continue implementing the InZone application's automated testing infrastructure.
+**Goal:** Execute the migration from Cucumber.js to Playwright-BDD as defined in `.claude/plans/migrations/playwright-bdd-migration-prd.md`
+
+## Migration Plan Reference
+
+Full PRD: `.claude/plans/migrations/playwright-bdd-migration-prd.md`
+
+## Current Phase
+
+Track progress through these phases:
+- [ ] **Phase 1: Foundation Setup** - Install playwright-bdd, create fixtures, update config
+- [ ] **Phase 2: Step Definition Migration** - Convert all 6 step definition files
+- [ ] **Phase 3: Validation & Testing** - Run all tests, compare results
+- [ ] **Phase 4: CI/CD Cutover** - Update GitHub Actions workflow
+- [ ] **Phase 5: Cleanup & Documentation** - Remove legacy files, update docs
 
 ## Instructions
 
-1. **Read the PRD** - Start by reading `.claude/plans/inzone-prd.md` to understand the full context
-2. **Check the Feature Roadmap** - Look at Section 11 "Feature Roadmap" > "Phase 2: Automated Testing"
-3. **Read Testing PRDs** - Review the detailed specifications in:
-   - `.claude/plans/testing/bdd-testing-prd.md` for BDD test requirements
-   - `.claude/plans/testing/unit-testing-prd.md` for unit test requirements
-4. **Find the next task** - Identify the first unchecked `[ ]` item in Phase 2
-5. **Implement it** - Complete the task following the Testing PRD specifications
-6. **Update the PRD** - Mark the item as `[x]` when done
-7. **Commit your work** - Create a git commit with your changes
+1. **Read the PRD** - Review `.claude/plans/migrations/playwright-bdd-migration-prd.md` for full context
+2. **Check Current Phase** - Determine which phase you're in based on what's been completed
+3. **Execute Phase Tasks** - Complete all tasks for the current phase
+4. **Verify Locally** - Run tests locally before committing:
+   ```bash
+   cd apps/web
+   pnpm test:bdd:gen    # Generate spec files
+   pnpm test:bdd:new    # Run all BDD tests
+   ```
+5. **Commit and Push** - Commit your changes and push:
+   ```bash
+   git add -A && git commit -m "Migration: <description>" && git push
+   ```
+6. **Monitor CI** - Wait for CI pipeline to pass:
+   ```bash
+   gh pr checks 2 --watch
+   ```
+7. **Proceed to Next Phase** - Only after local tests pass AND CI is green
 
-## Testing Implementation Guidelines
+## Phase-by-Phase Checklist
 
-### For BDD Tests:
-- Use Playwright + Cucumber.js for frontend E2E tests
-- Use Supertest + Cucumber.js for backend API tests
-- Write Gherkin feature files in `apps/*/tests/bdd/features/`
-- Implement step definitions in `apps/*/tests/bdd/step-definitions/`
-- **Include both happy path AND unhappy path scenarios**
+### Phase 1: Foundation Setup
+- [ ] Install playwright-bdd package: `pnpm add -D playwright-bdd`
+- [ ] Create `tests/bdd/fixtures.ts` with page object fixtures
+- [ ] Update `playwright.config.ts` with BDD configuration
+- [ ] Add `.features-gen/` to `.gitignore`
+- [ ] Add pnpm scripts: `test:bdd:gen`, `test:bdd:new`, `test:bdd:new:ui`, `test:bdd:new:debug`
 
-### For Unit Tests:
-- Use Vitest for both frontend and backend
-- Use React Testing Library for component tests
-- Use MSW for API mocking in frontend tests
-- Use Prisma Mock for database mocking in backend tests
-- **Include both happy path AND unhappy path test cases**
-- Colocate test files with source files (e.g., `Component.tsx` → `Component.test.tsx`)
+### Phase 2: Step Definition Migration
+Convert files in this order (see PRD for conversion template):
+- [ ] `common.steps.ts` → `steps/common.steps.ts`
+- [ ] `board.steps.ts` → `steps/board.steps.ts`
+- [ ] `column.steps.ts` → `steps/column.steps.ts`
+- [ ] `todo.steps.ts` → `steps/todo.steps.ts`
+- [ ] `label.steps.ts` → `steps/label.steps.ts`
+- [ ] `search.steps.ts` → `steps/search.steps.ts`
 
-### For CI Updates:
-- Create `.github/workflows/bdd-tests.yml` for BDD test job
-- Create `.github/workflows/unit-tests.yml` for unit test job
-- Configure test database for CI
-- Add coverage reporting integration
-- Set 80% coverage threshold
+### Phase 3: Validation & Testing
+- [ ] Run all feature files with playwright-bdd
+- [ ] Compare test results with Cucumber.js output
+- [ ] Fix any discrepancies
+- [ ] Validate trace viewer works for failures
+- [ ] Test parallel execution with multiple workers
 
-## Quality Requirements
+### Phase 4: CI/CD Cutover
+- [ ] Update GitHub Actions workflow with sharding
+- [ ] Remove Cucumber.js test job
+- [ ] Add playwright-bdd generation step
+- [ ] Configure test artifact collection
 
-- All tests must cover both success (happy) and failure (unhappy) scenarios
-- Tests should be deterministic and not flaky
-- Follow the test patterns specified in the Testing PRDs
-- Ensure tests can run in CI environment
+### Phase 5: Cleanup & Documentation
+- [ ] Delete `cucumber.config.js`
+- [ ] Delete `support/world.ts` and `support/hooks.ts`
+- [ ] Delete `step-definitions/` directory
+- [ ] Remove `@cucumber/cucumber` from package.json
+- [ ] Update README and CLAUDE.md
 
-## Completion
+## Useful Commands
 
-- If you completed a task this iteration, end your response normally (Ralph will start another iteration)
-- If ALL Phase 2 items are checked `[x]`, output: **RALPH_COMPLETE**
+```bash
+# Generate BDD spec files
+cd apps/web && pnpm test:bdd:gen
 
-## Notes
+# Run new BDD tests
+pnpm test:bdd:new
 
-- Keep changes focused on ONE checklist item per iteration
-- Ensure the app builds and existing functionality still works after your changes
-- Run tests locally to verify they pass before committing
+# Run with UI (debugging)
+pnpm test:bdd:new:ui
+
+# Run old Cucumber tests (for comparison)
+pnpm test:bdd
+
+# Check PR status
+gh pr view 2 --json statusCheckRollup
+
+# Watch CI checks
+gh pr checks 2 --watch
+```
+
+## Completion Criteria
+
+Keep iterating until ALL of the following are true:
+- All 5 phases completed
+- All BDD tests passing with playwright-bdd
+- CI pipeline green with new test setup
+- Legacy Cucumber.js files removed
+- Documentation updated
+
+**When migration is complete, output:** **RALPH_COMPLETE**
+
+## Important Notes
+
+- **Never push until local tests pass** - Always verify with `pnpm test:bdd:new`
+- **One phase at a time** - Complete and verify each phase before proceeding
+- **Keep old system running** - Until Phase 4, both systems should work
+- **Refer to PRD** - The full migration plan has detailed code examples and templates
+- **Track progress** - Update the phase checklist as you complete tasks

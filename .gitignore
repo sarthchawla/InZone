@@ -49,3 +49,11 @@ apps/web/reports/
 # Test coverage
 apps/api/coverage/
 apps/web/coverage/
+
+# Playwright BDD generated files
+apps/web/.features-gen/
+
+# Playwright artifacts
+apps/web/playwright-report/
+apps/web/blob-report/
+apps/web/test-results/
