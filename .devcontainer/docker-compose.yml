@@ -27,6 +27,9 @@ services:
       - POWERLEVEL9K_DISABLE_GITSTATUS=true
       - DATABASE_URL=postgresql://inzone:inzone_dev@db:5432/inzone?schema=public
       - TZ=${TZ:-America/Los_Angeles}
+      # Explicitly set HOME to /home/node to fix corepack cache issues in CI
+      # (prevents inheriting HOST's HOME which may not exist in container)
+      - HOME=/home/node
     cap_add:
       - NET_ADMIN
       - NET_RAW
