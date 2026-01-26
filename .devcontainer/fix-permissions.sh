@@ -1,24 +1,23 @@
 #!/bin/bash
-# Fix permissions on mounted volumes in CI environments
+# Fix permissions on mounted volumes
 # Named volumes are created root-owned, but the node user needs write access
-#
-# This script should be run via sudo in CI: sudo /usr/local/bin/fix-permissions.sh
+# This runs with sudo and is safe to run in any environment (idempotent)
 
 set -e
 
-# Only run in CI environments
-if [ -z "$CI" ]; then
-    echo "Not in CI environment, skipping fix-permissions"
-    exit 0
-fi
-
-echo "Fixing volume permissions for CI environment..."
+echo "Checking and fixing volume permissions..."
 
 # Fix ownership of node_modules directories
 for dir in /InZone-App/node_modules /InZone-App/apps/web/node_modules /InZone-App/apps/api/node_modules; do
     if [ -d "$dir" ]; then
-        echo "  Fixing permissions on $dir"
-        chown -R node:node "$dir"
+        # Check if already owned by node
+        owner=$(stat -c '%U' "$dir" 2>/dev/null || stat -f '%Su' "$dir" 2>/dev/null)
+        if [ "$owner" != "node" ]; then
+            echo "  Fixing permissions on $dir (owner: $owner -> node)"
+            chown -R node:node "$dir"
+        else
+            echo "  $dir already owned by node"
+        fi
     else
         echo "  Creating and fixing permissions on $dir"
         mkdir -p "$dir"
@@ -26,4 +25,4 @@ for dir in /InZone-App/node_modules /InZone-App/apps/web/node_modules /InZone-Ap
     fi
 done
 
-echo "Volume permissions fixed."
+echo "Volume permissions check complete."
