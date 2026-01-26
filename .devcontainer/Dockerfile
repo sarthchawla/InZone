@@ -60,9 +60,9 @@ RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/downloa
 # Configure node user with sudo permissions for specific operations
 RUN usermod -s /bin/zsh node \
     && echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers.d/node-firewall \
+    && echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/fix-permissions.sh" >> /etc/sudoers.d/node-firewall \
     && echo "node ALL=(ALL) NOPASSWD: /usr/bin/mkdir, /usr/bin/ln" >> /etc/sudoers.d/node-firewall \
-    && echo "node ALL=(ALL) NOPASSWD: /usr/bin/chown -R node\:node /InZone-App/node_modules*" >> /etc/sudoers.d/node-firewall \
-    && echo "node ALL=(ALL) NOPASSWD: /usr/bin/chown -R node\:node /InZone-App/apps/*/node_modules*" >> /etc/sudoers.d/node-firewall \
+    && echo "node ALL=(ALL) NOPASSWD: /usr/bin/chown" >> /etc/sudoers.d/node-firewall \
     && chmod 0440 /etc/sudoers.d/node-firewall
 
 # Set up bash history persistence
