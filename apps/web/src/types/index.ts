@@ -13,6 +13,7 @@ export interface Board {
 export interface Column {
   id: string;
   name: string;
+  description?: string;
   position: number;
   wipLimit?: number;
   boardId: string;

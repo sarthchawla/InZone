@@ -8,6 +8,10 @@
 
 set -euo pipefail
 
+# Enable silent mode to suppress Claude Code notification hooks
+# This prevents duplicate notifications since Ralph has its own notification system
+export CLAUDE_CODE_SILENT=1
+
 # Get the project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"

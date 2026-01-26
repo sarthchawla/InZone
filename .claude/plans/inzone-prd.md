@@ -775,50 +775,50 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - **[Unit Testing PRD](./testing/unit-testing-prd.md)** - Component and service tests
 
 #### BDD Tests Setup
-- [ ] Install Playwright and Cucumber.js dependencies (frontend)
-- [ ] Install Supertest and Cucumber.js dependencies (backend)
-- [ ] Configure Cucumber for both frontend and backend
-- [ ] Set up test database for backend tests
-- [ ] Create Page Objects for frontend tests
-- [ ] Create API helpers for backend tests
+- [x] Install Playwright and Cucumber.js dependencies (frontend)
+- [x] Install Supertest and Cucumber.js dependencies (backend)
+- [x] Configure Cucumber for both frontend and backend
+- [x] Set up test database for backend tests
+- [x] Create Page Objects for frontend tests
+- [x] Create API helpers for backend tests
 
 #### Frontend BDD Tests
-- [ ] Board feature tests (create, delete, view) - happy & unhappy paths
-- [ ] Column feature tests (add, reorder, delete) - happy & unhappy paths
-- [ ] Todo feature tests (create, edit, move, delete) - happy & unhappy paths
-- [ ] Label feature tests (manage labels) - happy & unhappy paths
-- [ ] Search feature tests - happy & unhappy paths
+- [x] Board feature tests (create, delete, view) - happy & unhappy paths
+- [x] Column feature tests (add, reorder, delete) - happy & unhappy paths
+- [x] Todo feature tests (create, edit, move, delete) - happy & unhappy paths
+- [x] Label feature tests (manage labels) - happy & unhappy paths
+- [x] Search feature tests - happy & unhappy paths
 
 #### Backend BDD Tests
-- [ ] Boards API tests - happy & unhappy paths
-- [ ] Columns API tests - happy & unhappy paths
-- [ ] Todos API tests - happy & unhappy paths
-- [ ] Labels API tests - happy & unhappy paths
-- [ ] Templates API tests - happy & unhappy paths
+- [x] Boards API tests - happy & unhappy paths
+- [x] Columns API tests - happy & unhappy paths
+- [x] Todos API tests - happy & unhappy paths
+- [x] Labels API tests - happy & unhappy paths
+- [x] Templates API tests - happy & unhappy paths
 
 #### Frontend Unit Tests
-- [ ] Install Vitest, React Testing Library, MSW
-- [ ] Component tests (BoardCard, TodoCard, Column, etc.) - happy & unhappy paths
-- [ ] Hook tests (useBoards, useTodos, useDragAndDrop) - happy & unhappy paths
-- [ ] Store tests (Zustand stores) - happy & unhappy paths
-- [ ] Utility function tests - happy & unhappy paths
-- [ ] API client tests - happy & unhappy paths
+- [x] Install Vitest, React Testing Library, MSW
+- [x] Component tests (BoardCard, TodoCard, Column, etc.) - happy & unhappy paths
+- [x] Hook tests (useBoards, useTodos, useDragAndDrop) - happy & unhappy paths
+- [x] Store tests (Zustand stores) - N/A: App uses React Query hooks for state management (tested in hook tests)
+- [x] Utility function tests - happy & unhappy paths
+- [x] API client tests - happy & unhappy paths
 
 #### Backend Unit Tests
-- [ ] Install Vitest, Supertest, Prisma Mock
-- [ ] Service tests (BoardService, TodoService, etc.) - happy & unhappy paths
-- [ ] Route tests (all API endpoints) - happy & unhappy paths
-- [ ] Middleware tests (errorHandler, validation) - happy & unhappy paths
-- [ ] Validator tests - happy & unhappy paths
+- [x] Install Vitest, Supertest, Prisma Mock
+- [x] Service tests (BoardService, TodoService, etc.) - happy & unhappy paths
+- [x] Route tests (all API endpoints) - happy & unhappy paths
+- [x] Middleware tests (errorHandler, validation) - happy & unhappy paths
+- [x] Validator tests - happy & unhappy paths
 
 #### CI Pipeline Updates
-- [ ] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
-- [ ] Add unit test job to CI pipeline (`.github/workflows/unit-tests.yml`)
-- [ ] Configure test database in CI
-- [ ] Add test coverage reporting (codecov integration)
-- [ ] Configure parallel test execution
-- [ ] Add coverage thresholds (80% minimum)
-- [ ] Add test result artifacts
+- [x] Add BDD test job to CI pipeline (`.github/workflows/bdd-tests.yml`)
+- [x] Add unit test job to CI pipeline (`.github/workflows/unit-tests.yml`)
+- [x] Configure test database in CI
+- [x] Add test coverage reporting (codecov integration)
+- [x] Configure parallel test execution
+- [x] Add coverage thresholds (80% minimum)
+- [x] Add test result artifacts
 
 ### Phase 3: Polish
 - [ ] Search functionality
@@ -900,5 +900,44 @@ pnpm dev
 
 ---
 
-*Document Version: 3.0*
-*Last Updated: 2025-01-25*
+---
+
+## 14. Post-Implementation Verification
+
+After implementing features from this PRD, use **agent-browser** to visually verify the changes:
+
+### Verification Steps
+
+1. **Visual Verification**
+   - Navigate to the homepage using `browser_navigate`
+   - Capture page snapshot with `browser_snapshot` to verify UI
+   - Check board cards display correctly
+
+2. **Functional Testing**
+   - Use `browser_click` to interact with buttons and links
+   - Use `browser_type` to test form inputs
+   - Verify drag-and-drop by capturing before/after snapshots
+
+3. **Feature-Specific Checks**
+   - Board creation: Navigate to homepage → click "New Board" → verify modal
+   - Task management: Navigate to board → add task → verify it appears
+   - Labels: Open task → assign label → verify label displays
+
+### Example Verification Flow
+
+```
+1. browser_navigate → http://localhost:5173
+2. browser_snapshot → Capture homepage state
+3. browser_click → "New Board" button
+4. browser_snapshot → Verify modal opened
+5. browser_type → Enter board name
+6. browser_click → Submit button
+7. browser_snapshot → Verify board created
+```
+
+**Important**: Always use agent-browser CLI (browser_navigate, browser_snapshot, browser_click, etc.) for post-implementation verification. This provides real-time visual feedback and interaction testing.
+
+---
+
+*Document Version: 3.1*
+*Last Updated: 2026-01-26*

@@ -9,7 +9,7 @@ ARG ZSH_IN_DOCKER_VERSION=1.2.0
 # Set timezone
 ENV TZ=${TZ}
 
-# Install system dependencies
+# Install system dependencies including Python 3 and PostgreSQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gh \
@@ -30,7 +30,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     aggregate \
+    python3 \
+    python3-pip \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
+
+# Enable corepack and install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Create python symlink for convenience
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 # Install git-delta for enhanced diff viewing (multi-arch support)
 RUN ARCH=$(dpkg --print-architecture) && \
@@ -48,10 +57,12 @@ RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/downloa
     -p git \
     -p fzf
 
-# Configure node user
+# Configure node user with sudo permissions for specific operations
 RUN usermod -s /bin/zsh node \
     && echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers.d/node-firewall \
+    && echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/fix-permissions.sh" >> /etc/sudoers.d/node-firewall \
     && echo "node ALL=(ALL) NOPASSWD: /usr/bin/mkdir, /usr/bin/ln" >> /etc/sudoers.d/node-firewall \
+    && echo "node ALL=(ALL) NOPASSWD: /usr/bin/chown" >> /etc/sudoers.d/node-firewall \
     && chmod 0440 /etc/sudoers.d/node-firewall
 
 # Set up bash history persistence
@@ -69,8 +80,10 @@ ENV PATH=/home/node/.npm-global/bin:$PATH
 ENV HISTFILE=/commandhistory/.bash_history
 ENV EDITOR=nano
 
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+# Install Claude Code CLI and Agent Browser CLI
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+    && npm install -g agent-browser@latest \
+    && agent-browser install
 
 # Install Playwright globally and browser dependencies
 RUN npm install -g playwright@latest \
@@ -79,6 +92,10 @@ RUN npm install -g playwright@latest \
 # Copy firewall initialization script
 COPY init-firewall.sh /usr/local/bin/init-firewall.sh
 RUN chmod +x /usr/local/bin/init-firewall.sh
+
+# Copy fix-permissions script for CI environments
+COPY fix-permissions.sh /usr/local/bin/fix-permissions.sh
+RUN chmod +x /usr/local/bin/fix-permissions.sh
 
 # Copy private domains file if it exists (gitignored, contains company-specific domains)
 # Uses wildcard to handle case where file doesn't exist

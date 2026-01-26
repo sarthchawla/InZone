@@ -10,3 +10,29 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Scroll shadow indicators for horizontally scrollable containers */
+.scroll-shadow-container {
+  position: relative;
+}
+
+.scroll-shadow-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, rgba(249, 250, 251, 0.9));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.scroll-shadow-container.has-overflow::after {
+  opacity: 1;
+}
+
+.scroll-shadow-container.scrolled-end::after {
+  opacity: 0;
+}

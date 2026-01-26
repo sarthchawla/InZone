@@ -15,7 +15,7 @@ const variantStyles = {
   urgent: 'bg-red-100 text-red-700',
 };
 
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
+export function Badge({ children, variant = 'default', className, 'data-testid': testId }: BadgeProps & { 'data-testid'?: string }) {
   return (
     <span
       className={cn(
@@ -23,6 +23,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
         variantStyles[variant],
         className
       )}
+      data-testid={testId}
     >
       {children}
     </span>
@@ -31,5 +32,5 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
 
 export function PriorityBadge({ priority }: { priority: string }) {
   const variant = priority.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent';
-  return <Badge variant={variant}>{priority}</Badge>;
+  return <Badge variant={variant} data-testid="priority-badge">{priority}</Badge>;
 }

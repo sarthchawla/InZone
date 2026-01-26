@@ -1,25 +1,16 @@
 {
   "name": "InZone - Dev container for Claude Code",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "args": {
-      "TZ": "${localEnv:TZ:America/Los_Angeles}",
-      "CLAUDE_CODE_VERSION": "latest",
-      "GIT_DELTA_VERSION": "0.18.2",
-      "ZSH_IN_DOCKER_VERSION": "1.2.0"
-    }
-  },
-  "runArgs": [
-    "--cap-add=NET_ADMIN",
-    "--cap-add=NET_RAW"
-  ],
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/InZone-App",
   "customizations": {
     "vscode": {
       "extensions": [
         "anthropic.claude-code",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "Prisma.prisma"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -41,19 +32,18 @@
     }
   },
   "remoteUser": "node",
-  "mounts": [
-    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
-    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind"
-  ],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "DATABASE_URL": "postgresql://inzone:inzone_dev@db:5432/inzone?schema=public",
     "HOST_HOME": "${localEnv:HOME}",
-    "HOST_WORKSPACE": "${localWorkspaceFolder}"
+    "HOST_WORKSPACE": "${localWorkspaceFolder}",
+    "HOME": "/home/node"
   },
-  "workspaceMount": "source=${localWorkspaceFolder},target=/InZone-App,type=bind,consistency=delegated",
-  "workspaceFolder": "/InZone-App",
-  "postStartCommand": "if [ -z \"$CI\" ]; then sudo /usr/local/bin/init-firewall.sh; else echo 'CI environment - skipping firewall setup'; fi && sudo mkdir -p \"$HOST_HOME\" && sudo ln -sf /home/node/.claude \"$HOST_HOME/.claude\" && sudo mkdir -p \"$(dirname \"$HOST_WORKSPACE\")\" && sudo ln -sf /InZone-App \"$HOST_WORKSPACE\"",
-  "waitFor": "postStartCommand"
+  "postCreateCommand": "sudo /usr/local/bin/fix-permissions.sh && pnpm install && pnpm --filter api db:generate",
+  "postStartCommand": "if [ -z \"$CI\" ]; then sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true; fi && sudo mkdir -p \"$HOST_HOME\" && sudo ln -sf /home/node/.claude \"$HOST_HOME/.claude\" 2>/dev/null || true && sudo mkdir -p \"$(dirname \"$HOST_WORKSPACE\")\" && sudo ln -sf /InZone-App \"$HOST_WORKSPACE\" 2>/dev/null || true",
+  "waitFor": "postStartCommand",
+  "features": {},
+  "forwardPorts": [3001, 5173, 5435]
 }
