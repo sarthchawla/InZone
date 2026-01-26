@@ -30,10 +30,10 @@ jobs:
         uses: devcontainers/ci@v0.3
         env:
           CI: "true"
-          # Override HOME to match the container's node user home directory
-          # This prevents corepack from trying to use /home/runner/.cache
-          HOME: "/home/node"
         with:
           runCmd: echo "Devcontainer build successful"
           noCache: true
-          inheritEnv: true
+          # Do NOT inherit env from runner - the runner's HOME=/home/runner
+          # would override containerEnv's HOME=/home/node, causing corepack
+          # to fail with permission errors when creating cache directories
+          inheritEnv: false
