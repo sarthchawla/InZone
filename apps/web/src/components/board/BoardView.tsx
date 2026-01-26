@@ -246,7 +246,7 @@ export function BoardView() {
           const newOrder = [...sortedTodos];
           const [moved] = newOrder.splice(oldIndex, 1);
           newOrder.splice(newIndex, 0, moved);
-          reorderTodos.mutate({ boardId, todoIds: newOrder.map((t) => t.id) });
+          reorderTodos.mutate({ boardId, columnId: sourceColumn.id, todoIds: newOrder.map((t) => t.id) });
         }
       }
     } else {

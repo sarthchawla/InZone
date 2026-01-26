@@ -820,7 +820,42 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [x] Add coverage thresholds (80% minimum)
 - [x] Add test result artifacts
 
-### Phase 3: Polish
+### Phase 3: Deployment (Current Focus)
+
+Deploy InZone to production for access from any device. See detailed PRD:
+- **[Deployment PRD](./deployment-prd.md)** - Vercel + Neon deployment
+
+#### Account Setup
+- [ ] Create Vercel account
+- [ ] Create Neon account
+- [ ] Push repo to GitHub
+
+#### Code Restructuring
+- [ ] Create Vercel API handler (serverless wrapper)
+- [ ] Update Prisma client for serverless
+- [ ] Update frontend API client for production
+- [ ] Create vercel.json configuration
+
+#### CI/CD Updates
+- [ ] Create Vercel deployment workflow
+- [ ] Add preview deployment for PRs
+- [ ] Update lint-build workflow for Vercel
+
+#### Test Updates
+- [ ] Add Vercel handler unit tests
+- [ ] Update API client environment tests
+- [ ] Add deployment smoke tests
+- [ ] Update BDD workflow for preview testing
+
+#### Deployment
+- [ ] Configure Vercel environment variables
+- [ ] Configure GitHub secrets for CI
+- [ ] Run database migrations on Neon
+- [ ] Seed production database
+- [ ] Verify deployment
+- [ ] Verify CI pipeline
+
+### Phase 4: Polish
 - [ ] Search functionality
 - [ ] Due date display and filtering
 - [ ] Keyboard shortcuts
@@ -829,10 +864,11 @@ Comprehensive test coverage for MVP features. See detailed PRDs:
 - [ ] **Update all tests** (BDD & unit) for new features
 - [ ] **Maintain test coverage** above 80% threshold
 
-### Phase 4: Future Scope
+### Phase 5: Future Scope
 
 | Feature | Design Status | PRD Link |
 |---------|--------------|----------|
+| **Deployment** | Designed | [Link](./deployment-prd.md) |
 | Theming & Beautification | *Not yet designed* | - |
 | Custom Templates | *Not yet designed* | - |
 | Authentication | *Not yet designed* | - |
@@ -939,5 +975,6 @@ After implementing features from this PRD, use **agent-browser** to visually ver
 
 ---
 
-*Document Version: 3.1*
+*Document Version: 3.2*
 *Last Updated: 2026-01-26*
+*Added: Phase 3 Deployment section with Vercel + Neon PRD*

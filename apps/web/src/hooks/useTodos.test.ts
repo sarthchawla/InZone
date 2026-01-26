@@ -601,13 +601,14 @@ describe("useMoveTodo hook", () => {
 describe("useReorderTodos hook", () => {
   // Happy Path Tests
   describe("reordering todos", () => {
-    it("reorders todos successfully", async () => {
+    it("reorders todos successfully with columnId", async () => {
       const { result } = renderHook(() => useReorderTodos(), {
         wrapper: createQueryClientWrapper(),
       });
 
       result.current.mutate({
         boardId: "board-1",
+        columnId: "column-1",
         todoIds: ["todo-3", "todo-1", "todo-2"],
       });
 
@@ -622,6 +623,7 @@ describe("useReorderTodos hook", () => {
 
       result.current.mutate({
         boardId: "board-1",
+        columnId: "column-1",
         todoIds: ["todo-1"],
       });
 
@@ -635,10 +637,28 @@ describe("useReorderTodos hook", () => {
 
       result.current.mutate({
         boardId: "board-1",
+        columnId: "column-1",
         todoIds: [],
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    });
+
+    it("sends correct payload format with positions", async () => {
+      // This test verifies that the mutation transforms todoIds to the correct payload format
+      // API expects: { columnId, todos: [{ id, position }] }
+      const { result } = renderHook(() => useReorderTodos(), {
+        wrapper: createQueryClientWrapper(),
+      });
+
+      result.current.mutate({
+        boardId: "board-1",
+        columnId: "column-1",
+        todoIds: ["todo-a", "todo-b", "todo-c"],
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      // Success indicates the mock handler accepted our payload format
     });
   });
 
@@ -660,6 +680,7 @@ describe("useReorderTodos hook", () => {
 
       result.current.mutate({
         boardId: "board-1",
+        columnId: "column-1",
         todoIds: ["todo-1", "todo-2"],
       });
 
@@ -679,6 +700,7 @@ describe("useReorderTodos hook", () => {
 
       result.current.mutate({
         boardId: "board-1",
+        columnId: "column-1",
         todoIds: ["todo-1", "todo-2"],
       });
 
@@ -701,6 +723,7 @@ describe("useReorderTodos hook", () => {
 
       result.current.mutate({
         boardId: "board-1",
+        columnId: "column-1",
         todoIds: ["invalid-id"],
       });
 

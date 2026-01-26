@@ -213,25 +213,32 @@ export function BoardColumn({
               </span>
             )}
 
-            {/* Info icon for description */}
-            {column.description && (
-              <div className="relative flex-shrink-0">
-                <button
-                  onMouseEnter={() => setShowTooltip(true)}
-                  onMouseLeave={() => setShowTooltip(false)}
-                  className="p-0.5 text-blue-500 hover:text-blue-700 rounded"
-                  aria-label="View description"
-                >
-                  <Info className="h-4 w-4" />
-                </button>
-                {showTooltip && (
-                  <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 w-64 p-2 bg-gray-900 text-white text-sm rounded shadow-lg">
-                    <div className="whitespace-pre-wrap">{column.description}</div>
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
-                  </div>
+            {/* Info icon for description - always visible */}
+            <div className="relative flex-shrink-0">
+              <button
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={handleEditClick}
+                className={cn(
+                  "p-0.5 rounded transition-colors",
+                  column.description
+                    ? "text-blue-500 hover:text-blue-700"
+                    : "text-gray-400 hover:text-gray-600"
                 )}
-              </div>
-            )}
+                aria-label={column.description ? "View description" : "Add description"}
+                data-testid="column-info-icon"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+              {showTooltip && (
+                <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 w-64 p-2 bg-gray-900 text-white text-sm rounded shadow-lg pointer-events-none">
+                  <div className="whitespace-pre-wrap">
+                    {column.description || "No description. Click to add one."}
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Three dots menu */}

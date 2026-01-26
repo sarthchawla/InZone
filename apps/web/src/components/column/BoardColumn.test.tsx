@@ -612,21 +612,29 @@ describe("BoardColumn", () => {
   });
 
   describe("description tooltip", () => {
-    it("shows info icon when column has description", () => {
+    it("always shows info icon regardless of description", () => {
+      const column = createMockColumn({ description: undefined });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
+
+      // Info icon should always be present with data-testid
+      expect(screen.getByTestId("column-info-icon")).toBeInTheDocument();
+    });
+
+    it("shows info icon with 'View description' label when column has description", () => {
       const column = createMockColumn({ description: "Column description here" });
       renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
 
       expect(screen.getByLabelText("View description")).toBeInTheDocument();
     });
 
-    it("does not show info icon when no description", () => {
+    it("shows info icon with 'Add description' label when no description", () => {
       const column = createMockColumn({ description: undefined });
       renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
 
-      expect(screen.queryByLabelText("View description")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Add description")).toBeInTheDocument();
     });
 
-    it("shows tooltip on hover", async () => {
+    it("shows tooltip with description on hover", async () => {
       const user = userEvent.setup();
       const column = createMockColumn({ description: "Hover description" });
       renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
@@ -636,6 +644,19 @@ describe("BoardColumn", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Hover description")).toBeInTheDocument();
+      });
+    });
+
+    it("shows fallback text in tooltip when no description", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({ description: undefined });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
+
+      const infoButton = screen.getByLabelText("Add description");
+      await user.hover(infoButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("No description. Click to add one.")).toBeInTheDocument();
       });
     });
 
@@ -656,6 +677,17 @@ describe("BoardColumn", () => {
       await waitFor(() => {
         expect(screen.queryByText("Hover description")).not.toBeInTheDocument();
       });
+    });
+
+    it("opens edit modal when info icon is clicked", async () => {
+      const user = userEvent.setup();
+      const column = createMockColumn({ description: undefined });
+      renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onUpdateColumn={vi.fn()} />);
+
+      const infoButton = screen.getByTestId("column-info-icon");
+      await user.click(infoButton);
+
+      expect(screen.getByText("Edit Column")).toBeInTheDocument();
     });
   });
 
