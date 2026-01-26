@@ -35,7 +35,10 @@ export function useCreateTodo() {
       return { ...data, boardId };
     },
     onSuccess: (_, variables) => {
+      // Invalidate board detail for the current board view
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(variables.boardId) });
+      // Also invalidate boards list so task counts update
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }
@@ -75,7 +78,10 @@ export function useDeleteTodo() {
       return { id, boardId };
     },
     onSuccess: (_, variables) => {
+      // Invalidate board detail for the current board view
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(variables.boardId) });
+      // Also invalidate boards list so task counts update
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }
@@ -108,8 +114,10 @@ export function useMoveTodo() {
 export function useReorderTodos() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ boardId, todoIds }: { boardId: string; todoIds: string[] }) => {
-      await apiClient.patch('/todos/reorder', { todoIds });
+    mutationFn: async ({ boardId, columnId, todoIds }: { boardId: string; columnId: string; todoIds: string[] }) => {
+      // API expects { columnId, todos: [{ id, position }] }
+      const todos = todoIds.map((id, index) => ({ id, position: index }));
+      await apiClient.patch('/todos/reorder', { columnId, todos });
       return boardId;
     },
     onSuccess: (boardId) => {
@@ -127,7 +135,10 @@ export function useArchiveTodo() {
       return { ...data, boardId };
     },
     onSuccess: (_, variables) => {
+      // Invalidate board detail for the current board view
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(variables.boardId) });
+      // Also invalidate boards list so task counts update (archiving affects count)
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }

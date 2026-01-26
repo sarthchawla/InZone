@@ -50,7 +50,9 @@ export function useReorderColumns() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ boardId, columnIds }: { boardId: string; columnIds: string[] }) => {
-      await apiClient.patch('/columns/reorder', { columnIds });
+      // API expects { boardId, columns: [{ id, position }] }
+      const columns = columnIds.map((id, index) => ({ id, position: index }));
+      await apiClient.patch('/columns/reorder', { boardId, columns });
       return boardId;
     },
     onSuccess: (boardId) => {

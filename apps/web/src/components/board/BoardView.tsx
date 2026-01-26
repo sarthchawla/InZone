@@ -246,7 +246,7 @@ export function BoardView() {
           const newOrder = [...sortedTodos];
           const [moved] = newOrder.splice(oldIndex, 1);
           newOrder.splice(newIndex, 0, moved);
-          reorderTodos.mutate({ boardId, todoIds: newOrder.map((t) => t.id) });
+          reorderTodos.mutate({ boardId, columnId: sourceColumn.id, todoIds: newOrder.map((t) => t.id) });
         }
       }
     } else {
@@ -404,6 +404,7 @@ export function BoardView() {
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
               to="/"
+              data-testid="back-to-boards"
               className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
