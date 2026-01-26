@@ -543,43 +543,44 @@ Given('the {string} column has no description', async ({ page }, columnName: str
 Then('I should see an info icon in the {string} column header', async ({ page }, columnName: string) => {
   const column = page.locator(`[data-testid="column"]:has-text("${columnName}")`);
   const header = column.locator('[data-testid="column-header"]');
-  const infoIcon = header.locator('[data-testid="info-icon"], [aria-label*="info"], svg[class*="info"], button[title*="description"]');
+  const infoIcon = header.locator('[data-testid="info-icon"]');
 
-  await expect(infoIcon.first()).toBeVisible({ timeout: 5000 });
+  await expect(infoIcon).toBeVisible({ timeout: 5000 });
 });
 
 When('I hover over the info icon in the {string} column header', async ({ page }, columnName: string) => {
   const column = page.locator(`[data-testid="column"]:has-text("${columnName}")`);
   const header = column.locator('[data-testid="column-header"]');
-  const infoIcon = header.locator('[data-testid="info-icon"], [aria-label*="info"], svg[class*="info"], button[title*="description"]').first();
+  const infoIcon = header.locator('[data-testid="info-icon"]');
 
   await infoIcon.hover();
   // Wait for tooltip to appear
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(500);
 });
 
 Then('I should see a tooltip with {string}', async ({ page }, expectedText: string) => {
-  const tooltip = page.locator('[role="tooltip"], [data-testid="tooltip"], .tooltip');
-  await expect(tooltip.first()).toBeVisible({ timeout: 3000 });
-  await expect(tooltip.first()).toContainText(expectedText);
+  const tooltip = page.locator('[role="tooltip"]');
+  await expect(tooltip).toBeVisible({ timeout: 5000 });
+  await expect(tooltip).toContainText(expectedText);
 });
 
 When('I move the mouse away from the info icon', async ({ page }) => {
-  // Move mouse to a neutral area (top-left corner)
-  await page.mouse.move(0, 0);
+  // Move mouse to a neutral area (the board view container)
+  const boardView = page.locator('[data-testid="board-view"]');
+  await boardView.hover({ position: { x: 10, y: 10 } });
   // Wait for tooltip to disappear
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(500);
 });
 
 Then('I should not see the tooltip', async ({ page }) => {
-  const tooltip = page.locator('[role="tooltip"], [data-testid="tooltip"], .tooltip');
-  await expect(tooltip).not.toBeVisible();
+  const tooltip = page.locator('[role="tooltip"]');
+  await expect(tooltip).not.toBeVisible({ timeout: 3000 });
 });
 
 When('I click the info icon in the {string} column header', async ({ page }, columnName: string) => {
   const column = page.locator(`[data-testid="column"]:has-text("${columnName}")`);
   const header = column.locator('[data-testid="column-header"]');
-  const infoIcon = header.locator('[data-testid="info-icon"], [aria-label*="info"], svg[class*="info"], button[title*="description"]').first();
+  const infoIcon = header.locator('[data-testid="info-icon"]');
 
   await infoIcon.click();
 });
@@ -592,20 +593,21 @@ Then('I should see the {string} modal', async ({ page }, modalTitle: string) => 
 
 Then('I should see a description input field', async ({ page }) => {
   const modal = page.getByRole('dialog');
-  const descriptionInput = modal.locator('textarea, input[name*="description"], [data-testid="description-input"]');
+  // The Edit Column modal uses a textarea for description
+  const descriptionInput = modal.locator('textarea#columnDescription, textarea[placeholder*="description"]');
   await expect(descriptionInput.first()).toBeVisible();
 });
 
 Then('I should see the full description in the tooltip', async ({ page }) => {
-  const tooltip = page.locator('[role="tooltip"], [data-testid="tooltip"], .tooltip');
-  await expect(tooltip.first()).toBeVisible({ timeout: 3000 });
+  const tooltip = page.locator('[role="tooltip"]');
+  await expect(tooltip).toBeVisible({ timeout: 5000 });
   // Just verify the tooltip is visible and has content
-  const text = await tooltip.first().textContent();
+  const text = await tooltip.textContent();
   expect(text?.length).toBeGreaterThan(50); // Long description
 });
 
 Then('I should see {string} in the tooltip', async ({ page }, expectedText: string) => {
-  const tooltip = page.locator('[role="tooltip"], [data-testid="tooltip"], .tooltip');
-  await expect(tooltip.first()).toBeVisible({ timeout: 3000 });
-  await expect(tooltip.first()).toContainText(expectedText);
+  const tooltip = page.locator('[role="tooltip"]');
+  await expect(tooltip).toBeVisible({ timeout: 5000 });
+  await expect(tooltip).toContainText(expectedText);
 });

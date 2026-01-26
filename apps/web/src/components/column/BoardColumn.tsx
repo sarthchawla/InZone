@@ -226,12 +226,17 @@ export function BoardColumn({
                     : "text-gray-400 hover:text-gray-600"
                 )}
                 aria-label={column.description ? "View description" : "Add description"}
-                data-testid="column-info-icon"
+                title={column.description ? "View description" : "Add description"}
+                data-testid="info-icon"
               >
                 <Info className="h-4 w-4" />
               </button>
               {showTooltip && (
-                <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 w-64 p-2 bg-gray-900 text-white text-sm rounded shadow-lg pointer-events-none">
+                <div
+                  role="tooltip"
+                  data-testid="tooltip"
+                  className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 w-64 p-2 bg-gray-900 text-white text-sm rounded shadow-lg pointer-events-none"
+                >
                   <div className="whitespace-pre-wrap">
                     {column.description || "No description. Click to add one."}
                   </div>
