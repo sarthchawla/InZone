@@ -41,7 +41,7 @@
     "HOST_WORKSPACE": "${localWorkspaceFolder}",
     "HOME": "/home/node"
   },
-  "postCreateCommand": "pnpm install && pnpm --filter api db:generate",
+  "postCreateCommand": "/usr/local/bin/fix-permissions.sh && pnpm install && pnpm --filter api db:generate",
   "postStartCommand": "if [ -z \"$CI\" ]; then sudo /usr/local/bin/init-firewall.sh 2>/dev/null || true; fi && sudo mkdir -p \"$HOST_HOME\" && sudo ln -sf /home/node/.claude \"$HOST_HOME/.claude\" 2>/dev/null || true && sudo mkdir -p \"$(dirname \"$HOST_WORKSPACE\")\" && sudo ln -sf /InZone-App \"$HOST_WORKSPACE\" 2>/dev/null || true",
   "waitFor": "postStartCommand",
   "features": {},
