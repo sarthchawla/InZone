@@ -617,7 +617,7 @@ describe("BoardColumn", () => {
       renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} />);
 
       // Info icon should always be present with data-testid
-      expect(screen.getByTestId("column-info-icon")).toBeInTheDocument();
+      expect(screen.getByTestId("info-icon")).toBeInTheDocument();
     });
 
     it("shows info icon with 'View description' label when column has description", () => {
@@ -684,7 +684,7 @@ describe("BoardColumn", () => {
       const column = createMockColumn({ description: undefined });
       renderWithDnd(<BoardColumn column={column} onAddTodo={vi.fn()} onUpdateColumn={vi.fn()} />);
 
-      const infoButton = screen.getByTestId("column-info-icon");
+      const infoButton = screen.getByTestId("info-icon");
       await user.click(infoButton);
 
       expect(screen.getByText("Edit Column")).toBeInTheDocument();
