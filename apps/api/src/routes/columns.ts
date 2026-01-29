@@ -7,6 +7,7 @@ export const columnsRouter: RouterType = Router();
 // Validation schemas
 const updateColumnSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  description: z.string().max(1000).nullable().optional(),
   wipLimit: z.number().int().min(1).nullable().optional(),
 });
 

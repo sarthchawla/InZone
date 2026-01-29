@@ -21,6 +21,17 @@ Given('the board has a column {string} with WIP limit {int}', async function (
   this.testData.columnName = columnName;
 });
 
+Given('the board has a column {string} with description {string}', async function (
+  this: CustomWorld,
+  columnName: string,
+  description: string
+) {
+  const boardId = this.testData.boardId as string;
+  const column = await this.createTestColumn(boardId, columnName, { description });
+  this.testData.columnId = column.id;
+  this.testData.columnName = columnName;
+});
+
 Given('the board has a column {string} with no todos', async function (
   this: CustomWorld,
   columnName: string
@@ -158,6 +169,9 @@ When('I PUT to \\/api\\/columns\\/:columnId with:', async function (
   const payload: Record<string, unknown> = {};
 
   if (data.name !== undefined) payload.name = data.name;
+  if (data.description !== undefined) {
+    payload.description = data.description === 'null' ? null : data.description;
+  }
   if (data.wipLimit !== undefined) {
     payload.wipLimit = data.wipLimit === 'null' ? null : parseInt(data.wipLimit, 10);
   }
@@ -382,6 +396,18 @@ Then('the column WIP limit should be null', function (this: CustomWorld) {
   expect(this.lastResponse).to.not.be.null;
   const body = this.lastResponse!.body as Column;
   expect(body.wipLimit).to.be.null;
+});
+
+Then('the column description should be {string}', function (this: CustomWorld, expectedDescription: string) {
+  expect(this.lastResponse).to.not.be.null;
+  const body = this.lastResponse!.body as Column;
+  expect(body.description).to.equal(expectedDescription);
+});
+
+Then('the column description should be null', function (this: CustomWorld) {
+  expect(this.lastResponse).to.not.be.null;
+  const body = this.lastResponse!.body as Column;
+  expect(body.description).to.be.null;
 });
 
 Then('the column should no longer exist', async function (this: CustomWorld) {

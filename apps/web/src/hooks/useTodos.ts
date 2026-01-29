@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import type { Todo, Priority } from '../types';
 import { boardKeys } from './useBoards';
+import { labelKeys } from './useLabels';
 
 // Create todo mutation
 export function useCreateTodo() {
@@ -61,10 +62,14 @@ export function useUpdateTodo() {
       labelIds?: string[];
     }) => {
       const { data } = await apiClient.put<Todo>(`/todos/${id}`, updates);
-      return { ...data, boardId };
+      return { ...data, boardId, hadLabelUpdate: 'labelIds' in updates };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(variables.boardId) });
+      // If labels were updated, invalidate labels query to refresh counts
+      if (data.hadLabelUpdate) {
+        queryClient.invalidateQueries({ queryKey: labelKeys.all });
+      }
     },
   });
 }

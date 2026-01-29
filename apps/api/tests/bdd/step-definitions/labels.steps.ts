@@ -172,3 +172,16 @@ Then('the todo should have no labels', async function (this: CustomWorld) {
   const todo = response.body;
   expect(todo.labels).to.be.an('array').with.lengthOf(0);
 });
+
+Then('the label {string} should have todo count of {int}', function (
+  this: CustomWorld,
+  labelName: string,
+  expectedCount: number
+) {
+  expect(this.lastResponse).to.not.be.null;
+  const labels = this.lastResponse!.body as (Label & { _count?: { todos: number } })[];
+  const label = labels.find((l) => l.name === labelName);
+  expect(label).to.not.be.undefined;
+  expect(label!._count).to.not.be.undefined;
+  expect(label!._count!.todos).to.equal(expectedCount);
+});

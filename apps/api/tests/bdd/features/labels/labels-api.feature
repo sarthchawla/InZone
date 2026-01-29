@@ -77,6 +77,30 @@ Feature: Labels API
     And the label should have todo count of 2
 
   @happy-path
+  Scenario: Label count updates when label is added to todo
+    Given a board "Test Board" exists
+    And the board has a column "Todo"
+    And a label "Feature" with color "#00FF00" exists
+    And the column has a todo "Task Without Label"
+    When I update the todo to add label "Feature"
+    Then the response status should be 200
+    When I GET /api/labels
+    Then the response status should be 200
+    And the label "Feature" should have todo count of 1
+
+  @happy-path
+  Scenario: Label count updates when label is removed from todo
+    Given a board "Test Board" exists
+    And the board has a column "Todo"
+    And a label "Temporary" with color "#888888" exists
+    And the column has a todo "Task With Label" with label "Temporary"
+    When I update the todo to remove all labels
+    Then the response status should be 200
+    When I GET /api/labels
+    Then the response status should be 200
+    And the label "Temporary" should have todo count of 0
+
+  @happy-path
   Scenario: Update label name
     Given a label "Old Name" with color "#FF0000" exists
     When I PUT to /api/labels/:labelId with:

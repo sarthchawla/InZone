@@ -13,6 +13,8 @@ export function useCreateColumn() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(data.boardId) });
+      // Also invalidate boards list so column counts update
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }
@@ -41,6 +43,8 @@ export function useDeleteColumn() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(variables.boardId) });
+      // Also invalidate boards list so column counts update
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }

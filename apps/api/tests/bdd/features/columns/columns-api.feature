@@ -130,6 +130,44 @@ Feature: Columns API
     Then the response status should be 200
     And the response should include the column todos
 
+  @happy-path
+  Scenario: Add description to column
+    Given a board "Test Board" exists
+    And the board has a column "Todo"
+    When I PUT to /api/columns/:columnId with:
+      | description | This is a column description |
+    Then the response status should be 200
+    And the column description should be "This is a column description"
+
+  @happy-path
+  Scenario: Update column description
+    Given a board "Test Board" exists
+    And the board has a column "Todo" with description "Old description"
+    When I PUT to /api/columns/:columnId with:
+      | description | New description |
+    Then the response status should be 200
+    And the column description should be "New description"
+
+  @happy-path
+  Scenario: Clear column description
+    Given a board "Test Board" exists
+    And the board has a column "Todo" with description "Some description"
+    When I PUT to /api/columns/:columnId with:
+      | description | null |
+    Then the response status should be 200
+    And the column description should be null
+
+  @happy-path
+  Scenario: Update column name and description together
+    Given a board "Test Board" exists
+    And the board has a column "Old Name"
+    When I PUT to /api/columns/:columnId with:
+      | name        | New Name                     |
+      | description | Added a helpful description  |
+    Then the response status should be 200
+    And the response should contain the column name "New Name"
+    And the column description should be "Added a helpful description"
+
   # ===== UNHAPPY PATH SCENARIOS =====
 
   @unhappy-path

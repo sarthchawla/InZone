@@ -287,6 +287,36 @@ describe("useUpdateTodo hook", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
     });
 
+    it("sets hadLabelUpdate flag when labelIds is included", async () => {
+      const { result } = renderHook(() => useUpdateTodo(), {
+        wrapper: createQueryClientWrapper(),
+      });
+
+      result.current.mutate({
+        id: "todo-1",
+        boardId: "board-1",
+        labelIds: ["label-1"],
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.hadLabelUpdate).toBe(true);
+    });
+
+    it("does not set hadLabelUpdate flag when labelIds is not included", async () => {
+      const { result } = renderHook(() => useUpdateTodo(), {
+        wrapper: createQueryClientWrapper(),
+      });
+
+      result.current.mutate({
+        id: "todo-1",
+        boardId: "board-1",
+        title: "Updated Title Without Labels",
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.hadLabelUpdate).toBe(false);
+    });
+
     it("updates multiple fields at once", async () => {
       const { result } = renderHook(() => useUpdateTodo(), {
         wrapper: createQueryClientWrapper(),

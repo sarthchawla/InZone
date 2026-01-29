@@ -605,6 +605,28 @@ When('I GET \\/api\\/todos with search query {string}', async function (
   this.storeResponse(response.status, response.body, response.headers);
 });
 
+When('I update the todo to add label {string}', async function (
+  this: CustomWorld,
+  labelName: string
+) {
+  const todoId = this.testData.todoId as string;
+  const labelMap = this.testData.labelMap as Record<string, Label>;
+  const label = labelMap[labelName];
+
+  if (!label) {
+    throw new Error(`Label "${labelName}" not found`);
+  }
+
+  const response = await this.api.updateTodo(todoId, { labelIds: [label.id] });
+  this.storeResponse(response.status, response.body, response.headers);
+});
+
+When('I update the todo to remove all labels', async function (this: CustomWorld) {
+  const todoId = this.testData.todoId as string;
+  const response = await this.api.updateTodo(todoId, { labelIds: [] });
+  this.storeResponse(response.status, response.body, response.headers);
+});
+
 // ==================== THEN STEPS ====================
 
 Then('the response should contain {int} todos', function (this: CustomWorld, count: number) {
