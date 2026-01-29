@@ -1,5 +1,5 @@
 # Docker Compose for InZone devcontainer
-# Provides app container + PostgreSQL database
+# App container only - DB is provided by ../docker/docker-compose.db.yml
 
 services:
   app:
@@ -25,7 +25,8 @@ services:
       - NODE_OPTIONS=--max-old-space-size=4096
       - CLAUDE_CONFIG_DIR=/home/node/.claude
       - POWERLEVEL9K_DISABLE_GITSTATUS=true
-      - DATABASE_URL=postgresql://inzone:inzone_dev@db:5432/inzone?schema=public
+      # Same DATABASE_URL as local - uses shared DB container on port 7432
+      - DATABASE_URL=postgresql://inzone:inzone_dev@host.docker.internal:7432/inzone?schema=public
       - TZ=${TZ:-America/Los_Angeles}
       # Explicitly set HOME to /home/node to fix corepack cache issues in CI
       # (prevents inheriting HOST's HOME which may not exist in container)
@@ -33,33 +34,13 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    depends_on:
-      db:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Keep container running
     command: sleep infinity
 
-  db:
-    image: postgres:16-alpine
-    container_name: inzone-postgres-dev
-    environment:
-      POSTGRES_USER: inzone
-      POSTGRES_PASSWORD: inzone_dev
-      POSTGRES_DB: inzone
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ../docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5435:5432"  # Port 5435 to avoid conflict with standalone (5434) and local (5432)
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U inzone"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
 volumes:
   claude-code-bashhistory:
-  postgres_data:
   # Separate node_modules volumes for Linux binaries
   node_modules:
   node_modules_web:
