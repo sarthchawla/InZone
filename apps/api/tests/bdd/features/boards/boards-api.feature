@@ -177,6 +177,25 @@ Feature: Boards API
     Then the response status should be 200
     And the board "Work" should have todo count 5
 
+  @happy-path
+  Scenario: Board includes column count
+    Given a board "Project" exists
+    And the board has columns "Todo, In Progress, Done"
+    When I GET /api/boards
+    Then the response status should be 200
+    And the board "Project" should have column count 3
+
+  @happy-path
+  Scenario: Board column count updates after adding column
+    Given a board "Sprint" exists
+    And the board has a column "Backlog"
+    When I POST to /api/boards/:boardId/columns with:
+      | name | In Progress |
+    Then the response status should be 201
+    When I GET /api/boards
+    Then the response status should be 200
+    And the board "Sprint" should have column count 2
+
   # ===== UNHAPPY PATH SCENARIOS =====
 
   @unhappy-path

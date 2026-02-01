@@ -166,6 +166,94 @@ describe("ColumnService", () => {
           },
         });
       });
+
+      it("updates column description", async () => {
+        const mockColumn = {
+          ...createMockColumn({ id: "col-1", description: "New description" }),
+          todos: [],
+        };
+
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
+
+        const result = await columnService.updateColumn("col-1", {
+          description: "New description",
+        });
+
+        expect(result.description).toBe("New description");
+        expect(prismaMock.column.update).toHaveBeenCalledWith({
+          where: { id: "col-1" },
+          data: { description: "New description" },
+          include: {
+            todos: {
+              where: { archived: false, isDeleted: false },
+              orderBy: { position: "asc" },
+            },
+          },
+        });
+      });
+
+      it("clears column description by setting it to null", async () => {
+        const mockColumn = {
+          ...createMockColumn({ id: "col-1", description: null }),
+          todos: [],
+        };
+
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
+
+        const result = await columnService.updateColumn("col-1", {
+          description: null,
+        });
+
+        expect(result.description).toBeNull();
+        expect(prismaMock.column.update).toHaveBeenCalledWith({
+          where: { id: "col-1" },
+          data: { description: null },
+          include: {
+            todos: {
+              where: { archived: false, isDeleted: false },
+              orderBy: { position: "asc" },
+            },
+          },
+        });
+      });
+
+      it("updates name, description, and WIP limit together", async () => {
+        const mockColumn = {
+          ...createMockColumn({
+            id: "col-1",
+            name: "Updated Name",
+            description: "Updated description",
+            wipLimit: 5,
+          }),
+          todos: [],
+        };
+
+        prismaMock.column.update.mockResolvedValue(mockColumn as any);
+
+        const result = await columnService.updateColumn("col-1", {
+          name: "Updated Name",
+          description: "Updated description",
+          wipLimit: 5,
+        });
+
+        expect(result.name).toBe("Updated Name");
+        expect(result.description).toBe("Updated description");
+        expect(result.wipLimit).toBe(5);
+        expect(prismaMock.column.update).toHaveBeenCalledWith({
+          where: { id: "col-1" },
+          data: {
+            name: "Updated Name",
+            description: "Updated description",
+            wipLimit: 5,
+          },
+          include: {
+            todos: {
+              where: { archived: false, isDeleted: false },
+              orderBy: { position: "asc" },
+            },
+          },
+        });
+      });
     });
 
     describe("unhappy path", () => {

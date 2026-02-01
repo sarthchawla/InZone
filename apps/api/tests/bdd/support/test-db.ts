@@ -162,13 +162,14 @@ export const testDataFactory = {
   /**
    * Create a test column
    */
-  async createColumn(data: { name: string; boardId: string; position?: number; wipLimit?: number }) {
+  async createColumn(data: { name: string; boardId: string; position?: number; description?: string; wipLimit?: number }) {
     const prisma = getTestPrisma();
     return prisma.column.create({
       data: {
         name: data.name,
         boardId: data.boardId,
         position: data.position ?? 0,
+        description: data.description,
         wipLimit: data.wipLimit,
       },
     });

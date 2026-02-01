@@ -227,11 +227,12 @@ export class CustomWorld extends World<CustomWorldParameters> {
   /**
    * Helper method to create a column directly in the database
    */
-  async createTestColumn(boardId: string, name: string, options?: { position?: number; wipLimit?: number }) {
+  async createTestColumn(boardId: string, name: string, options?: { position?: number; description?: string; wipLimit?: number }) {
     const column = await testDataFactory.createColumn({
       name,
       boardId,
       position: options?.position,
+      description: options?.description,
       wipLimit: options?.wipLimit,
     });
     this.createdColumnIds.push(column.id);

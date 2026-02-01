@@ -1,33 +1,33 @@
-# InZone PostgreSQL Database (Standalone)
-# Use this for local development WITHOUT devcontainer
+# InZone PostgreSQL Database
+# Single source of truth for database - used by both local dev and devcontainer
 #
 # Usage:
+#   pnpm run db:start   (recommended)
 #   docker compose -f docker/docker-compose.db.yml up -d
 #
-# DATABASE_URL for apps/api/.env:
-#   postgresql://inzone:inzone_dev@localhost:5434/inzone?schema=public
-#
-# Note: Port 5434 is used to avoid conflicts with local PostgreSQL on 5432
-# For devcontainer setup, use .devcontainer/docker-compose.yml instead
+# DATABASE_URL (same for local and devcontainer):
+#   postgresql://inzone:inzone_dev@localhost:7432/inzone?schema=public
 
 services:
-  postgres:
+  inzone-db:
     image: postgres:16-alpine
-    container_name: inzone-postgres
+    container_name: inzone-db
+    restart: unless-stopped
     ports:
-      - "5434:5432"
+      - "7432:5432"
     environment:
       POSTGRES_USER: inzone
       POSTGRES_PASSWORD: inzone_dev
       POSTGRES_DB: inzone
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - inzone-db-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U inzone"]
+      test: ["CMD-SHELL", "pg_isready -U inzone -d inzone"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
-  postgres_data:
+  inzone-db-data:
+    name: inzone-db-data

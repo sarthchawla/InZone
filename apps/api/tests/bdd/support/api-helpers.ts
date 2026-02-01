@@ -27,6 +27,7 @@ export interface CreateColumnPayload {
 
 export interface UpdateColumnPayload {
   name?: string;
+  description?: string | null;
   wipLimit?: number | null;
 }
 
@@ -107,6 +108,7 @@ export interface Board {
 export interface Column {
   id: string;
   name: string;
+  description?: string | null;
   position: number;
   wipLimit?: number | null;
   boardId: string;

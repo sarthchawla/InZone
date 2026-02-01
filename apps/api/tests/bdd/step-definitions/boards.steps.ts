@@ -378,6 +378,18 @@ Then('the board {string} should have todo count {int}', function (
   expect(board!.todoCount).to.equal(expectedCount);
 });
 
+Then('the board {string} should have column count {int}', function (
+  this: CustomWorld,
+  boardName: string,
+  expectedCount: number
+) {
+  expect(this.lastResponse).to.not.be.null;
+  const boards = this.lastResponse!.body as (Board & { columnCount: number })[];
+  const board = boards.find((b) => b.name === boardName);
+  expect(board).to.not.be.undefined;
+  expect(board!.columnCount).to.equal(expectedCount);
+});
+
 Then('the response should contain error {string}', function (this: CustomWorld, errorMessage: string) {
   expect(this.lastResponse).to.not.be.null;
   const body = this.lastResponse!.body as { error?: string };
