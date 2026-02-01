@@ -184,6 +184,25 @@ export function removeDatabase(worktreeId: string): void {
 }
 
 /**
+ * Stop and remove a devcontainer (app container)
+ */
+export function removeDevcontainer(worktreeId: string): void {
+  const containerName = getAppContainerName(worktreeId);
+
+  console.log(`Removing devcontainer: ${containerName}`);
+
+  // Stop container if running
+  if (isContainerRunning(containerName)) {
+    stopContainer(containerName);
+  }
+
+  // Remove container
+  if (containerExists(containerName)) {
+    removeContainer(containerName);
+  }
+}
+
+/**
  * List all worktree database containers
  */
 export function listDbContainers(): string[] {

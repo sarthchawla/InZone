@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import * as readline from 'readline';
 import { getWorktree, getWorktreeByBranch, removeWorktree } from '../lib/registry.js';
-import { removeDatabase } from '../lib/docker.js';
+import { removeDatabase, removeDevcontainer } from '../lib/docker.js';
 import { removeWorktree as removeGitWorktree, pruneWorktrees } from '../lib/git.js';
 import { sanitizeBranchName, pathExists } from '../lib/utils.js';
 
@@ -74,6 +74,15 @@ export async function cleanup(target: string, options: CleanupOptions): Promise<
       console.log(chalk.green('  ✓ Database container removed'));
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ Could not remove database: ${error}`));
+    }
+
+    // Stop and remove devcontainer
+    console.log('Stopping devcontainer...');
+    try {
+      removeDevcontainer(worktree.id);
+      console.log(chalk.green('  ✓ Devcontainer removed'));
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ Could not remove devcontainer: ${error}`));
     }
 
     // Remove git worktree

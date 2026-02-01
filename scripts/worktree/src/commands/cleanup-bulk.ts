@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as readline from 'readline';
 import { Worktree } from '../types.js';
 import { listWorktrees, removeWorktree } from '../lib/registry.js';
-import { removeDatabase } from '../lib/docker.js';
+import { removeDatabase, removeDevcontainer } from '../lib/docker.js';
 import { removeWorktree as removeGitWorktree, pruneWorktrees } from '../lib/git.js';
 import { pathExists } from '../lib/utils.js';
 
@@ -55,6 +55,13 @@ async function removeSingleWorktree(worktree: Worktree, dryRun: boolean): Promis
       removeDatabase(worktree.id);
     } catch {
       // Ignore database removal errors
+    }
+
+    // Remove devcontainer
+    try {
+      removeDevcontainer(worktree.id);
+    } catch {
+      // Ignore devcontainer removal errors
     }
 
     // Remove git worktree
