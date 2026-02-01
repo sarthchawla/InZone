@@ -381,8 +381,8 @@ pnpm run db:seed     # Seed data
 - [x] Delete `scripts/start-db-container.sh`
 - [x] Delete `scripts/create-local-db.sh`
 - [x] Test local development workflow
-- [ ] Test DevContainer workflow (requires rebuild)
-- [ ] Update README with new commands
+- [x] Test DevContainer workflow (requires rebuild)
+- [x] Update README with new commands
 
 ---
 
