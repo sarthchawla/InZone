@@ -1,135 +1,141 @@
 ---
 name: worktree-cleanup
-description: Remove a single worktree and free its resources
+description: Remove worktree(s) - by ID, interactively, or via flags
 arguments:
   - name: target
-    description: Branch name (e.g., feature/auth) or worktree ID (e.g., feature-auth)
+    description: Branch name or worktree ID (optional - omit for interactive mode)
+    required: false
+  - name: flags
+    description: Optional flags like --all, --stale 30, --dry-run, --force
     required: false
 ---
 
 # Worktree Cleanup Command
 
-This command removes a single git worktree and frees all its associated resources including Docker containers, volumes, and allocated ports.
+This unified command removes git worktrees and frees their associated resources including Docker containers, volumes, and allocated ports.
+
+## Usage
+
+```
+/worktree-cleanup                    → Interactive: show list, select one or more
+/worktree-cleanup <id>               → Remove specific worktree
+/worktree-cleanup --all              → Remove all worktrees
+/worktree-cleanup --stale 30         → Remove worktrees inactive for 30+ days
+/worktree-cleanup --dry-run          → Preview what would be removed
+```
 
 ## Behavior
 
-Follow these steps to clean up a worktree:
+### Mode 1: Remove Specific Worktree
 
-### Step 1: Identify Worktree to Remove
-
-If the `target` argument is not provided or is empty, first list available worktrees by running:
-
-```bash
-pnpm worktree:list
-```
-
-Then ask the user which worktree to remove, showing them the list with IDs and branches.
-
-### Step 2: Confirm Cleanup
-
-Before executing cleanup, confirm with the user what will be removed:
-
-- Git worktree directory
-- Docker database container
-- Docker volume (database data)
-- Registry entry (frees allocated ports)
-
-Note: The git branch is NOT deleted by default. The user can delete it manually if needed.
-
-### Step 3: Execute Cleanup Command
-
-Run the cleanup command:
+If a `target` is provided (ID or branch name):
 
 ```bash
 pnpm worktree:cleanup "$TARGET"
 ```
 
-If user wants to skip confirmation, add `--force`:
+### Mode 2: Interactive Selection
+
+If no target is provided and no flags:
 
 ```bash
-pnpm worktree:cleanup --force "$TARGET"
+pnpm worktree:cleanup
 ```
 
-Replace `$TARGET` with the worktree ID or branch name.
+This shows a numbered list and lets the user select which to remove using:
+- Numbers (e.g., "1,3" or "1-3")
+- "all" - Remove all worktrees
+- "cancel" - Exit without changes
 
-### Step 4: Report Results
+### Mode 3: Remove All
 
-After successful cleanup, format the output as:
+```bash
+pnpm worktree:cleanup --all
+```
 
-**Worktree Cleanup Complete!**
+### Mode 4: Remove Stale
 
-| Resource       | Action                        |
-|----------------|-------------------------------|
-| Worktree       | Removed                       |
-| Database       | Container removed             |
-| Frontend port  | [port] freed                  |
-| Backend port   | [port] freed                  |
-| Database port  | [port] freed                  |
+```bash
+pnpm worktree:cleanup --stale 30
+```
 
-Mention: The git branch was preserved. Delete manually with `git branch -D <branch>` if needed.
+Removes worktrees not accessed in 30+ days.
 
-### Error Handling
+### Mode 5: Dry Run (Preview)
 
-If the command fails, provide helpful guidance:
+Add `--dry-run` to any command to preview without making changes:
 
-- **Worktree not found**: Check the worktree ID or branch name, suggest `/worktree-list` to see available
-- **Docker error**: Container may already be removed, proceed with registry cleanup
-- **Git error**: Git worktree may have issues, suggest manual cleanup
+```bash
+pnpm worktree:cleanup --all --dry-run
+```
+
+### Skip Confirmation
+
+Add `--force` or `-f` to skip confirmation prompts:
+
+```bash
+pnpm worktree:cleanup feature-auth --force
+```
+
+## What Gets Removed
+
+For each worktree:
+- ✓ Git worktree directory
+- ✓ Database container (`inzone-db-wt-<id>`)
+- ✓ Devcontainer (`inzone-wt-<id>`)
+- ✓ Database volume
+- ✓ Registry entry (frees allocated ports)
+- ✗ Git branch (preserved - delete manually if needed)
 
 ## Examples
 
-**Interactive mode (no target):**
+**Interactive mode:**
 ```
 User: /worktree-cleanup
 
-Claude: Here are your current worktrees:
+Claude: [runs pnpm worktree:cleanup]
 
-| ID           | Branch              | Ports (F/B/D)      |
-|--------------|---------------------|--------------------|
-| feature-auth | feature/auth        | 5174/3002/7433     |
-| bugfix-123   | bugfix/issue-123    | 5175/3003/7434     |
+Select worktrees to remove:
 
-Which worktree would you like to remove?
+┌────┬────────────────────┬──────────────────────────┬──────────────────┐
+│ #  │ ID                 │ Branch                   │ Last Access      │
+├────┼────────────────────┼──────────────────────────┼──────────────────┤
+│  1 │ feature-auth       │ feature/auth             │ today            │
+│  2 │ bugfix-123         │ bugfix/issue-123         │ 15 days ago      │
+└────┴────────────────────┴──────────────────────────┴──────────────────┘
 
-User: feature-auth
+Enter numbers to remove (e.g., "1,3" or "1-3"), "all", or "cancel":
+> 2
 
-Claude: This will remove:
-- Worktree at ../InZone-App-worktrees/feature-auth
-- Database container and volume
-- Ports 5174, 3002, 7433
-
-Proceed? (The git branch will be preserved)
-
-User: Yes
-
-Claude: Cleaning up worktree 'feature-auth'...
-[runs pnpm worktree:cleanup]
-...success output...
+✓ Removed: bugfix-123
+✓ Removed 1 worktree(s)
 ```
 
-**With target argument:**
+**Remove specific worktree:**
 ```
 User: /worktree-cleanup feature-auth
 
-Claude: This will remove worktree 'feature-auth' and free its resources. Proceed?
-
-User: Yes
-
-Claude: Cleaning up...
-[runs command]
+Claude: [runs pnpm worktree:cleanup feature-auth]
+...confirmation and removal...
 ```
 
-**Using branch name:**
+**Remove all worktrees:**
 ```
-User: /worktree-cleanup feature/auth
+User: /worktree-cleanup --all --force
 
-Claude: Found worktree with branch 'feature/auth' (ID: feature-auth)
-...continues with confirmation...
+Claude: [runs pnpm worktree:cleanup --all --force]
+✓ Removed 3 worktree(s)
+```
+
+**Remove stale worktrees:**
+```
+User: /worktree-cleanup --stale 7
+
+Claude: Found 2 worktrees inactive for 7+ days...
 ```
 
 ## Related Commands
 
 - `/worktree` - Create a new worktree
 - `/worktree-list` - List all worktrees
-- `/worktree-cleanup-bulk` - Remove multiple worktrees at once
 - `/worktree-sync` - Sync registry with filesystem

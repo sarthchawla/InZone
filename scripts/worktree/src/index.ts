@@ -3,7 +3,6 @@
 import { Command } from 'commander';
 import { setup } from './commands/setup.js';
 import { cleanup } from './commands/cleanup.js';
-import { cleanupBulk } from './commands/cleanup-bulk.js';
 import { list } from './commands/list.js';
 import { sync } from './commands/sync.js';
 
@@ -23,19 +22,13 @@ program
   .action(setup);
 
 program
-  .command('cleanup <target>')
-  .description('Remove a worktree and free its resources')
-  .option('-f, --force', 'Skip confirmation prompt')
-  .action(cleanup);
-
-program
-  .command('cleanup-bulk')
-  .description('Remove multiple worktrees at once')
+  .command('cleanup [target]')
+  .description('Remove worktree(s) - by ID, interactively, or via flags')
   .option('-a, --all', 'Remove all worktrees')
   .option('--stale <days>', 'Remove worktrees not accessed in N days')
   .option('--dry-run', 'Show what would be removed without actually removing')
   .option('-f, --force', 'Skip confirmation prompt')
-  .action(cleanupBulk);
+  .action(cleanup);
 
 program
   .command('list')

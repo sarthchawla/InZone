@@ -24,7 +24,6 @@
     "worktree:setup": "node scripts/worktree/dist/index.js setup",
     "worktree:list": "node scripts/worktree/dist/index.js list",
     "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup",
-    "worktree:cleanup-bulk": "node scripts/worktree/dist/index.js cleanup-bulk",
     "worktree:sync": "node scripts/worktree/dist/index.js sync"
   },
   "devDependencies": {
