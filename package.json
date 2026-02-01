@@ -19,7 +19,13 @@
     "db:migrate:dev": "pnpm --filter api db:migrate:dev",
     "db:migrate:deploy": "pnpm --filter api db:migrate:deploy",
     "db:seed": "pnpm --filter api db:seed",
-    "db:studio": "pnpm --filter api db:studio"
+    "db:studio": "pnpm --filter api db:studio",
+    "worktree": "node scripts/worktree/dist/index.js",
+    "worktree:setup": "node scripts/worktree/dist/index.js setup",
+    "worktree:list": "node scripts/worktree/dist/index.js list",
+    "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup",
+    "worktree:cleanup-bulk": "node scripts/worktree/dist/index.js cleanup-bulk",
+    "worktree:sync": "node scripts/worktree/dist/index.js sync"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

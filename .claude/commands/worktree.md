@@ -44,12 +44,12 @@ Provide these options:
 - Current branch (run `git rev-parse --abbrev-ref HEAD` to get it)
 - Let them specify another branch
 
-### Step 3: Execute Setup Script
+### Step 3: Execute Setup Command
 
-Once you have both branch and source, run the setup script:
+Once you have both branch and source, run the setup command:
 
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/setup-worktree.sh --branch "$BRANCH" --source "$SOURCE"
+pnpm worktree:setup --branch "$BRANCH" --source "$SOURCE"
 ```
 
 Replace `$BRANCH` and `$SOURCE` with the actual values.
@@ -73,13 +73,12 @@ If the worktree is opening in Cursor, mention that.
 
 ### Error Handling
 
-If the script fails, provide helpful guidance:
+If the command fails, provide helpful guidance:
 
-- **Exit code 1 (Invalid arguments)**: Check the branch name format or if worktree already exists
-- **Exit code 2 (Git operation failed)**: The source branch may not exist, suggest `git fetch`
-- **Exit code 3 (Port allocation failed)**: No free ports available, suggest running `/worktree-cleanup`
-- **Exit code 4 (DevContainer failed)**: Template issue, check templates exist
-- **Exit code 5 (Cursor launch failed)**: Cursor not installed, provide manual open instructions
+- **Invalid branch name**: Check the branch name format or if worktree already exists
+- **Git operation failed**: The source branch may not exist, suggest `git fetch`
+- **Port allocation failed**: No free ports available, suggest running `/worktree-cleanup-bulk`
+- **Docker not available**: Docker is not running, start Docker and try again
 
 ## Examples
 
@@ -101,7 +100,7 @@ Claude: What source branch should I create this from?
 User: master
 
 Claude: Setting up worktree for 'feature/user-authentication' from 'master'...
-[runs script]
+[runs pnpm worktree:setup]
 ...success output...
 ```
 
@@ -118,5 +117,5 @@ Claude: What source branch should I create 'feature/payments' from?
 User: /worktree feature/api-v2 master
 
 Claude: Setting up worktree for 'feature/api-v2' from 'master'...
-[runs script immediately]
+[runs command immediately]
 ```

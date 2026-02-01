@@ -10,10 +10,16 @@ This command displays all registered worktrees with their port allocations, stat
 
 ## Behavior
 
-Execute the list worktrees script and format the output:
+Execute the list worktrees command and format the output:
 
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/list-worktrees.sh -v
+pnpm worktree:list
+```
+
+For verbose output with more details:
+
+```bash
+pnpm worktree:list --verbose
 ```
 
 ## Output Formatting
@@ -22,15 +28,15 @@ Present the results as a formatted table:
 
 **Active Worktrees**
 
-| ID           | Branch          | Ports (F/B/D)    | Status | Last Access |
-|--------------|-----------------|------------------|--------|-------------|
-| feature-auth | feature/auth    | 5174/3002/5436   | active | 2h ago      |
-| bugfix-123   | bugfix/123      | 5175/3003/5437   | active | 3d ago      |
+| ID           | Branch          | Ports (F/B/D)      | Status | Last Access |
+|--------------|-----------------|--------------------| -------|-------------|
+| feature-auth | feature/auth    | 5174/3002/7433     | active | 2h ago      |
+| bugfix-123   | bugfix/123      | 5175/3003/7434     | active | 3d ago      |
 
 Include the legend:
 - ● active - Worktree is currently running
-- ○ stopped - Worktree exists but is not running
-- ✗ error - Worktree has an issue
+- ○ stopped - Worktree exists but database is not running
+- ✗ error - Worktree has an issue (path missing, etc.)
 
 ## Empty Registry
 
@@ -53,16 +59,16 @@ User: /worktree-list
 
 Claude: Here are your active worktrees:
 
-| ID           | Branch              | Ports (F/B/D)    | Status | Last Access |
-|--------------|---------------------|------------------|--------|-------------|
-| feature-auth | feature/auth        | 5174/3002/5436   | active | 2 hours ago |
-| bugfix-123   | bugfix/issue-123    | 5175/3003/5437   | active | 3 days ago  |
+| ID           | Branch              | Ports (F/B/D)      | Status | Last Access |
+|--------------|---------------------|--------------------|--------|-------------|
+| feature-auth | feature/auth        | 5174/3002/7433     | active | 2 hours ago |
+| bugfix-123   | bugfix/issue-123    | 5175/3003/7434     | active | 3 days ago  |
 
 Total: 2 worktrees
 
 Legend:
-● active - Currently running
-○ stopped - Not running
+● active - Database container running
+○ stopped - Database container not running
 ✗ error - Has issues
 
 Related commands:

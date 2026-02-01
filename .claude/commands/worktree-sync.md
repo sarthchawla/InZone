@@ -23,10 +23,10 @@ Follow these steps to sync the registry:
 
 ### Step 1: Run Registry Scan
 
-Execute the sync script in dry-run mode first to see what would be cleaned:
+Execute the sync command in dry-run mode first to see what would be cleaned:
 
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/sync-registry.sh --dry-run --verbose
+pnpm worktree:sync --dry-run --verbose
 ```
 
 ### Step 2: Present Report to User
@@ -43,14 +43,14 @@ Show the user the sync report in a formatted way:
 
 If orphaned entries are found, show them in a table:
 
-| ID           | Branch              | Ports         | Reason                    |
-|--------------|---------------------|---------------|---------------------------|
-| feature-old  | feature/old-feature | 5175/3003/5437| Path does not exist       |
-| bugfix-gone  | bugfix/deleted      | 5176/3004/5438| Not in git worktree list  |
+| ID           | Branch              | Ports              | Reason                    |
+|--------------|---------------------|--------------------|---------------------------|
+| feature-old  | feature/old-feature | 5175/3003/7434     | Path does not exist       |
+| bugfix-gone  | bugfix/deleted      | 5176/3004/7435     | Not in git worktree list  |
 
 If stale containers are found, list them:
-- inzone-worktree-feature-old
-- inzone-postgres-worktree-feature-old
+- inzone-db-wt-feature-old
+- inzone-db-wt-bugfix-gone
 
 ### Step 3: Handle User Decision
 
@@ -72,7 +72,7 @@ Ask the user what to do:
 If user chooses to clean, run:
 
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/sync-registry.sh --force
+pnpm worktree:sync --force
 ```
 
 ### Step 5: Report Results
@@ -90,9 +90,9 @@ After cleanup, format the output as:
 
 ### Error Handling
 
-- **Exit code 1 (Invalid arguments)**: Check command options
-- **Exit code 2 (Registry error)**: Registry file not found or corrupted - suggest creating new worktree to initialize
-- **Exit code 3 (User cancelled)**: Operation was cancelled
+- **Registry not found**: No worktrees have been created yet
+- **Registry error**: Registry file corrupted - suggest creating new worktree to initialize
+- **Docker errors**: Some containers may already be removed
 
 ## Examples
 
@@ -113,13 +113,13 @@ Registry Sync Report
 
 Orphaned entries found:
 
-| ID           | Branch              | Ports         | Reason                    |
-|--------------|---------------------|---------------|---------------------------|
-| feature-old  | feature/old-feature | 5175/3003/5437| Path does not exist       |
-| bugfix-gone  | bugfix/deleted      | 5176/3004/5438| Not in git worktree list  |
+| ID           | Branch              | Ports              | Reason                    |
+|--------------|---------------------|--------------------|---------------------------|
+| feature-old  | feature/old-feature | 5175/3003/7434     | Path does not exist       |
+| bugfix-gone  | bugfix/deleted      | 5176/3004/7435     | Not in git worktree list  |
 
 Stale containers found:
-- inzone-postgres-worktree-feature-old
+- inzone-db-wt-feature-old
 
 Would you like to clean up these orphaned entries?
 - Clean - Remove orphaned entries and free ports
@@ -132,7 +132,7 @@ Claude: Cleaning up orphaned entries...
 Cleanup Complete!
 - Removed 2 orphaned registry entries
 - Stopped 1 stale container
-- Freed ports: 5175, 5176, 3003, 3004, 5437, 5438
+- Freed ports: 5175, 5176, 3003, 3004, 7434, 7435
 - Remaining worktrees: 2
 ```
 
@@ -150,9 +150,9 @@ Orphaned entries: 1
 
 Orphaned entries:
 
-| ID           | Branch          | Ports         | Reason              |
-|--------------|-----------------|---------------|---------------------|
-| feature-old  | feature/old     | 5175/3003/5437| Path does not exist |
+| ID           | Branch          | Ports              | Reason              |
+|--------------|-----------------|--------------------| --------------------|
+| feature-old  | feature/old     | 5175/3003/7434     | Path does not exist |
 
 Dry run complete. No changes were made.
 

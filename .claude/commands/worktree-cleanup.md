@@ -20,7 +20,7 @@ Follow these steps to clean up a worktree:
 If the `target` argument is not provided or is empty, first list available worktrees by running:
 
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/list-worktrees.sh -v
+pnpm worktree:list
 ```
 
 Then ask the user which worktree to remove, showing them the list with IDs and branches.
@@ -30,29 +30,24 @@ Then ask the user which worktree to remove, showing them the list with IDs and b
 Before executing cleanup, confirm with the user what will be removed:
 
 - Git worktree directory
-- Docker containers (app and database)
-- Docker volumes (database data)
+- Docker database container
+- Docker volume (database data)
 - Registry entry (frees allocated ports)
-- Git branch (unless user wants to keep it)
 
-Ask: "Do you want to keep the git branch, or delete everything?"
+Note: The git branch is NOT deleted by default. The user can delete it manually if needed.
 
-Options:
-- "Delete everything" (default) - Remove worktree and delete branch
-- "Keep branch" - Remove worktree but keep the git branch
+### Step 3: Execute Cleanup Command
 
-### Step 3: Execute Cleanup Script
+Run the cleanup command:
 
-Run the cleanup script based on user choice:
-
-**Delete everything (default):**
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/cleanup-worktree.sh --force "$TARGET"
+pnpm worktree:cleanup "$TARGET"
 ```
 
-**Keep the branch:**
+If user wants to skip confirmation, add `--force`:
+
 ```bash
-/home/node/.cursor/worktrees/InZone-App__Container_InZone_-_Dev_container_for_Claude_Code__996f97e08845__/qek/scripts/worktree/cleanup-worktree.sh --force --keep-branch "$TARGET"
+pnpm worktree:cleanup --force "$TARGET"
 ```
 
 Replace `$TARGET` with the worktree ID or branch name.
@@ -66,19 +61,20 @@ After successful cleanup, format the output as:
 | Resource       | Action                        |
 |----------------|-------------------------------|
 | Worktree       | Removed                       |
-| Branch         | Deleted / Kept                |
+| Database       | Container removed             |
 | Frontend port  | [port] freed                  |
 | Backend port   | [port] freed                  |
 | Database port  | [port] freed                  |
 
+Mention: The git branch was preserved. Delete manually with `git branch -D <branch>` if needed.
+
 ### Error Handling
 
-If the script fails, provide helpful guidance:
+If the command fails, provide helpful guidance:
 
-- **Exit code 1 (Invalid arguments)**: Check the worktree ID format
-- **Exit code 2 (Git operation failed)**: Git worktree may have issues, suggest manual cleanup
-- **Exit code 3 (Not found)**: Worktree not in registry, suggest `/worktree-list` to see available
-- **Exit code 4 (User cancelled)**: Operation was cancelled
+- **Worktree not found**: Check the worktree ID or branch name, suggest `/worktree-list` to see available
+- **Docker error**: Container may already be removed, proceed with registry cleanup
+- **Git error**: Git worktree may have issues, suggest manual cleanup
 
 ## Examples
 
@@ -88,10 +84,10 @@ User: /worktree-cleanup
 
 Claude: Here are your current worktrees:
 
-| ID           | Branch              | Ports (F/B/D)    |
-|--------------|---------------------|------------------|
-| feature-auth | feature/auth        | 5174/3002/5436   |
-| bugfix-123   | bugfix/issue-123    | 5175/3003/5437   |
+| ID           | Branch              | Ports (F/B/D)      |
+|--------------|---------------------|--------------------|
+| feature-auth | feature/auth        | 5174/3002/7433     |
+| bugfix-123   | bugfix/issue-123    | 5175/3003/7434     |
 
 Which worktree would you like to remove?
 
@@ -99,15 +95,15 @@ User: feature-auth
 
 Claude: This will remove:
 - Worktree at ../InZone-App-worktrees/feature-auth
-- Docker containers and volumes
-- Ports 5174, 3002, 5436
+- Database container and volume
+- Ports 5174, 3002, 7433
 
-Do you want to keep the git branch 'feature/auth', or delete everything?
+Proceed? (The git branch will be preserved)
 
-User: Delete everything
+User: Yes
 
 Claude: Cleaning up worktree 'feature-auth'...
-[runs script]
+[runs pnpm worktree:cleanup]
 ...success output...
 ```
 
@@ -115,14 +111,12 @@ Claude: Cleaning up worktree 'feature-auth'...
 ```
 User: /worktree-cleanup feature-auth
 
-Claude: This will remove worktree 'feature-auth'. Delete branch too?
-- Delete everything (recommended)
-- Keep branch
+Claude: This will remove worktree 'feature-auth' and free its resources. Proceed?
 
-User: Delete everything
+User: Yes
 
 Claude: Cleaning up...
-[runs script]
+[runs command]
 ```
 
 **Using branch name:**
