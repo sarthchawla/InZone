@@ -160,45 +160,81 @@ export async function startDatabase(worktreeId: string, port: number): Promise<s
   return containerName;
 }
 
+export type RemovalStatus = 'removed' | 'not_found' | 'error';
+
+export interface RemovalResult {
+  status: RemovalStatus;
+  containerName: string;
+  message?: string;
+}
+
 /**
  * Stop and remove a database container and its volume
  */
-export function removeDatabase(worktreeId: string): void {
+export function removeDatabase(worktreeId: string): RemovalResult {
   const containerName = getDbContainerName(worktreeId);
   const volumeName = containerName;
 
-  console.log(`Removing database container: ${containerName}`);
+  try {
+    const existed = containerExists(containerName);
 
-  // Stop container if running
-  if (isContainerRunning(containerName)) {
-    stopContainer(containerName);
+    // Stop container if running
+    if (isContainerRunning(containerName)) {
+      stopContainer(containerName);
+    }
+
+    // Remove container if it exists
+    if (existed) {
+      removeContainer(containerName);
+    }
+
+    // Remove volume (may or may not exist)
+    removeVolume(volumeName);
+
+    return {
+      status: existed ? 'removed' : 'not_found',
+      containerName,
+      message: existed ? undefined : 'Container was already removed',
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      containerName,
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
-
-  // Remove container
-  if (containerExists(containerName)) {
-    removeContainer(containerName);
-  }
-
-  // Remove volume
-  removeVolume(volumeName);
 }
 
 /**
  * Stop and remove a devcontainer (app container)
  */
-export function removeDevcontainer(worktreeId: string): void {
+export function removeDevcontainer(worktreeId: string): RemovalResult {
   const containerName = getAppContainerName(worktreeId);
 
-  console.log(`Removing devcontainer: ${containerName}`);
+  try {
+    const existed = containerExists(containerName);
 
-  // Stop container if running
-  if (isContainerRunning(containerName)) {
-    stopContainer(containerName);
-  }
+    // Stop container if running
+    if (isContainerRunning(containerName)) {
+      stopContainer(containerName);
+    }
 
-  // Remove container
-  if (containerExists(containerName)) {
-    removeContainer(containerName);
+    // Remove container if it exists
+    if (existed) {
+      removeContainer(containerName);
+    }
+
+    return {
+      status: existed ? 'removed' : 'not_found',
+      containerName,
+      message: existed ? undefined : 'Container was already removed',
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      containerName,
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 

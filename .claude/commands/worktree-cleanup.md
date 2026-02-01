@@ -21,6 +21,7 @@ This unified command removes git worktrees and frees their associated resources 
 /worktree-cleanup <id>               → Remove specific worktree
 /worktree-cleanup --all              → Remove all worktrees
 /worktree-cleanup --stale 30         → Remove worktrees inactive for 30+ days
+/worktree-cleanup --sync             → Find and remove orphaned entries (like git prune)
 /worktree-cleanup --dry-run          → Preview what would be removed
 ```
 
@@ -61,12 +62,25 @@ pnpm worktree:cleanup --stale 30
 
 Removes worktrees not accessed in 30+ days.
 
-### Mode 5: Dry Run (Preview)
+### Mode 5: Sync (Prune Orphaned Entries)
+
+```bash
+pnpm worktree:cleanup --sync
+```
+
+Scans for and removes:
+- **Orphaned registry entries** - where the worktree path no longer exists or isn't in git
+- **Stale containers** - database containers without a matching registry entry
+
+This is like `git worktree prune` but also handles containers and ports.
+
+### Mode 6: Dry Run (Preview)
 
 Add `--dry-run` to any command to preview without making changes:
 
 ```bash
 pnpm worktree:cleanup --all --dry-run
+pnpm worktree:cleanup --sync --dry-run
 ```
 
 ### Skip Confirmation
@@ -138,4 +152,3 @@ Claude: Found 2 worktrees inactive for 7+ days...
 
 - `/worktree` - Create a new worktree
 - `/worktree-list` - List all worktrees
-- `/worktree-sync` - Sync registry with filesystem

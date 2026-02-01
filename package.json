@@ -23,8 +23,7 @@
     "worktree": "node scripts/worktree/dist/index.js",
     "worktree:setup": "node scripts/worktree/dist/index.js setup",
     "worktree:list": "node scripts/worktree/dist/index.js list",
-    "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup",
-    "worktree:sync": "node scripts/worktree/dist/index.js sync"
+    "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

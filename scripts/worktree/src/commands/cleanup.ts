@@ -7,8 +7,14 @@ import {
   removeWorktree,
   listWorktrees,
 } from '../lib/registry.js';
-import { removeDatabase, removeDevcontainer } from '../lib/docker.js';
-import { removeWorktree as removeGitWorktree, pruneWorktrees } from '../lib/git.js';
+import {
+  removeDatabase,
+  removeDevcontainer,
+  listDbContainers,
+  isContainerRunning,
+  removeContainer,
+} from '../lib/docker.js';
+import { removeWorktree as removeGitWorktree, pruneWorktrees, listGitWorktrees } from '../lib/git.js';
 import { sanitizeBranchName, pathExists } from '../lib/utils.js';
 
 interface CleanupOptions {
@@ -16,6 +22,7 @@ interface CleanupOptions {
   all?: boolean;
   stale?: string;
   dryRun?: boolean;
+  sync?: boolean;
 }
 
 /**
@@ -60,33 +67,44 @@ async function removeSingleWorktree(
   try {
     // Remove database
     if (options.verbose) console.log('Stopping database container...');
-    try {
-      removeDatabase(worktree.id);
-      if (options.verbose) console.log(chalk.green('  ✓ Database container removed'));
-    } catch {
-      if (options.verbose) console.log(chalk.yellow('  ⚠ Could not remove database'));
+    const dbResult = removeDatabase(worktree.id);
+    if (options.verbose) {
+      if (dbResult.status === 'removed') {
+        console.log(chalk.green('  ✓ Database container removed'));
+      } else if (dbResult.status === 'not_found') {
+        console.log(chalk.dim('  ○ Database container already removed'));
+      } else {
+        console.log(chalk.yellow(`  ⚠ Could not remove database: ${dbResult.message}`));
+      }
     }
 
     // Remove devcontainer
     if (options.verbose) console.log('Stopping devcontainer...');
-    try {
-      removeDevcontainer(worktree.id);
-      if (options.verbose) console.log(chalk.green('  ✓ Devcontainer removed'));
-    } catch {
-      if (options.verbose) console.log(chalk.yellow('  ⚠ Could not remove devcontainer'));
+    const devResult = removeDevcontainer(worktree.id);
+    if (options.verbose) {
+      if (devResult.status === 'removed') {
+        console.log(chalk.green('  ✓ Devcontainer removed'));
+      } else if (devResult.status === 'not_found') {
+        console.log(chalk.dim('  ○ Devcontainer already removed'));
+      } else {
+        console.log(chalk.yellow(`  ⚠ Could not remove devcontainer: ${devResult.message}`));
+      }
     }
 
     // Remove git worktree
     if (options.verbose) console.log('Removing git worktree...');
-    try {
-      if (pathExists(worktree.path)) {
+    if (pathExists(worktree.path)) {
+      try {
         removeGitWorktree(worktree.path);
         if (options.verbose) console.log(chalk.green('  ✓ Git worktree removed'));
-      } else {
-        if (options.verbose) console.log(chalk.yellow('  ⚠ Worktree path does not exist'));
+      } catch (error) {
+        if (options.verbose)
+          console.log(
+            chalk.yellow(`  ⚠ Could not remove git worktree: ${error instanceof Error ? error.message : error}`)
+          );
       }
-    } catch {
-      if (options.verbose) console.log(chalk.yellow('  ⚠ Could not remove git worktree'));
+    } else {
+      if (options.verbose) console.log(chalk.dim('  ○ Git worktree path already removed'));
     }
 
     // Remove from registry
@@ -306,18 +324,161 @@ async function cleanupMultiple(options: CleanupOptions): Promise<void> {
   }
 }
 
+interface OrphanedEntry {
+  worktree: Worktree;
+  reason: string;
+}
+
+interface StaleContainer {
+  name: string;
+  reason: string;
+}
+
 /**
- * Unified cleanup command - handles both single and multiple worktrees
+ * Verify a worktree entry exists on filesystem and in git
+ */
+function verifyEntry(worktree: Worktree, gitWorktrees: Array<{ path: string; branch: string }>): string | null {
+  if (!pathExists(worktree.path)) {
+    return 'Path does not exist';
+  }
+  const inGit = gitWorktrees.some((gw) => gw.path === worktree.path);
+  if (!inGit) {
+    return 'Not in git worktree list';
+  }
+  return null; // Valid
+}
+
+/**
+ * Sync mode - find and clean up orphaned entries (like git prune)
+ */
+async function cleanupSync(options: CleanupOptions): Promise<void> {
+  console.log(chalk.blue('Scanning for orphaned entries...\n'));
+
+  const registryWorktrees = listWorktrees();
+  const gitWorktrees = listGitWorktrees();
+  const dbContainers = listDbContainers();
+  const registryIds = new Set(registryWorktrees.map((w) => w.id));
+
+  // Find orphaned registry entries
+  const orphanedEntries: OrphanedEntry[] = [];
+  const validEntries: Worktree[] = [];
+
+  for (const worktree of registryWorktrees) {
+    const reason = verifyEntry(worktree, gitWorktrees);
+    if (reason) {
+      orphanedEntries.push({ worktree, reason });
+    } else {
+      validEntries.push(worktree);
+    }
+  }
+
+  // Find stale containers (containers without registry entry)
+  const staleContainers: StaleContainer[] = [];
+  for (const container of dbContainers) {
+    const match = container.match(/^inzone-db-wt-(.+)$/);
+    if (match) {
+      const wtId = match[1];
+      if (!registryIds.has(wtId)) {
+        staleContainers.push({ name: container, reason: 'No registry entry' });
+      }
+    }
+  }
+
+  // Print report
+  console.log(chalk.bold('Sync Report'));
+  console.log('═══════════\n');
+  console.log(`Valid worktrees:    ${validEntries.length}`);
+  console.log(`Orphaned entries:   ${orphanedEntries.length}`);
+  console.log(`Stale containers:   ${staleContainers.length}`);
+
+  if (orphanedEntries.length === 0 && staleContainers.length === 0) {
+    console.log(chalk.green('\n✓ Everything is in sync. No orphaned entries found.'));
+    return;
+  }
+
+  // Show orphaned entries
+  if (orphanedEntries.length > 0) {
+    console.log(chalk.yellow('\nOrphaned entries:\n'));
+    for (const { worktree, reason } of orphanedEntries) {
+      console.log(`  - ${worktree.id} (${worktree.branch})`);
+      console.log(chalk.dim(`    ${reason} | Ports: ${worktree.ports.frontend}/${worktree.ports.backend}/${worktree.ports.database}`));
+    }
+  }
+
+  // Show stale containers
+  if (staleContainers.length > 0) {
+    console.log(chalk.yellow('\nStale containers:\n'));
+    for (const { name, reason } of staleContainers) {
+      const running = isContainerRunning(name) ? chalk.green('running') : chalk.dim('stopped');
+      console.log(`  - ${name} (${running}) - ${reason}`);
+    }
+  }
+
+  // Dry run
+  if (options.dryRun) {
+    console.log(chalk.blue('\n[DRY RUN] Would clean up the above entries.'));
+    return;
+  }
+
+  // Confirm unless --force
+  if (!options.force) {
+    const confirmed = await confirm(chalk.yellow('\nRemove orphaned entries and stale containers?'));
+    if (!confirmed) {
+      console.log('Cancelled.');
+      return;
+    }
+  }
+
+  // Clean up
+  console.log(chalk.blue('\nCleaning up...\n'));
+  let freedPorts: number[] = [];
+
+  for (const { worktree } of orphanedEntries) {
+    console.log(`Removing: ${worktree.id}`);
+    removeDatabase(worktree.id);
+    removeDevcontainer(worktree.id);
+    removeWorktree(worktree.id);
+    freedPorts.push(worktree.ports.frontend, worktree.ports.backend, worktree.ports.database);
+    console.log(chalk.green(`  ✓ Removed`));
+  }
+
+  for (const { name } of staleContainers) {
+    console.log(`Removing stale container: ${name}`);
+    try {
+      removeContainer(name);
+      console.log(chalk.green(`  ✓ Removed`));
+    } catch {
+      console.log(chalk.yellow(`  ⚠ Could not remove`));
+    }
+  }
+
+  pruneWorktrees();
+
+  console.log(chalk.green(`\n✓ Sync complete!`));
+  console.log(`  - Removed ${orphanedEntries.length} orphaned entries`);
+  console.log(`  - Removed ${staleContainers.length} stale containers`);
+  if (freedPorts.length > 0) {
+    console.log(`  - Freed ${freedPorts.length} ports`);
+  }
+  console.log(`\nRegistry now has ${validEntries.length} valid worktree(s).`);
+}
+
+/**
+ * Unified cleanup command - handles single, multiple, and sync operations
  *
  * Usage:
  *   cleanup <id>           - Remove specific worktree
  *   cleanup                - Interactive selection
  *   cleanup --all          - Remove all worktrees
  *   cleanup --stale 30     - Remove worktrees inactive for 30+ days
+ *   cleanup --sync         - Find and remove orphaned entries (like git prune)
  */
 export async function cleanup(target: string | undefined, options: CleanupOptions): Promise<void> {
   try {
-    if (target) {
+    if (options.sync) {
+      // Sync mode - find and clean orphaned entries
+      await cleanupSync(options);
+    } else if (target) {
       // Single worktree cleanup
       await cleanupSingle(target, options);
     } else {
