@@ -34,10 +34,11 @@ boardsRouter.get('/', async (_req, res, next) => {
       },
     });
 
-    // Calculate total todo count per board
+    // Calculate total todo count and column count per board
     const boardsWithCounts = boards.map((board) => ({
       ...board,
       todoCount: board.columns.reduce((sum, col) => sum + col._count.todos, 0),
+      columnCount: board.columns.length,
     }));
 
     res.json(boardsWithCounts);

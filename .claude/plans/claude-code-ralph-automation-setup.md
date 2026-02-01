@@ -4,7 +4,7 @@
 Configure the devcontainer and project structure to:
 1. Run Claude Code inside the devcontainer (with `--dangerously-skip-permissions` for unattended mode)
 2. Enable Ralph Wiggum autonomous automation via bash scripting
-3. Integrate Playwright MCP for browser automation
+3. Integrate agent-browser CLI for browser automation
 4. Create structure ready to accept a PRD
 
 ---
@@ -12,7 +12,7 @@ Configure the devcontainer and project structure to:
 ## Current State
 - **Devcontainer**: Node.js 20, Claude Code CLI, firewall rules, zsh (based on official Anthropic reference)
 - **Permissions**: Basic `.claude/settings.local.json` (only gh commands)
-- **Missing**: MCP config, Playwright, Ralph infrastructure, PRD template
+- **Missing**: Ralph infrastructure, PRD template
 
 **Key Insight**: The devcontainer's firewall isolation enables `--dangerously-skip-permissions` flag, allowing Claude to run unattended without permission prompts - essential for Ralph automation.
 
@@ -36,19 +36,17 @@ Add domains to allowlist:
 - `playwright-cdn.azureedge.net`
 - `genai-gateway.agoda.is` (Agoda GenAI gateway for Claude)
 
-### 3. Create MCP Configuration
-**File**: `.mcp.json` (new)
+### 3. Install agent-browser CLI
+**Command**: `npm install -g agent-browser`
 
-Configure Playwright MCP server:
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@anthropic-ai/mcp-server-playwright", "--headless"]
-    }
-  }
-}
+The agent-browser CLI provides browser automation without MCP. Key commands:
+```bash
+agent-browser open <url>           # Navigate to URL
+agent-browser snapshot -i          # Accessibility snapshot (interactive elements)
+agent-browser click @ref           # Click element by ref
+agent-browser fill @ref "text"     # Fill input
+agent-browser screenshot [path]    # Take screenshot
+agent-browser console              # Get console messages
 ```
 
 ### 4. Update Claude Sandbox Settings
@@ -56,8 +54,7 @@ Configure Playwright MCP server:
 
 Expand permissions for Ralph automation:
 - File read/write operations
-- Bash commands for git, npm, server operations
-- MCP server access
+- Bash commands for git, npm, server operations, agent-browser CLI
 - Deny sensitive paths (.env, credentials)
 
 ### 5. Create Ralph Infrastructure (Bash Loop Method)
@@ -96,7 +93,6 @@ Add entries:
 | Modified | `.devcontainer/init-firewall.sh` |
 | Modified | `.claude/settings.local.json` |
 | Modified | `.gitignore` |
-| Created | `.mcp.json` |
 | Created | `ralph.sh` |
 | Created | `PROMPT.md` |
 | Created | `docs/PRD.md` (template) |
@@ -111,7 +107,7 @@ Add entries:
 
 1. **Rebuild devcontainer**: Ensure it builds without errors
 2. **Test Playwright**: Run `npx playwright --version` inside container
-3. **Test MCP**: Verify Claude recognizes the Playwright MCP server
+3. **Test agent-browser CLI**: Run `agent-browser open https://example.com && agent-browser snapshot -i` to verify browser automation works
 4. **Test firewall**: Confirm Playwright domains are accessible
 5. **Dry run Ralph**: Execute `./ralph.sh 1` for single iteration test
 

@@ -76,6 +76,9 @@ while read -r cidr; do
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
 # Resolve and add other allowed domains
+# Includes: npm, Anthropic API, Sentry, Statsig, VS Code marketplace,
+# Playwright CDN, and Cursor IDE (*.cursor.sh, *.cursor-cdn.com, *.cursorapi.com)
+# See: https://docs.cursor.com/account/teams/network-configuration
 for domain in \
     "registry.npmjs.org" \
     "api.anthropic.com" \
@@ -86,7 +89,14 @@ for domain in \
     "vscode.blob.core.windows.net" \
     "update.code.visualstudio.com" \
     "playwright.azureedge.net" \
-    "playwright-cdn.azureedge.net"; do
+    "playwright-cdn.azureedge.net" \
+    "cursor.sh" \
+    "api2.cursor.sh" \
+    "authenticate.cursor.sh" \
+    "authenticator.cursor.sh" \
+    "cursor-cdn.com" \
+    "cursorapi.com" \
+    "marketplace.cursorapi.com"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then

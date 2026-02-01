@@ -13,6 +13,8 @@ export function useCreateColumn() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(data.boardId) });
+      // Also invalidate boards list so column counts update
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }
@@ -21,7 +23,7 @@ export function useCreateColumn() {
 export function useUpdateColumn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, boardId, ...updates }: { id: string; boardId: string; name?: string; wipLimit?: number }) => {
+    mutationFn: async ({ id, boardId, ...updates }: { id: string; boardId: string; name?: string; description?: string | null; wipLimit?: number | null }) => {
       const { data } = await apiClient.put<Column>(`/columns/${id}`, updates);
       return { ...data, boardId };
     },
@@ -41,6 +43,8 @@ export function useDeleteColumn() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: boardKeys.detail(variables.boardId) });
+      // Also invalidate boards list so column counts update
+      queryClient.invalidateQueries({ queryKey: boardKeys.all });
     },
   });
 }
@@ -50,7 +54,9 @@ export function useReorderColumns() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ boardId, columnIds }: { boardId: string; columnIds: string[] }) => {
-      await apiClient.patch('/columns/reorder', { columnIds });
+      // API expects { boardId, columns: [{ id, position }] }
+      const columns = columnIds.map((id, index) => ({ id, position: index }));
+      await apiClient.patch('/columns/reorder', { boardId, columns });
       return boardId;
     },
     onSuccess: (boardId) => {

@@ -1,0 +1,162 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Request, Response, NextFunction } from "express";
+import { errorHandler, createError, AppError } from "./errorHandler.js";
+
+describe("errorHandler middleware", () => {
+  const mockReq = {} as Request;
+  const mockNext: NextFunction = vi.fn();
+
+  const createMockRes = () => {
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    } as unknown as Response;
+    return res;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Suppress console.error during tests
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  // Happy Path Tests
+  describe("error responses", () => {
+    it("handles AppError with custom status code", () => {
+      const res = createMockRes();
+      const error = createError("Not Found", 404, "NOT_FOUND");
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: {
+          message: "Not Found",
+          code: "NOT_FOUND",
+        },
+      });
+    });
+
+    it("handles AppError with 400 status code", () => {
+      const res = createMockRes();
+      const error = createError("Bad Request", 400, "VALIDATION_ERROR");
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: {
+          message: "Bad Request",
+          code: "VALIDATION_ERROR",
+        },
+      });
+    });
+
+    it("handles generic Error with 500 status code", () => {
+      const res = createMockRes();
+      const error = new Error("Unexpected error");
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: {
+          message: "Unexpected error",
+          code: undefined,
+        },
+      });
+    });
+
+    it("logs the error to console", () => {
+      const res = createMockRes();
+      const error = new Error("Test error");
+      const consoleSpy = vi.spyOn(console, "error");
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(consoleSpy).toHaveBeenCalledWith("Error:", error);
+    });
+  });
+
+  // Unhappy Path Tests
+  describe("edge cases", () => {
+    it("handles error without message", () => {
+      const res = createMockRes();
+      const error = new Error();
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: {
+          message: "Internal Server Error",
+          code: undefined,
+        },
+      });
+    });
+
+    it("handles error with empty message", () => {
+      const res = createMockRes();
+      const error = new Error("");
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: {
+          message: "Internal Server Error",
+          code: undefined,
+        },
+      });
+    });
+
+    it("handles AppError without code", () => {
+      const res = createMockRes();
+      const error = createError("Server Error", 500);
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: {
+          message: "Server Error",
+          code: undefined,
+        },
+      });
+    });
+  });
+});
+
+describe("createError helper", () => {
+  it("creates error with all properties", () => {
+    const error = createError("Test message", 404, "TEST_CODE");
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe("Test message");
+    expect(error.statusCode).toBe(404);
+    expect(error.code).toBe("TEST_CODE");
+  });
+
+  it("creates error without code", () => {
+    const error = createError("Test message", 500);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe("Test message");
+    expect(error.statusCode).toBe(500);
+    expect(error.code).toBeUndefined();
+  });
+
+  it("creates error with different status codes", () => {
+    const error400 = createError("Bad Request", 400);
+    const error401 = createError("Unauthorized", 401);
+    const error403 = createError("Forbidden", 403);
+    const error404 = createError("Not Found", 404);
+    const error500 = createError("Server Error", 500);
+
+    expect(error400.statusCode).toBe(400);
+    expect(error401.statusCode).toBe(401);
+    expect(error403.statusCode).toBe(403);
+    expect(error404.statusCode).toBe(404);
+    expect(error500.statusCode).toBe(500);
+  });
+});

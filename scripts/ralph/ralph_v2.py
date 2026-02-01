@@ -9,12 +9,15 @@ Enhanced version with:
 - Progress tracking
 - Completion detection (<promise>COMPLETE</promise> or RALPH_COMPLETE)
 - Cost and token statistics
+- Activity log generation (activity.md)
+- macOS notifications when loop finishes (completion, early completion, or interrupt)
 
 Usage:
     python ralph_v2.py <iterations> [--prompt-file PROMPT.md]
     python ralph_v2.py 5
     python ralph_v2.py 10 --prompt-file custom_prompt.md
     python ralph_v2.py 30 --stop-on-complete --verbose
+    python ralph_v2.py 5 --activity-log custom_activity.md
 """
 
 import argparse
@@ -25,7 +28,7 @@ import signal
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 
 # ANSI color codes
@@ -45,6 +48,184 @@ class Colors:
     BG_RED = "\033[41m"
     BG_GREEN = "\033[42m"
     BG_BLUE = "\033[44m"
+
+
+class ActivityLog:
+    """Tracks and writes activity to activity.md file."""
+
+    def __init__(self, output_path: Path):
+        self.output_path = output_path
+        self.entries: List[dict] = []
+        self.start_time = datetime.now()
+
+    def add_iteration_start(self, iteration: int, total: int) -> None:
+        """Log the start of an iteration."""
+        self.entries.append({
+            "type": "iteration_start",
+            "iteration": iteration,
+            "total": total,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    def add_iteration_end(self, iteration: int, success: bool, complete: bool) -> None:
+        """Log the end of an iteration."""
+        self.entries.append({
+            "type": "iteration_end",
+            "iteration": iteration,
+            "success": success,
+            "complete": complete,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    def add_tool_call(self, iteration: int, tool_name: str, tool_input: dict) -> None:
+        """Log a tool call."""
+        # Extract relevant info from tool_input
+        summary = ""
+        if "command" in tool_input:
+            cmd = tool_input["command"]
+            summary = cmd[:100] + "..." if len(cmd) > 100 else cmd
+        elif "file_path" in tool_input:
+            summary = tool_input["file_path"]
+        elif "path" in tool_input:
+            summary = tool_input["path"]
+        elif "pattern" in tool_input:
+            summary = tool_input["pattern"]
+        elif "url" in tool_input:
+            summary = tool_input["url"]
+
+        self.entries.append({
+            "type": "tool_call",
+            "iteration": iteration,
+            "tool_name": tool_name,
+            "summary": summary,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    def add_stats(self, iteration: int, cost: float, duration: float, tokens_in: int, tokens_out: int) -> None:
+        """Log iteration stats."""
+        self.entries.append({
+            "type": "stats",
+            "iteration": iteration,
+            "cost": cost,
+            "duration": duration,
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    def add_error(self, iteration: int, error_msg: str) -> None:
+        """Log an error."""
+        self.entries.append({
+            "type": "error",
+            "iteration": iteration,
+            "error": error_msg,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    def write(self, completed: int, failed: int, early_complete: bool, global_state: dict) -> None:
+        """Write the activity log to activity.md."""
+        lines = []
+        lines.append("# Ralph Activity Log")
+        lines.append("")
+        lines.append(f"**Started:** {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append(f"**Finished:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("")
+
+        # Summary section
+        lines.append("## Summary")
+        lines.append("")
+        lines.append(f"- **Total Iterations:** {completed + failed}")
+        lines.append(f"- **Completed:** {completed}")
+        lines.append(f"- **Failed:** {failed}")
+        if early_complete:
+            lines.append(f"- **Status:** RALPH_COMPLETE detected")
+
+        if global_state.get("total_cost"):
+            lines.append(f"- **Total Cost:** ${global_state['total_cost']:.4f}")
+        if global_state.get("total_duration"):
+            duration_mins = global_state["total_duration"] / 1000 / 60
+            lines.append(f"- **Total Duration:** {duration_mins:.1f} minutes")
+        if global_state.get("total_tokens_in") and global_state.get("total_tokens_out"):
+            lines.append(f"- **Total Tokens:** {global_state['total_tokens_in']:,} in / {global_state['total_tokens_out']:,} out")
+        lines.append("")
+
+        # Group entries by iteration
+        iterations_data = {}
+        for entry in self.entries:
+            if entry["type"] == "iteration_start":
+                iter_num = entry["iteration"]
+                if iter_num not in iterations_data:
+                    iterations_data[iter_num] = {"tools": [], "errors": [], "stats": None, "success": None, "complete": False}
+            elif entry["type"] == "iteration_end":
+                iter_num = entry["iteration"]
+                if iter_num in iterations_data:
+                    iterations_data[iter_num]["success"] = entry["success"]
+                    iterations_data[iter_num]["complete"] = entry["complete"]
+            elif entry["type"] == "tool_call":
+                iter_num = entry["iteration"]
+                if iter_num in iterations_data:
+                    iterations_data[iter_num]["tools"].append(entry)
+            elif entry["type"] == "stats":
+                iter_num = entry["iteration"]
+                if iter_num in iterations_data:
+                    iterations_data[iter_num]["stats"] = entry
+            elif entry["type"] == "error":
+                iter_num = entry["iteration"]
+                if iter_num in iterations_data:
+                    iterations_data[iter_num]["errors"].append(entry)
+
+        # Iteration details
+        lines.append("## Iteration Details")
+        lines.append("")
+
+        for iter_num in sorted(iterations_data.keys()):
+            data = iterations_data[iter_num]
+            status = "✓" if data["success"] else "✗"
+            complete_marker = " (COMPLETE)" if data["complete"] else ""
+            lines.append(f"### Iteration {iter_num} {status}{complete_marker}")
+            lines.append("")
+
+            # Stats
+            if data["stats"]:
+                stats = data["stats"]
+                lines.append(f"- Cost: ${stats['cost']:.4f}" if stats.get('cost') else "")
+                lines.append(f"- Duration: {stats['duration']/1000:.1f}s" if stats.get('duration') else "")
+                lines.append(f"- Tokens: {stats.get('tokens_in', 0):,} in / {stats.get('tokens_out', 0):,} out")
+                lines.append("")
+
+            # Tools used
+            if data["tools"]:
+                lines.append("**Tools Used:**")
+                for tool in data["tools"]:
+                    summary = f" - `{tool['summary']}`" if tool["summary"] else ""
+                    lines.append(f"- `{tool['tool_name']}`{summary}")
+                lines.append("")
+
+            # Errors
+            if data["errors"]:
+                lines.append("**Errors:**")
+                for error in data["errors"]:
+                    lines.append(f"- {error['error']}")
+                lines.append("")
+
+        # Write to file
+        self.output_path.write_text("\n".join(lines))
+
+
+def send_macos_notification(title: str, message: str, sound: str = "default") -> None:
+    """Send a macOS notification using osascript."""
+    try:
+        script = f'''
+        display notification "{message}" with title "{title}" sound name "{sound}"
+        '''
+        subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True,
+            timeout=5
+        )
+    except Exception:
+        # Silently fail if notification can't be sent
+        pass
 
 
 def colorize(text: str, *styles: str) -> str:
@@ -126,7 +307,7 @@ def print_assistant_text(text: str) -> None:
             print()
 
 
-def process_stream_json(line: str, state: dict, debug: bool = False) -> None:
+def process_stream_json(line: str, state: dict, debug: bool = False, activity_log: ActivityLog = None, iteration: int = 0) -> None:
     """Process a single line of stream-json output."""
     if not line.strip():
         return
@@ -187,6 +368,9 @@ def process_stream_json(line: str, state: dict, debug: bool = False) -> None:
                     state.setdefault("seen_tools", set()).add(tool_id)
                     print()
                     print_tool_call(tool_name, tool_input)
+                    # Log tool call to activity log
+                    if activity_log:
+                        activity_log.add_tool_call(iteration, tool_name, tool_input)
                     sys.stdout.flush()
 
     elif event_type == "user":
@@ -204,6 +388,9 @@ def process_stream_json(line: str, state: dict, debug: bool = False) -> None:
                     if is_error:
                         truncated = result_content[:100] + "..." if len(result_content) > 100 else result_content
                         print(colorize(f"     ❌ {truncated}", Colors.RED))
+                        # Log error to activity log
+                        if activity_log:
+                            activity_log.add_error(iteration, truncated)
                     elif debug:
                         truncated = result_content[:80] + "..." if len(result_content) > 80 else result_content
                         print(colorize(f"     ✓ {truncated}", Colors.DIM))
@@ -228,6 +415,10 @@ def process_stream_json(line: str, state: dict, debug: bool = False) -> None:
             state["total_tokens_in"] = state.get("total_tokens_in", 0) + tokens_in
             state["total_tokens_out"] = state.get("total_tokens_out", 0) + tokens_out
 
+        # Log stats to activity log
+        if activity_log:
+            activity_log.add_stats(iteration, cost or 0, duration or 0, tokens_in or 0, tokens_out or 0)
+
         if stats:
             print(colorize(f"  {' | '.join(stats)}", Colors.MAGENTA))
         sys.stdout.flush()
@@ -237,6 +428,9 @@ def process_stream_json(line: str, state: dict, debug: bool = False) -> None:
         error_msg = error.get("message", str(error))
         print()
         print(colorize(f"  ❌ Error: {error_msg}", Colors.RED, Colors.BOLD))
+        # Log error to activity log
+        if activity_log:
+            activity_log.add_error(iteration, error_msg)
         sys.stdout.flush()
 
 
@@ -245,7 +439,8 @@ def run_iteration(
     total: int,
     prompt: str,
     verbose: bool = False,
-    global_state: dict = None
+    global_state: dict = None,
+    activity_log: ActivityLog = None
 ) -> Tuple[bool, bool]:
     """Run a single Claude iteration.
 
@@ -254,6 +449,10 @@ def run_iteration(
     """
     print_header(iteration, total)
     sys.stdout.flush()
+
+    # Log iteration start
+    if activity_log:
+        activity_log.add_iteration_start(iteration, total)
 
     cmd = [
         "claude",
@@ -273,16 +472,22 @@ def run_iteration(
 
     process = None
     try:
+        # Set CLAUDE_CODE_SILENT=1 to suppress Claude Code notification hooks
+        # Ralph has its own notification system, so we don't want duplicates
+        env = os.environ.copy()
+        env["CLAUDE_CODE_SILENT"] = "1"
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
+            env=env,
         )
 
         for line in process.stdout:
-            process_stream_json(line, state, debug=verbose)
+            process_stream_json(line, state, debug=verbose, activity_log=activity_log, iteration=iteration)
 
         return_code = process.wait()
 
@@ -293,20 +498,33 @@ def run_iteration(
                     global_state[key] = global_state.get(key, 0) + state[key]
 
         success = return_code == 0
+        complete = state.get("complete", False)
+
+        # Log iteration end
+        if activity_log:
+            activity_log.add_iteration_end(iteration, success, complete)
+
         print_footer(iteration, success)
         sys.stdout.flush()
 
-        return success, state.get("complete", False)
+        return success, complete
 
     except KeyboardInterrupt:
         print()
         print(colorize("  ⚠️  Interrupted by user", Colors.YELLOW, Colors.BOLD))
         if process:
             process.terminate()
+        # Log iteration end (interrupted)
+        if activity_log:
+            activity_log.add_iteration_end(iteration, False, False)
         return False, False
     except Exception as e:
         print(colorize(f"  ❌ Error running Claude: {e}", Colors.RED, Colors.BOLD))
         sys.stdout.flush()
+        # Log error and iteration end
+        if activity_log:
+            activity_log.add_error(iteration, str(e))
+            activity_log.add_iteration_end(iteration, False, False)
         return False, False
 
 
@@ -402,6 +620,13 @@ Examples:
         help="Don't stop when RALPH_COMPLETE is detected",
     )
 
+    parser.add_argument(
+        "--activity-log", "-a",
+        type=str,
+        default="activity.md",
+        help="Path to the activity log file (default: activity.md)",
+    )
+
     args = parser.parse_args()
 
     # Handle stop-on-complete logic
@@ -425,13 +650,14 @@ Examples:
     # Print startup banner
     print_banner(args.iterations, args.prompt_file)
 
-    # Handle Ctrl+C gracefully
-    def signal_handler(sig, frame):
-        print()
-        print(colorize("\n⚠️  Stopping Ralph Loop...", Colors.YELLOW, Colors.BOLD))
-        sys.exit(130)
+    # Create activity log
+    activity_log_path = project_root / args.activity_log
+    activity_log = ActivityLog(activity_log_path)
 
-    signal.signal(signal.SIGINT, signal_handler)
+    # Create silent mode flag file to suppress Claude Code notification hooks
+    # This is more reliable than environment variables which may not be inherited by hooks
+    silent_flag_file = Path("/tmp/.claude_code_silent")
+    silent_flag_file.touch()
 
     # Run iterations
     completed = 0
@@ -439,13 +665,31 @@ Examples:
     early_complete = False
     global_state = {}
 
+    # Handle Ctrl+C gracefully
+    def signal_handler(sig, frame):
+        print()
+        print(colorize("\n⚠️  Stopping Ralph Loop...", Colors.YELLOW, Colors.BOLD))
+        # Write activity log before exiting
+        activity_log.write(completed, failed, early_complete, global_state)
+        print(colorize(f"📝 Activity log written to: {activity_log_path}", Colors.CYAN))
+        # Remove silent flag file before sending notification
+        silent_flag_file.unlink(missing_ok=True)
+        send_macos_notification(
+            "Ralph Loop Interrupted ⚠️",
+            f"Stopped after {completed + failed} iterations. Cost: ${global_state.get('total_cost', 0):.2f}"
+        )
+        sys.exit(130)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     for i in range(1, args.iterations + 1):
         success, is_complete = run_iteration(
             i,
             args.iterations,
             prompt,
             verbose=args.verbose,
-            global_state=global_state
+            global_state=global_state,
+            activity_log=activity_log
         )
 
         if success:
@@ -453,16 +697,42 @@ Examples:
         else:
             failed += 1
 
+        # Write activity log after each iteration (so progress is saved continuously)
+        activity_log.write(completed, failed, early_complete, global_state)
+
         # Check for early completion
         if is_complete and stop_on_complete:
             print()
             print(colorize("🎉 RALPH_COMPLETE detected! All tasks done.", Colors.GREEN, Colors.BOLD))
             early_complete = True
+            # Write final activity log with early_complete flag
+            activity_log.write(completed, failed, early_complete, global_state)
+            # Remove silent flag file before sending notification
+            silent_flag_file.unlink(missing_ok=True)
+            send_macos_notification(
+                "Ralph Loop Complete 🎉",
+                f"RALPH_COMPLETE detected after {i} iterations. Cost: ${global_state.get('total_cost', 0):.2f}"
+            )
             break
+
+    # Write activity log
+    activity_log.write(completed, failed, early_complete, global_state)
+    print(colorize(f"📝 Activity log written to: {activity_log_path}", Colors.CYAN))
 
     # Print summary
     print_summary(completed, failed, early_complete, global_state)
     sys.stdout.flush()
+
+    # Remove silent flag file before sending notification
+    silent_flag_file.unlink(missing_ok=True)
+
+    # Send notification for normal completion (if not already sent for early completion)
+    if not early_complete:
+        status = "completed" if failed == 0 else f"finished with {failed} failures"
+        send_macos_notification(
+            "Ralph Loop Finished",
+            f"{completed + failed} iterations {status}. Cost: ${global_state.get('total_cost', 0):.2f}"
+        )
 
     # Exit with appropriate code
     exit_code = 1 if failed > 0 and not early_complete else 0

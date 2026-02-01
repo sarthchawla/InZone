@@ -15,8 +15,11 @@ const PORT = parseInt(process.env.API_PORT || process.env.PORT || '3001', 10);
 app.use(cors());
 app.use(express.json());
 
-// Health check
+// Health check - available at both /health and /api/health for compatibility
 app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

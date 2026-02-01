@@ -5,15 +5,14 @@ A Trello-like todo board application with customizable boards and swimlanes.
 ## Quick Start
 
 ```bash
-./scripts/start.sh
+pnpm install
+pnpm dev
 ```
 
-This single command will:
-- Start PostgreSQL if not running
-- Create the database if needed (using your local user)
-- Create `.env` with correct DATABASE_URL
-- Install dependencies
-- Run migrations and seed data
+This will:
+- Start PostgreSQL in Docker (port 7432)
+- Wait for database to be ready
+- Run migrations automatically
 - Launch both API and Web servers
 
 Once running:
@@ -24,55 +23,46 @@ Once running:
 
 - Node.js >= 20.0.0
 - pnpm 9.15.4
-- PostgreSQL
+- Docker (for database)
 
 ```bash
 # Install pnpm if needed
 corepack enable && corepack prepare pnpm@9.15.4 --activate
-
-# Install PostgreSQL on macOS (if not installed)
-brew install postgresql@14
-brew services start postgresql@14
 ```
 
-## Manual Setup
+## Database Management
 
-If you prefer to set up manually:
-
-### 1. Install Dependencies
+The database runs in Docker with a unified configuration that works identically in local development and DevContainer environments.
 
 ```bash
-pnpm install
+# Start database (auto-runs migrations)
+pnpm db:start
+
+# Stop database (data preserved)
+pnpm db:stop
+
+# View database logs
+pnpm db:logs
+
+# Reset database (destroy + recreate + seed)
+pnpm db:reset
+
+# Open Prisma Studio (database GUI)
+pnpm db:studio
 ```
 
-### 2. Database Setup
+**Database URL:** `postgresql://inzone:inzone_dev@localhost:7432/inzone`
+
+## Running the Application
 
 ```bash
-# Start PostgreSQL
-brew services start postgresql@14
-
-# Create database (using psql)
-psql -d postgres -c "CREATE DATABASE inzone;"
-
-# Configure environment (uses your local username, no password needed)
-echo 'DATABASE_URL="postgresql://$(whoami)@localhost:5432/inzone?schema=public"' > apps/api/.env
-echo 'PORT=3001' >> apps/api/.env
-echo 'NODE_ENV=development' >> apps/api/.env
-
-# Run migrations
-pnpm db:migrate:dev
-
-# Seed sample data (optional)
-pnpm db:seed
-```
-
-### 3. Run the Application
-
-```bash
-# Run everything
+# Start everything (database + app)
 pnpm dev
 
-# Or run services individually
+# Start app only (assumes database is running)
+pnpm dev:app
+
+# Run services individually
 pnpm --filter api dev    # Backend only (port 3001)
 pnpm --filter web dev    # Frontend only (port 5173)
 ```
@@ -81,12 +71,16 @@ pnpm --filter web dev    # Frontend only (port 5173)
 
 | Command | Description |
 |---------|-------------|
-| `./scripts/start.sh` | Full setup and launch (recommended) |
-| `pnpm dev` | Start all services |
+| `pnpm dev` | Start database + all services (recommended) |
+| `pnpm dev:app` | Start app only (assumes DB running) |
 | `pnpm build` | Build for production |
 | `pnpm lint` | Run linting |
 | `pnpm format` | Format code with Prettier |
-| `pnpm db:migrate:dev` | Run database migrations |
+| `pnpm db:start` | Start database container + run migrations |
+| `pnpm db:stop` | Stop database container (data preserved) |
+| `pnpm db:reset` | Reset database (destroy + recreate + seed) |
+| `pnpm db:logs` | Stream database container logs |
+| `pnpm db:migrate:dev` | Create new migration |
 | `pnpm db:seed` | Seed database with sample data |
 | `pnpm db:studio` | Open Prisma Studio (database GUI) |
 

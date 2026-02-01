@@ -68,13 +68,12 @@ This project uses **Ralph** for autonomous, PRD-driven development. Ralph runs C
 
    **Using v2 (Python) - Recommended:**
    ```bash
-   python scripts/ralph/ralph_v2.py [iterations] [options]
+   python scripts/ralph/ralph_v2.py <iterations> [options]
 
    # Examples:
-   python scripts/ralph/ralph_v2.py 30                    # 30 iterations, auto-stop on RALPH_COMPLETE
+   python scripts/ralph/ralph_v2.py 30 -p PROMPT.md       # 30 iterations with prompt file
    python scripts/ralph/ralph_v2.py 30 --verbose          # With debug output
    python scripts/ralph/ralph_v2.py 50 --no-stop-on-complete  # Run all 50 iterations
-   python scripts/ralph/ralph_v2.py 10 -p custom.md       # Use custom prompt file
    ```
 
    **Using v1 (Bash):**
@@ -211,15 +210,27 @@ The Python version (`ralph_v2.py`) provides enhanced functionality:
 
 ### Command Line Options
 
-```bash
-python scripts/ralph/ralph_v2.py --help
+```
+Ralph Loop Runner v2 — Run Claude CLI iterations with enhanced output
+
+Usage:
+  python scripts/ralph/ralph_v2.py <iterations> [options]
+
+Positional arguments:
+  iterations              Number of iterations to run (required)
 
 Options:
-  iterations              Number of iterations to run (required)
-  --prompt-file, -p      Path to prompt file (default: PROMPT.md)
-  --verbose, -v          Show debug output including all tool results
-  --stop-on-complete, -s Stop when RALPH_COMPLETE detected (default: True)
+  -h, --help             Show help message and exit
+  --prompt-file, -p      Path to the prompt file (default: PROMPT.md)
+  --verbose, -v          Show verbose/debug output
+  --stop-on-complete, -s Stop when RALPH_COMPLETE is detected (default: True)
   --no-stop-on-complete  Run all iterations regardless of completion
+
+Examples:
+  python scripts/ralph/ralph_v2.py 5                     # Run 5 iterations
+  python scripts/ralph/ralph_v2.py 30 -p PROMPT.md       # Use specific prompt file
+  python scripts/ralph/ralph_v2.py 10 --verbose          # Show debug output
+  python scripts/ralph/ralph_v2.py 50 --no-stop-on-complete  # Run all 50 iterations
 ```
 
 ## Troubleshooting

@@ -857,6 +857,20 @@ jobs:
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2025-01-25*
+---
+
+## Post-Implementation Verification
+
+After implementing or updating BDD tests, use **agent-browser** to verify the application behavior matches test scenarios:
+
+1. **Manual Verification**: Use browser_navigate and browser_snapshot to manually verify key scenarios described in feature files
+2. **Visual Confirmation**: Capture screenshots after each major interaction to confirm expected UI state
+3. **Debug Failing Tests**: Use browser tools to manually reproduce failing test scenarios
+
+**Important**: BDD tests use Playwright-BDD for automated testing. For manual verification, always use agent-browser CLI tools.
+
+---
+
+*Document Version: 1.1*
+*Last Updated: 2026-01-26*
 *Parent PRD: [InZone PRD](../inzone-prd.md)*

@@ -3,6 +3,8 @@
 # Ralph automation
 screenshots/
 activity.md
+# Fallback for root-level screenshots (agent-browser without path)
+/*.png
 
 # Claude local settings (project-level .claude/ can be committed)
 .claude/settings.local.json
@@ -38,3 +40,25 @@ Thumbs.db
 
 # Private/company-specific configurations
 .devcontainer/private-domains.sh
+
+# Pnpm store
+.pnpm-store/
+
+# Test reports
+apps/api/reports/
+apps/web/reports/
+
+# Test coverage
+apps/api/coverage/
+apps/web/coverage/
+
+# Playwright BDD generated files
+apps/web/.features-gen/
+
+# Playwright artifacts
+apps/web/playwright-report/
+apps/web/blob-report/
+apps/web/test-results/
+
+# Playwright MCP
+.playwright-mcp/

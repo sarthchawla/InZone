@@ -106,7 +106,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
               <div
                 key={label.id}
                 className={cn(
-                  'flex items-center gap-3 p-3 rounded-lg border',
+                  'group flex items-center gap-3 p-3 rounded-lg border',
                   deleteConfirmId === label.id ? 'border-red-200 bg-red-50' : 'border-gray-200'
                 )}
               >
@@ -202,6 +202,8 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         size="sm"
                         onClick={() => handleStartEdit(label.id, label.name, label.color)}
                         className="h-7 w-7 p-0"
+                        data-testid={`edit-label-${label.id}`}
+                        aria-label={`Edit ${label.name}`}
                       >
                         <Pencil className="h-3.5 w-3.5 text-gray-500" />
                       </Button>
@@ -210,6 +212,8 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         size="sm"
                         onClick={() => setDeleteConfirmId(label.id)}
                         className="h-7 w-7 p-0"
+                        data-testid={`delete-label-${label.id}`}
+                        aria-label={`Delete ${label.name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-gray-500" />
                       </Button>
