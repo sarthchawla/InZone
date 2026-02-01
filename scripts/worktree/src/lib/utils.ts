@@ -1,7 +1,6 @@
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 
 /**
  * Execute a command safely using execFileSync (prevents shell injection)
@@ -57,10 +56,11 @@ export function sanitizeBranchName(branch: string): string {
 }
 
 /**
- * Get the registry directory path
+ * Get the registry directory path (inside .git for sharing across worktrees)
  */
 export function getRegistryDir(): string {
-  return path.join(os.homedir(), '.inzone');
+  const gitDir = runCommand('git', ['rev-parse', '--git-common-dir']).trim();
+  return path.join(gitDir, 'inzone');
 }
 
 /**

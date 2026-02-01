@@ -1,7 +1,8 @@
 /**
  * Worktree Registry Types
  *
- * These types define the structure of the worktree registry stored at ~/.inzone/worktree.json
+ * These types define the structure of the worktree registry stored at .git/inzone/worktree.json
+ * Using .git directory ensures the registry is shared across all worktrees.
  */
 
 export interface WorktreeRegistry {
