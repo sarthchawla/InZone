@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
+    "watch": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
