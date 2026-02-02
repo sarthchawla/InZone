@@ -1,0 +1,95 @@
+name: BDD Backend
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/bdd-backend.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/bdd-backend.yml'
+
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgresql://test:test@localhost:5432/inzone_test
+
+jobs:
+  bdd-tests:
+    name: Backend BDD Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: inzone_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: pnpm --filter api db:generate
+
+      - name: Run database migrations
+        run: pnpm --filter api db:migrate:deploy
+
+      - name: Seed test database
+        run: pnpm --filter api db:seed
+
+      - name: Start API server for BDD tests
+        run: |
+          pnpm --filter api dev &
+          sleep 5
+        env:
+          PORT: 3001
+
+      - name: Wait for API server
+        run: npx wait-on http://localhost:3001/health --timeout 30000
+
+      - name: Run Backend BDD Tests
+        run: pnpm --filter api test:bdd
+        env:
+          TEST_DATABASE_URL: postgresql://test:test@localhost:5432/inzone_test
+          API_URL: http://localhost:3001
+
+      - name: Upload BDD test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-bdd-report
+          path: apps/api/reports/
+          retention-days: 14

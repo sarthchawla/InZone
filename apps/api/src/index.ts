@@ -8,7 +8,8 @@ import { labelsRouter } from './routes/labels.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// API_PORT is used for worktree setups with unique ports; falls back to PORT for compatibility
+const PORT = parseInt(process.env.API_PORT || process.env.PORT || '3001', 10);
 
 // Middleware
 app.use(cors());

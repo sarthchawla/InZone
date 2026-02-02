@@ -1,0 +1,35 @@
+{
+  "name": "InZone - {{WORKTREE_ID}}",
+  "dockerComposeFile": ["docker-compose.yml", "docker-compose.worktree.yml"],
+  "service": "app",
+  "workspaceFolder": "/InZone-App",
+  "forwardPorts": [{{FRONTEND_PORT}}, {{BACKEND_PORT}}, {{DATABASE_PORT}}],
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "VITE_DEV_PORT": "{{FRONTEND_PORT}}",
+    "API_PORT": "{{BACKEND_PORT}}",
+    "DATABASE_URL": "postgresql://inzone:inzone_dev@host.docker.internal:{{DATABASE_PORT}}/inzone?schema=public"
+  },
+  "postCreateCommand": "pnpm install && pnpm --filter api db:generate",
+  "postStartCommand": "pnpm run db:migrate:deploy",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "prisma.prisma",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  "remoteUser": "node"
+}

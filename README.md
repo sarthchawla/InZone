@@ -53,6 +53,51 @@ pnpm db:studio
 
 **Database URL:** `postgresql://inzone:inzone_dev@localhost:7432/inzone`
 
+## Git Worktrees (Parallel Development)
+
+Work on multiple branches simultaneously with isolated environments. Each worktree gets its own database container running on the host, enabling both direct development and DevContainer workflows.
+
+```bash
+# Create a new worktree with isolated environment
+pnpm worktree:setup --branch feature/my-feature
+
+# List all worktrees with their port configurations
+pnpm worktree:list
+
+# Remove a worktree (frees ports and database)
+pnpm worktree:cleanup feature-my-feature
+
+# Remove multiple worktrees interactively
+pnpm worktree:cleanup-bulk
+
+# Sync registry with filesystem (remove orphaned entries)
+pnpm worktree:sync
+```
+
+**What `worktree:setup` does:**
+1. Creates a git worktree for the branch
+2. Allocates unique ports (frontend, backend, database)
+3. Starts an isolated PostgreSQL container on the host
+4. Generates `.env` and DevContainer configuration files
+5. Runs database migrations
+
+**Port Ranges:**
+- Frontend: 5173-5199
+- Backend: 3001-3099
+- Database: 7432-7499
+
+**Two Development Flows:**
+- **Direct:** `cd /path/to/worktree && pnpm dev` (uses localhost)
+- **DevContainer:** Open in VS Code/Cursor and "Reopen in Container" (uses host.docker.internal)
+
+| Command | Description |
+|---------|-------------|
+| `pnpm worktree:setup --branch <name>` | Create new worktree with isolated environment |
+| `pnpm worktree:list` | List all worktrees with ports and status |
+| `pnpm worktree:cleanup <id>` | Remove worktree and free resources |
+| `pnpm worktree:cleanup-bulk` | Interactive bulk removal of worktrees |
+| `pnpm worktree:sync` | Sync registry with actual filesystem |
+
 ## Running the Application
 
 ```bash
@@ -74,13 +119,16 @@ pnpm --filter web dev    # Frontend only (port 5173)
 | `pnpm dev` | Start database + all services (recommended) |
 | `pnpm dev:app` | Start app only (assumes DB running) |
 | `pnpm build` | Build for production |
+| `pnpm test` | Run all tests |
 | `pnpm lint` | Run linting |
 | `pnpm format` | Format code with Prettier |
+| `pnpm clean` | Clean build artifacts and node_modules |
 | `pnpm db:start` | Start database container + run migrations |
 | `pnpm db:stop` | Stop database container (data preserved) |
 | `pnpm db:reset` | Reset database (destroy + recreate + seed) |
 | `pnpm db:logs` | Stream database container logs |
 | `pnpm db:migrate:dev` | Create new migration |
+| `pnpm db:migrate:deploy` | Run pending migrations (for CI/production) |
 | `pnpm db:seed` | Seed database with sample data |
 | `pnpm db:studio` | Open Prisma Studio (database GUI) |
 
