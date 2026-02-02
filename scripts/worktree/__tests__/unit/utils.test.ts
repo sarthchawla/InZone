@@ -105,15 +105,26 @@ describe('utils', () => {
 
   describe('getRegistryDir', () => {
     it('returns correct registry directory', () => {
+      vi.mocked(childProcess.execFileSync).mockReturnValue('/mock/repo/.git\n');
+
       const dir = getRegistryDir();
-      expect(dir).toBe('/mock/home/.inzone');
+
+      expect(dir).toMatch(/\.git[/\\]inzone$/);
+      expect(childProcess.execFileSync).toHaveBeenCalledWith(
+        'git',
+        ['rev-parse', '--git-common-dir'],
+        expect.any(Object)
+      );
     });
   });
 
   describe('getRegistryPath', () => {
     it('returns correct registry file path', () => {
-      const path = getRegistryPath();
-      expect(path).toBe('/mock/home/.inzone/worktree.json');
+      vi.mocked(childProcess.execFileSync).mockReturnValue('/mock/repo/.git\n');
+
+      const filePath = getRegistryPath();
+
+      expect(filePath).toMatch(/\.git[/\\]inzone[/\\]worktree\.json$/);
     });
   });
 

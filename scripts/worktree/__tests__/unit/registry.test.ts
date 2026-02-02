@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import * as childProcess from 'child_process';
 import {
   initRegistry,
   loadRegistry,
@@ -14,17 +15,21 @@ import {
 } from '../../src/lib/registry.js';
 import { DEFAULT_SETTINGS } from '../../src/types.js';
 
-// Mock fs and os modules
+// Mock fs, os, and child_process modules
 vi.mock('fs');
 vi.mock('os');
+vi.mock('child_process');
 
 describe('registry', () => {
-  const mockRegistryDir = '/mock/home/.inzone';
-  const mockRegistryPath = '/mock/home/.inzone/worktree.json';
+  const mockGitDir = '/mock/repo/.git';
+  const mockRegistryDir = '/mock/repo/.git/inzone';
+  const mockRegistryPath = '/mock/repo/.git/inzone/worktree.json';
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(os.homedir).mockReturnValue('/mock/home');
+    // Mock git rev-parse --git-common-dir to return mock git directory
+    vi.mocked(childProcess.execFileSync).mockReturnValue(mockGitDir);
   });
 
   afterEach(() => {
