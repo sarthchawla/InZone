@@ -59,17 +59,17 @@ jobs:
       - name: Run Architecture Tests (API)
         if: always()
         working-directory: apps/api
-        run: pnpm test:arch -- --reporter=default --reporter=junit --outputFile=junit-arch.xml
+        run: pnpm test:arch
 
       - name: Run Architecture Tests (Web)
         if: always()
         working-directory: apps/web
-        run: pnpm test:arch -- --reporter=default --reporter=junit --outputFile=junit-arch.xml
+        run: pnpm test:arch
 
       - name: Run Architecture Tests (Shared)
         if: always()
         working-directory: packages/shared
-        run: pnpm test:arch -- --reporter=default --reporter=junit --outputFile=junit-arch.xml
+        run: pnpm test:arch
 
       - name: Upload JUnit reports
         if: always()

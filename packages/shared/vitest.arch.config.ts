@@ -13,5 +13,7 @@ export default defineConfig({
     setupFiles: ["./vitest.arch.setup.ts"],
     include: ["src/architecture/**/*.arch.test.ts"],
     testTimeout: 30000,
+    reporters: process.env.CI ? ["default", "junit"] : ["default"],
+    outputFile: process.env.CI ? { junit: "junit-arch.xml" } : undefined,
   },
 });
