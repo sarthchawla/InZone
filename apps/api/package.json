@@ -23,7 +23,10 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:arch": "vitest run --config vitest.arch.config.ts",
+    "test:arch:watch": "vitest --config vitest.arch.config.ts",
+    "test:arch:report": "vitest run --config vitest.arch.config.ts --reporter=default --reporter=html --outputFile.html=reports/arch/index.html"
   },
   "dependencies": {
     "@prisma/client": "^6.3.1",
@@ -40,6 +43,7 @@
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
     "chai": "^6.2.2",
     "eslint": "^9.18.0",
     "globals": "^15.14.0",

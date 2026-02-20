@@ -9,6 +9,9 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:arch": "turbo run test:arch",
+    "test:arch:watch": "turbo run test:arch:watch",
+    "test:arch:report": "turbo run test:arch:report",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:start": "docker compose -f docker/docker-compose.db.yml up -d && pnpm run db:wait && pnpm run db:migrate:deploy && pnpm run db:generate && pnpm run db:seed",
@@ -27,6 +30,7 @@
     "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup"
   },
   "devDependencies": {
+    "archunit": "^2.1.63",
     "prettier": "^3.2.5",
     "turbo": "^2.3.4",
     "typescript": "^5.7.3"

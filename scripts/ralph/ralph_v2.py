@@ -461,6 +461,7 @@ def run_iteration(
         "--verbose",
         "--dangerously-skip-permissions",
         "--max-turns", "50",
+        "--teammate-mode", "in-process",
     ]
 
     state = {

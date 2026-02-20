@@ -13,13 +13,18 @@
   },
   "scripts": {
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:arch": "vitest run --config vitest.arch.config.ts",
+    "test:arch:watch": "vitest --config vitest.arch.config.ts",
+    "test:arch:report": "vitest run --config vitest.arch.config.ts --reporter=default --reporter=html --outputFile.html=reports/arch/index.html"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@vitest/ui": "^4.0.18",
     "eslint": "^9.18.0",
     "globals": "^15.14.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.21.0"
+    "typescript-eslint": "^8.21.0",
+    "vitest": "^4.0.18"
   }
 }

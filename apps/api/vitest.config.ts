@@ -12,7 +12,7 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.ts"],
-    exclude: ["node_modules", "dist", "tests/bdd/**"],
+    exclude: ["node_modules", "dist", "tests/bdd/**", "src/architecture/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov", "json-summary"],

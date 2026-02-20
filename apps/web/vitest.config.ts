@@ -14,7 +14,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["node_modules", "dist", "tests/bdd/**"],
+    exclude: ["node_modules", "dist", "tests/bdd/**", "src/architecture/**"],
     // Enable parallel test file execution
     isolate: true,
     fileParallelism: true,

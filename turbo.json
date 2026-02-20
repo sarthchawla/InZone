@@ -21,6 +21,17 @@
     },
     "typecheck": {
       "dependsOn": ["^build"]
+    },
+    "test:arch": {
+      "cache": false
+    },
+    "test:arch:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:arch:report": {
+      "cache": false,
+      "outputs": ["reports/**"]
     }
   }
 }
