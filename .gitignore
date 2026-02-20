@@ -45,8 +45,7 @@ Thumbs.db
 .pnpm-store/
 
 # Test reports
-apps/api/reports/
-apps/web/reports/
+**/reports/
 
 # Test coverage
 apps/api/coverage/
