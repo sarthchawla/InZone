@@ -1,0 +1,83 @@
+name: Architecture Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/api/src/**'
+      - 'apps/web/src/**'
+      - 'packages/shared/src/**'
+      - 'apps/api/vitest.arch.config.ts'
+      - 'apps/web/vitest.arch.config.ts'
+      - 'packages/shared/vitest.arch.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/architecture-tests.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'apps/api/src/**'
+      - 'apps/web/src/**'
+      - 'packages/shared/src/**'
+      - 'apps/api/vitest.arch.config.ts'
+      - 'apps/web/vitest.arch.config.ts'
+      - 'packages/shared/vitest.arch.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/architecture-tests.yml'
+
+env:
+  NODE_ENV: test
+
+jobs:
+  architecture-tests:
+    name: Architecture Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: pnpm --filter api db:generate
+
+      - name: Run Architecture Tests (API)
+        if: always()
+        working-directory: apps/api
+        run: pnpm test:arch -- --reporter=default --reporter=junit --outputFile=junit-arch.xml
+
+      - name: Run Architecture Tests (Web)
+        if: always()
+        working-directory: apps/web
+        run: pnpm test:arch -- --reporter=default --reporter=junit --outputFile=junit-arch.xml
+
+      - name: Run Architecture Tests (Shared)
+        if: always()
+        working-directory: packages/shared
+        run: pnpm test:arch -- --reporter=default --reporter=junit --outputFile=junit-arch.xml
+
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-test-results
+          path: |
+            apps/api/junit-arch.xml
+            apps/web/junit-arch.xml
+            packages/shared/junit-arch.xml
+          retention-days: 30

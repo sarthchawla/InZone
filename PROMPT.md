@@ -1,49 +1,43 @@
-# Current Task: Playwright-BDD Migration Complete ✅
+# Current Task: Architecture Testing with ArchUnitTS
 
 ## Goal
-Get the BDD test pipeline to green by fixing failing tests and cleaning up legacy files.
+Implement architecture testing in the InZone monorepo using ArchUnitTS to enforce architectural boundaries, detect circular dependencies, validate naming conventions, and track code quality metrics.
 
 ## PRD Location
-`.claude/plans/migrations/playwright-bdd-migration-prd.md`
+`.claude/plans/archunit-ts-implementation-prd.md`
 
 ## Status
 
 | Phase | Status |
 |-------|--------|
-| Phase 1: Foundation Setup | ✅ Complete |
-| Phase 2: Step Definition Migration | ✅ Complete |
-| Phase 3: Validation & Testing | ✅ Complete |
-| Phase 4: CI/CD | ✅ Complete |
-| Phase 5: Cleanup | ✅ Complete |
+| Phase 1: Foundation (Install, Configure, Basic Cycle Detection) | ✅ Complete |
+| Phase 2: Layer Rules (Backend, Frontend, Shared Package) | ✅ Complete |
+| Phase 3: Conventions & Metrics (Naming, Code Metrics, Reports) | ✅ Complete |
+| Phase 4: CI/CD & Documentation | ✅ Complete |
 
 ## Summary
 
-**All phases complete.** The Playwright-BDD migration is finished:
-- 41 active tests passing
-- 26 tests skipped (features not yet implemented)
-- Legacy Cucumber.js files removed
-- CI pipeline configured with 4-shard parallelism
+Enforce architectural rules automatically via ArchUnitTS:
+- **Backend (api):** Layer dependencies (routes→services→lib), no circular deps, naming conventions, code metrics
+- **Frontend (web):** Component layer isolation (UI vs feature), hooks don't import components, API layer independence
+- **Shared package:** No app-specific dependencies, no circular deps
+- **CI/CD:** Run arch tests on every PR and master commit
 
 ## Commands
 
 ```bash
-# Generate BDD spec files
-pnpm --filter web test:bdd:gen
+# Run architecture tests
+pnpm test:arch
 
-# Run all BDD tests
-pnpm --filter web test:bdd
+# Run architecture tests in watch mode
+pnpm test:arch:watch
 
-# Run with UI for debugging
-pnpm --filter web test:bdd:ui
-
-# Run in debug mode
-pnpm --filter web test:bdd:debug
-
-# View test report
-pnpm --filter web exec playwright show-report
+# Generate HTML report
+pnpm test:arch:report
 ```
 
 ## Notes
-- Total scenarios: 67 test cases (41 active + 26 skipped)
-- CI uses 4 shards for parallel test execution
-- All commands use pnpm
+- Uses ArchUnitTS (`archunit` npm package v2.1.63) with Vitest
+- Test files located in `src/architecture/` directories per app
+- CI integration via GitHub Actions (`.github/workflows/architecture-tests.yml`)
+- Turbo task `test:arch` configured in `turbo.json`
