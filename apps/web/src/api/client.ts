@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.PROD
+const baseURL = (import.meta.env.PROD || import.meta.env.MODE === 'test')
   ? '/api'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api';
 
