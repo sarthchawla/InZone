@@ -1,5 +1,5 @@
+import { Navigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
-import { LoginPage } from '../pages/LoginPage';
 
 const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === 'true';
 
@@ -19,7 +19,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) {
-    return <LoginPage />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
