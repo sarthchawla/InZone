@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics } from '@vercel/analytics/react';
 import { BoardList } from './components/board/BoardList';
 import { BoardView } from './components/board/BoardView';
 import { ToastProvider } from './contexts/ToastContext';
@@ -98,6 +99,7 @@ function App() {
       <ToastProvider>
         <AppContent />
         <SpeedInsights />
+        <Analytics />
       </ToastProvider>
     </QueryClientProvider>
   );
