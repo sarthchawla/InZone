@@ -1,5 +1,5 @@
 ---
-description: Analyze branch changes vs main and update all affected tests (UI, API, BDD, architecture)
+description: Analyze branch changes vs main and update all affected tests (UI, API, BDD, architecture) — fully autonomous, no user input
 allowed-tools:
   - Bash
   - Read
@@ -10,9 +10,9 @@ allowed-tools:
   - Task
 ---
 
-# Update Tests for Branch Changes
+# Update Tests for Branch Changes (Autonomous)
 
-Analyze all changes on the current branch compared to the main branch, then identify and update all affected tests: UI (frontend unit), API (backend unit), BDD (behavior-driven), and architecture tests.
+Automatically analyze all changes on the current branch compared to master, then identify and update **all** affected tests: UI (frontend unit), API (backend unit), BDD (behavior-driven), and architecture tests. **No user input required** — runs fully autonomously.
 
 ## Context
 
@@ -111,45 +111,26 @@ For each changed source file, determine which test categories are affected:
 
 ## Step 3: Present Change Analysis
 
-Present findings in this format:
+Briefly present findings:
 
 ```markdown
 ## Branch Change Analysis: `<branch>` vs `master`
 
 ### Changed Files Summary
-- **Frontend source**: X files changed
-- **Backend source**: X files changed
-- **Shared/config**: X files changed
-- **Test files already modified**: X files
+- Frontend source: X files changed
+- Backend source: X files changed
+- Shared/config: X files changed
+- Test files already modified: X files
 
 ### Test Impact Matrix
-
 | Test Category | Status | Affected Tests | Reason |
 |---------------|--------|----------------|--------|
-| UI Tests | Needs Update / Up to Date | list of test files | brief reason |
-| API Tests | Needs Update / Up to Date | list of test files | brief reason |
-| Web BDD | Needs Update / Up to Date | list of feature files | brief reason |
-| API BDD | Needs Update / Up to Date | list of feature files | brief reason |
-| Web Arch | Needs Update / Up to Date | list of arch test files | brief reason |
-| API Arch | Needs Update / Up to Date | list of arch test files | brief reason |
-
-### New Test Files Needed
-- `apps/web/src/components/NewComponent.test.tsx` - No test exists for new component
-- `apps/api/src/routes/newRoute.test.ts` - No test exists for new route
+| ... | ... | ... | ... |
 ```
 
-## Step 4: Ask User for Scope
+## Step 4: Update ALL Affected Tests (No User Input)
 
-Ask the user which test categories to update:
-
-1. **All** - Update all affected test categories
-2. **UI Tests only** - Frontend unit tests
-3. **API Tests only** - Backend unit tests
-4. **BDD Tests only** - Behavior-driven tests (web + api)
-5. **Arch Tests only** - Architecture tests (web + api)
-6. **Custom selection** - Pick specific categories
-
-## Step 5: Read and Understand Context
+**Automatically update all affected test categories** — do not ask the user which categories to update.
 
 For each test file to update:
 
@@ -160,8 +141,6 @@ For each test file to update:
    git diff $(git merge-base master HEAD) HEAD -- <source-file>
    ```
 4. **Identify gaps**: New functions/exports without tests, changed behavior not reflected in tests, removed code with stale tests
-
-## Step 6: Update Tests
 
 ### For UI Tests (Vitest + React Testing Library)
 - Update existing test cases to match changed component props, behavior, or API
@@ -190,9 +169,8 @@ For each test file to update:
 - Update if new files/directories were added that should conform to naming conventions
 - Update if layer boundaries changed
 - Update if new dependencies were introduced
-- Architecture tests enforce: naming conventions, layer boundaries, no circular dependencies, and metrics thresholds
 
-## Step 7: Run Updated Tests
+## Step 5: Run Updated Tests
 
 Run each updated test category to verify:
 
@@ -216,16 +194,17 @@ pnpm --filter web test:arch
 pnpm --filter api test:arch
 ```
 
-## Step 8: Fix Failures
+## Step 6: Fix Failures (Automatically)
 
 If any tests fail after updates:
 
 1. Read the error output carefully
 2. Determine if the test logic is wrong or the source code has an issue
-3. Fix the test (or flag the source code issue to the user)
+3. Fix the test (prefer fixing tests over source code unless there's clearly a bug)
 4. Re-run the specific failing test to confirm the fix
+5. Repeat until all tests pass
 
-## Step 9: Present Summary
+## Step 7: Present Summary
 
 ```markdown
 ## Test Update Summary
@@ -233,19 +212,17 @@ If any tests fail after updates:
 ### Updated Tests
 | File | Changes Made | Status |
 |------|-------------|--------|
-| `apps/web/src/components/Foo.test.tsx` | Updated mock, added 2 test cases | PASS |
-| `apps/api/src/routes/bar.test.ts` | Updated response shape assertions | PASS |
-| `apps/web/tests/bdd/features/foo.feature` | Added new scenario | PASS |
+| ... | ... | PASS/FAIL |
 
 ### New Tests Created
 | File | Coverage | Status |
 |------|----------|--------|
-| `apps/web/src/components/NewThing.test.tsx` | 3 test cases | PASS |
+| ... | ... | PASS/FAIL |
 
 ### Removed/Cleaned Up
 | File | Reason |
 |------|--------|
-| Removed stale mock in `Foo.test.tsx` | Source function was deleted |
+| ... | ... |
 
 ### Test Results
 - UI Tests: X passed, Y failed
@@ -256,16 +233,9 @@ If any tests fail after updates:
 - API Arch: X passed, Y failed
 ```
 
-## Step 10: Ask for Next Action
-
-Ask the user:
-1. **Done** - All tests updated and passing
-2. **Fix remaining failures** - Continue fixing any remaining test failures
-3. **Show changes** - Show all test file changes made (git diff of test files)
-4. **Commit** - Stage and commit the test updates
-
 ## Guidelines
 
+- **Do NOT ask the user any questions** — make reasonable decisions autonomously
 - Always read source AND test files before making changes
 - Follow existing test patterns and conventions in each file
 - Do not over-test: focus on behavior changes, not implementation details
@@ -274,16 +244,3 @@ Ask the user:
 - Keep mocks minimal and focused
 - Preserve existing passing test cases unless they test removed functionality
 - When creating new test files, follow the naming convention of adjacent test files
-
-## Example Usage
-
-User says: `/update-tests`
-
-The assistant will:
-1. Compare the current branch against master
-2. Map all source changes to affected test categories
-3. Present the impact analysis
-4. Ask which categories to update
-5. Update tests with proper coverage for the changes
-6. Run tests to verify
-7. Present results and ask for next steps
