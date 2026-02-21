@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, renderHook } from "../test/utils";
+import { render, screen } from "../test/utils";
 
 // Mock the auth-client module
 vi.mock("../lib/auth-client", () => ({
@@ -17,7 +17,7 @@ vi.mock("../pages/LoginPage", () => ({
   LoginPage: () => <div data-testid="login-page">Login Page</div>,
 }));
 
-import { AuthGuard, useAuth } from "./AuthContext";
+import { AuthGuard } from "./AuthContext";
 import { useSession } from "../lib/auth-client";
 
 describe("AuthGuard", () => {
@@ -93,46 +93,5 @@ describe("AuthGuard", () => {
     );
 
     expect(screen.getByTestId("protected")).toBeInTheDocument();
-  });
-});
-
-describe("useAuth", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("returns user from session when authenticated", () => {
-    const mockUser = { id: "1", name: "Test User", email: "test@test.com" };
-    vi.mocked(useSession).mockReturnValue({
-      data: { user: mockUser },
-      isPending: false,
-    } as never);
-
-    const { result } = renderHook(() => useAuth());
-
-    expect(result.current.user).toEqual(mockUser);
-    expect(result.current.isPending).toBe(false);
-  });
-
-  it("returns null user when no session", () => {
-    vi.mocked(useSession).mockReturnValue({
-      data: null,
-      isPending: false,
-    } as never);
-
-    const { result } = renderHook(() => useAuth());
-
-    expect(result.current.user).toBeNull();
-  });
-
-  it("returns isPending true while loading", () => {
-    vi.mocked(useSession).mockReturnValue({
-      data: null,
-      isPending: true,
-    } as never);
-
-    const { result } = renderHook(() => useAuth());
-
-    expect(result.current.isPending).toBe(true);
   });
 });

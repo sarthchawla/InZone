@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoardList } from './components/board/BoardList';
 import { BoardView } from './components/board/BoardView';
 import { ToastProvider } from './contexts/ToastContext';
-import { AuthGuard, useAuth } from './contexts/AuthContext';
+import { AuthGuard } from './contexts/AuthContext';
+import { useAuth } from './hooks/useAuth';
 import { signOut } from './lib/auth-client';
 import { useState } from 'react';
 
