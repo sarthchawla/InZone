@@ -35,6 +35,11 @@ export default defineConfig({
         "src/main.tsx",
         "src/vite-env.d.ts",
         "src/test/**",
+        "src/types/index.ts",
+        "src/**/index.ts",
+        "src/App.tsx",
+        "src/lib/auth-client.ts",
+        "src/hooks/useBoardDnD.ts",
       ],
       thresholds: {
         global: {

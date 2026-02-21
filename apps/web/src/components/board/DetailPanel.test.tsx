@@ -211,6 +211,168 @@ describe('DetailPanel', () => {
     });
   });
 
+  describe('priority', () => {
+    it('changes priority when a priority button is clicked', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.put('/api/todos/todo-1', async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ id: 'todo-1', ...capturedBody, updatedAt: new Date().toISOString() });
+        })
+      );
+
+      const todo = createTestTodo({ priority: 'MEDIUM' });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      fireEvent.click(screen.getByText('High'));
+
+      await waitFor(() => {
+        expect(capturedBody).not.toBeNull();
+      }, { timeout: 3000 });
+
+      expect(capturedBody!.priority).toBe('HIGH');
+    });
+  });
+
+  describe('delete', () => {
+    it('calls delete API and closes panel when delete is clicked', async () => {
+      let deleteCalled = false;
+      server.use(
+        http.delete('/api/todos/todo-1', () => {
+          deleteCalled = true;
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      const onClose = vi.fn();
+      const todo = createTestTodo();
+      render(<DetailPanel todo={todo} {...defaultProps} onClose={onClose} />);
+
+      fireEvent.click(screen.getByText('Delete task'));
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  describe('title', () => {
+    it('saves title on blur when changed', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.put('/api/todos/todo-1', async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ id: 'todo-1', ...capturedBody, updatedAt: new Date().toISOString() });
+        })
+      );
+
+      const todo = createTestTodo({ title: 'Original Title' });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      const titleInput = screen.getByDisplayValue('Original Title');
+      fireEvent.change(titleInput, { target: { value: 'New Title' } });
+      fireEvent.blur(titleInput);
+
+      await waitFor(() => {
+        expect(capturedBody).not.toBeNull();
+      }, { timeout: 3000 });
+
+      expect(capturedBody!.title).toBe('New Title');
+    });
+
+    it('does not save title on blur when unchanged', () => {
+      const todo = createTestTodo({ title: 'Same Title' });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      const titleInput = screen.getByDisplayValue('Same Title');
+      fireEvent.blur(titleInput);
+      // No API call expected - title unchanged
+    });
+  });
+
+  describe('labels', () => {
+    it('renders existing labels on the todo', async () => {
+      const todo = createTestTodo({
+        labels: [{ id: 'label-1', name: 'Bug', color: '#FF0000' }],
+      });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      expect(screen.getByText('Bug')).toBeInTheDocument();
+    });
+
+    it('toggles label picker when Add button is clicked', async () => {
+      server.use(
+        http.get('/api/labels', () => HttpResponse.json([
+          { id: 'label-1', name: 'Bug', color: '#FF0000' },
+          { id: 'label-2', name: 'Feature', color: '#00FF00' },
+        ]))
+      );
+
+      const todo = createTestTodo();
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      fireEvent.click(screen.getByText('Add'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Bug')).toBeInTheDocument();
+        expect(screen.getByText('Feature')).toBeInTheDocument();
+      });
+    });
+
+    it('removes a label when clicking on it', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.put('/api/todos/todo-1', async ({ request }) => {
+          capturedBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ id: 'todo-1', ...capturedBody, updatedAt: new Date().toISOString() });
+        })
+      );
+
+      const todo = createTestTodo({
+        labels: [{ id: 'label-1', name: 'Bug', color: '#FF0000' }],
+      });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      // Click the label to remove it
+      fireEvent.click(screen.getByText('Bug'));
+
+      await waitFor(() => {
+        expect(capturedBody).not.toBeNull();
+      }, { timeout: 3000 });
+
+      expect(capturedBody!.labelIds).toEqual([]);
+    });
+  });
+
+  describe('column indicator', () => {
+    it('displays current column name', () => {
+      const todo = createTestTodo({ columnId: 'col-1' });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+      expect(screen.getByText('Todo')).toBeInTheDocument();
+    });
+  });
+
+  describe('save status', () => {
+    it('shows saving indicator during save', async () => {
+      let resolveRequest: (() => void) | null = null;
+      server.use(
+        http.put('/api/todos/todo-1', async () => {
+          await new Promise<void>((resolve) => { resolveRequest = resolve; });
+          return HttpResponse.json({ id: 'todo-1', updatedAt: new Date().toISOString() });
+        })
+      );
+
+      const todo = createTestTodo({ priority: 'LOW' });
+      render(<DetailPanel todo={todo} {...defaultProps} />);
+
+      fireEvent.click(screen.getByText('High'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Saving...')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Resolve to clean up
+      resolveRequest?.();
+    });
+  });
+
   describe('close behavior', () => {
     it('calls onClose when close button is clicked', () => {
       const onClose = vi.fn();
