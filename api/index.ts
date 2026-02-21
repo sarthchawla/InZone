@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { app } from '../apps/api/src/app.js';
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+let app: any;
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!app) {
+    const mod = await import('../apps/api/src/app.js');
+    app = mod.app;
+  }
   return app(req, res);
 }
