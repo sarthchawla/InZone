@@ -50,10 +50,6 @@ columnsRouter.put('/:id', async (req, res, next) => {
 
     res.json(column);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -119,10 +115,6 @@ columnsRouter.delete('/:id', async (req, res, next) => {
 
     res.status(204).send();
   } catch (error) {
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Column not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -178,10 +170,6 @@ columnsRouter.patch('/reorder', async (req, res, next) => {
 
     res.json(updatedColumns);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });

@@ -7,6 +7,13 @@ import { templatesRouter } from "../routes/templates.js";
 import { labelsRouter } from "../routes/labels.js";
 import { errorHandler } from "../middleware/errorHandler.js";
 
+export const TEST_USER = {
+  id: "test-user-1",
+  name: "Test User",
+  email: "test@example.com",
+  image: null,
+};
+
 /**
  * Create an Express app instance for testing.
  * This is similar to the main app but doesn't start a server.
@@ -17,6 +24,12 @@ export function createTestApp(): Express {
   // Middleware
   app.use(cors());
   app.use(express.json());
+
+  // Mock auth — inject test user on all requests
+  app.use((req, _res, next) => {
+    req.user = TEST_USER;
+    next();
+  });
 
   // Health check
   app.get("/health", (_req, res) => {

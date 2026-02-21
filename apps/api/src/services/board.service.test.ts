@@ -206,6 +206,7 @@ describe("BoardService", () => {
             description: "Test description",
             templateId: undefined,
             position: 0,
+            userId: "test-user-1",
             columns: {
               create: [],
             },

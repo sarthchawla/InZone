@@ -65,6 +65,7 @@ describe("Todos Routes", () => {
           expect.objectContaining({
             where: expect.objectContaining({
               columnId: "col-1",
+              column: expect.objectContaining({ board: { userId: "test-user-1" } }),
             }),
           })
         );
@@ -78,7 +79,7 @@ describe("Todos Routes", () => {
         expect(prismaMock.todo.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              column: { boardId: "board-1" },
+              column: { board: { userId: "test-user-1" }, boardId: "board-1" },
             }),
           })
         );
@@ -172,7 +173,7 @@ describe("Todos Routes", () => {
   describe("POST /api/todos", () => {
     describe("happy path", () => {
       it("returns 201 when todo created successfully", async () => {
-        const mockColumn = createMockColumn({ id: "col-1" });
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", title: "New Task" }),
           labels: [],
@@ -193,7 +194,7 @@ describe("Todos Routes", () => {
       });
 
       it("creates todo with all fields", async () => {
-        const mockColumn = createMockColumn({ id: "col-1" });
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
         const mockTodo = {
           ...createMockTodo({
             id: "todo-1",
@@ -226,7 +227,7 @@ describe("Todos Routes", () => {
       });
 
       it("creates todo with correct position", async () => {
-        const mockColumn = createMockColumn({ id: "col-1" });
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", position: 3 }),
           labels: [],
@@ -315,7 +316,7 @@ describe("Todos Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
-        const mockColumn = createMockColumn({ id: "col-1" });
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
 
         prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
         prismaMock.todo.aggregate.mockResolvedValue({
@@ -341,7 +342,7 @@ describe("Todos Routes", () => {
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", title: "My Task" }),
           labels: [createMockLabel({ id: "label-1", name: "Bug" })],
-          column: { id: "col-1", name: "Todo", boardId: "board-1" },
+          column: { id: "col-1", name: "Todo", boardId: "board-1", board: { userId: "test-user-1" } },
         };
 
         prismaMock.todo.findUnique.mockResolvedValue(mockTodo as any);
@@ -382,11 +383,16 @@ describe("Todos Routes", () => {
   describe("PUT /api/todos/:id", () => {
     describe("happy path", () => {
       it("returns 200 with updated todo", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", title: "Updated Title" }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -398,11 +404,16 @@ describe("Todos Routes", () => {
       });
 
       it("updates todo description", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", description: "New Description" }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -414,11 +425,16 @@ describe("Todos Routes", () => {
       });
 
       it("updates todo priority", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", priority: Priority.URGENT }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -430,11 +446,16 @@ describe("Todos Routes", () => {
       });
 
       it("updates todo due date", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", dueDate: new Date("2025-03-01") }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -445,11 +466,16 @@ describe("Todos Routes", () => {
       });
 
       it("clears due date when set to null", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", dueDate: null }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -461,11 +487,16 @@ describe("Todos Routes", () => {
       });
 
       it("updates labels", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1" }),
           labels: [createMockLabel({ id: "label-2", name: "Feature" })],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -504,9 +535,7 @@ describe("Todos Routes", () => {
       });
 
       it("returns 404 when todo not found", async () => {
-        const error: any = new Error("Record not found");
-        error.code = "P2025";
-        prismaMock.todo.update.mockRejectedValue(error);
+        prismaMock.todo.findUnique.mockResolvedValue(null);
 
         const response = await request(app)
           .put("/api/todos/non-existent")
@@ -517,6 +546,12 @@ describe("Todos Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
+
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)
@@ -534,6 +569,12 @@ describe("Todos Routes", () => {
   describe("DELETE /api/todos/:id", () => {
     describe("happy path", () => {
       it("returns 204 when todo deleted successfully", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
+
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.delete.mockResolvedValue(
           createMockTodo({ id: "todo-1" }) as any
         );
@@ -549,9 +590,7 @@ describe("Todos Routes", () => {
 
     describe("unhappy path", () => {
       it("returns 404 when todo not found", async () => {
-        const error: any = new Error("Record not found");
-        error.code = "P2025";
-        prismaMock.todo.delete.mockRejectedValue(error);
+        prismaMock.todo.findUnique.mockResolvedValue(null);
 
         const response = await request(app).delete("/api/todos/non-existent");
 
@@ -560,6 +599,12 @@ describe("Todos Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
+
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.delete.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app).delete("/api/todos/todo-1");
@@ -575,16 +620,18 @@ describe("Todos Routes", () => {
   describe("PATCH /api/todos/:id/move", () => {
     describe("happy path", () => {
       it("returns 200 when todo moved successfully", async () => {
-        const mockTargetColumn = createMockColumn({ id: "col-2" });
+        const mockTargetColumn = { ...createMockColumn({ id: "col-2" }), board: { userId: "test-user-1" } };
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1", columnId: "col-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", columnId: "col-2" }),
           labels: [],
         };
 
         prismaMock.column.findUnique.mockResolvedValue(mockTargetColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(
-          createMockTodo({ id: "todo-1", columnId: "col-1" }) as any
-        );
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.aggregate.mockResolvedValue({
           _max: { position: 2 },
         } as any);
@@ -599,16 +646,18 @@ describe("Todos Routes", () => {
       });
 
       it("moves todo to specific position", async () => {
-        const mockTargetColumn = createMockColumn({ id: "col-2" });
+        const mockTargetColumn = { ...createMockColumn({ id: "col-2" }), board: { userId: "test-user-1" } };
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1", columnId: "col-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", columnId: "col-2", position: 0 }),
           labels: [],
         };
 
         prismaMock.column.findUnique.mockResolvedValue(mockTargetColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(
-          createMockTodo({ id: "todo-1", columnId: "col-1" }) as any
-        );
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.updateMany.mockResolvedValue({ count: 3 });
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
@@ -650,7 +699,7 @@ describe("Todos Routes", () => {
       });
 
       it("returns 404 when todo not found", async () => {
-        const mockTargetColumn = createMockColumn({ id: "col-2" });
+        const mockTargetColumn = { ...createMockColumn({ id: "col-2" }), board: { userId: "test-user-1" } };
 
         prismaMock.column.findUnique.mockResolvedValue(mockTargetColumn as any);
         prismaMock.todo.findUnique.mockResolvedValue(null);
@@ -664,12 +713,14 @@ describe("Todos Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
-        const mockTargetColumn = createMockColumn({ id: "col-2" });
+        const mockTargetColumn = { ...createMockColumn({ id: "col-2" }), board: { userId: "test-user-1" } };
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
 
         prismaMock.column.findUnique.mockResolvedValue(mockTargetColumn as any);
-        prismaMock.todo.findUnique.mockResolvedValue(
-          createMockTodo({ id: "todo-1" }) as any
-        );
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)
@@ -687,11 +738,13 @@ describe("Todos Routes", () => {
   describe("PATCH /api/todos/reorder", () => {
     describe("happy path", () => {
       it("returns 200 with reordered todos", async () => {
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
         const todos = [
           { ...createMockTodo({ id: "todo-1", columnId: "col-1" }), labels: [] },
           { ...createMockTodo({ id: "todo-2", columnId: "col-1" }), labels: [] },
         ];
 
+        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
         prismaMock.todo.findMany
           .mockResolvedValueOnce(todos as any) // Verification query
           .mockResolvedValueOnce(todos as any); // Final fetch
@@ -735,6 +788,8 @@ describe("Todos Routes", () => {
       });
 
       it("returns 400 when todo ID is not in column", async () => {
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
+        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
         prismaMock.todo.findMany.mockResolvedValue([] as any);
 
         const response = await request(app)
@@ -752,6 +807,8 @@ describe("Todos Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        const mockColumn = { ...createMockColumn({ id: "col-1" }), board: { userId: "test-user-1" } };
+        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
         prismaMock.todo.findMany.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)
@@ -772,11 +829,16 @@ describe("Todos Routes", () => {
   describe("PATCH /api/todos/:id/archive", () => {
     describe("happy path", () => {
       it("returns 200 when todo archived", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", archived: true }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -788,11 +850,16 @@ describe("Todos Routes", () => {
       });
 
       it("returns 200 when todo unarchived", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
         const mockTodo = {
           ...createMockTodo({ id: "todo-1", archived: false }),
           labels: [],
         };
 
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockResolvedValue(mockTodo as any);
 
         const response = await request(app)
@@ -822,9 +889,7 @@ describe("Todos Routes", () => {
       });
 
       it("returns 404 when todo not found", async () => {
-        const error: any = new Error("Record not found");
-        error.code = "P2025";
-        prismaMock.todo.update.mockRejectedValue(error);
+        prismaMock.todo.findUnique.mockResolvedValue(null);
 
         const response = await request(app)
           .patch("/api/todos/non-existent/archive")
@@ -835,6 +900,12 @@ describe("Todos Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        const existingTodo = {
+          ...createMockTodo({ id: "todo-1" }),
+          column: { board: { userId: "test-user-1" } },
+        };
+
+        prismaMock.todo.findUnique.mockResolvedValue(existingTodo as any);
         prismaMock.todo.update.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)

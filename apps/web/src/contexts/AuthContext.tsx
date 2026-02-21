@@ -1,14 +1,7 @@
-import { useSession } from '../lib/auth-client';
+import { useSession, DEV_USER } from '../lib/auth-client';
 import { LoginPage } from '../pages/LoginPage';
 
 const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === 'true';
-
-const DEV_USER = {
-  id: 'dev-user-000',
-  name: 'Dev User',
-  email: 'dev@localhost',
-  image: null,
-};
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();

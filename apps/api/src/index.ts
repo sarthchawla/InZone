@@ -14,21 +14,19 @@ const app = express();
 // API_PORT is used for worktree setups with unique ports; falls back to PORT for compatibility
 const PORT = parseInt(process.env.API_PORT || process.env.PORT || '3001', 10);
 
-// Better Auth handler - must be BEFORE express.json()
-app.all('/api/auth/*', toNodeHandler(auth));
-
-// Middleware
+// CORS must be before all handlers (including auth) for preflight requests
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
 }));
+
+// Better Auth handler - must be BEFORE express.json()
+app.all('/api/auth/*', toNodeHandler(auth));
+
 app.use(express.json());
 
 // Health check - available at both /health and /api/health for compatibility
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-app.get('/api/health', (_req, res) => {
+app.get(['/health', '/api/health'], (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

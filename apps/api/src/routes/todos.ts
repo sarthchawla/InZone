@@ -38,6 +38,10 @@ const reorderTodosSchema = z.object({
   ),
 });
 
+const archiveSchema = z.object({
+  archived: z.boolean(),
+});
+
 // GET /api/todos - List todos (with filters)
 todosRouter.get('/', async (req, res, next) => {
   try {
@@ -145,10 +149,6 @@ todosRouter.post('/', async (req, res, next) => {
 
     res.status(201).json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -222,10 +222,6 @@ todosRouter.put('/:id', async (req, res, next) => {
 
     res.json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -316,14 +312,6 @@ todosRouter.patch('/:id/move', async (req, res, next) => {
 
     res.json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Todo not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -378,10 +366,6 @@ todosRouter.patch('/reorder', async (req, res, next) => {
 
     res.json(updatedTodos);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -389,10 +373,6 @@ todosRouter.patch('/reorder', async (req, res, next) => {
 // PATCH /api/todos/:id/archive - Archive/unarchive todo
 todosRouter.patch('/:id/archive', async (req, res, next) => {
   try {
-    const archiveSchema = z.object({
-      archived: z.boolean(),
-    });
-
     const data = archiveSchema.parse(req.body);
 
     // Verify ownership through chain
@@ -416,10 +396,6 @@ todosRouter.patch('/:id/archive', async (req, res, next) => {
 
     res.json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });

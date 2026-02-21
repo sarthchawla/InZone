@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -11,6 +12,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
+  // Handle Zod validation errors
+  if (err instanceof z.ZodError) {
+    res.status(400).json({ errors: err.errors });
+    return;
+  }
+
+  // Handle Prisma not-found errors
+  if ((err as { code?: string }).code === 'P2025') {
+    res.status(404).json({ error: 'Resource not found' });
+    return;
+  }
+
   console.error('Error:', err);
 
   const statusCode = err.statusCode || 500;

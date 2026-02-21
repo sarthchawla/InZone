@@ -17,6 +17,11 @@ const updateBoardSchema = z.object({
   position: z.number().int().min(0).optional(),
 });
 
+const addColumnSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  wipLimit: z.number().int().min(1).optional(),
+});
+
 // GET /api/boards - List all boards
 boardsRouter.get('/', async (req, res, next) => {
   try {
@@ -96,10 +101,6 @@ boardsRouter.post('/', async (req, res, next) => {
 
     res.status(201).json(board);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -162,10 +163,6 @@ boardsRouter.put('/:id', async (req, res, next) => {
 
     res.json(board);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -276,12 +273,7 @@ boardsRouter.post('/:id/duplicate', async (req, res, next) => {
 // POST /api/boards/:boardId/columns - Add column to board
 boardsRouter.post('/:boardId/columns', async (req, res, next) => {
   try {
-    const columnSchema = z.object({
-      name: z.string().min(1, 'Name is required').max(100),
-      wipLimit: z.number().int().min(1).optional(),
-    });
-
-    const data = columnSchema.parse(req.body);
+    const data = addColumnSchema.parse(req.body);
 
     // Verify board exists and ownership
     const board = await prisma.board.findFirst({
@@ -311,10 +303,6 @@ boardsRouter.post('/:boardId/columns', async (req, res, next) => {
 
     res.status(201).json(column);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
