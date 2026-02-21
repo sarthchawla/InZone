@@ -247,8 +247,9 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
             type="date"
             value={dueDate}
             onChange={(e) => {
-              setDueDate(e.target.value);
-              saveField({ dueDate: e.target.value || null });
+              const val = e.target.value;
+              setDueDate(val);
+              saveField({ dueDate: val ? new Date(val + 'T00:00:00.000Z').toISOString() : null });
             }}
             className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none transition-colors bg-white"
           />

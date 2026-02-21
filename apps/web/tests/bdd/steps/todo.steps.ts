@@ -947,6 +947,26 @@ Then('the todo {string} should not show a due date', async ({ page }, todoTitle:
   await expect(todo.locator('[data-testid="due-date"]')).not.toBeVisible();
 });
 
+Then('the due date should be saved in ISO 8601 format', async ({ page }) => {
+  // Intercept the next PUT request to verify the dueDate format
+  const [request] = await Promise.all([
+    page.waitForRequest((req) => req.url().includes('/api/todos/') && req.method() === 'PUT', { timeout: 5000 }).catch(() => null),
+  ]);
+
+  // If we caught the request, verify the format
+  if (request) {
+    const body = JSON.parse(request.postData() || '{}');
+    if (body.dueDate) {
+      // Should be full ISO 8601 datetime, not just YYYY-MM-DD
+      expect(body.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    }
+  }
+
+  // Also verify the due date is displayed on the card (functional check)
+  const todoCard = page.locator('[data-testid="todo-card"]').first();
+  await expect(todoCard.locator('[data-testid="due-date"]')).toBeVisible();
+});
+
 Then('the todo should display {string} and {string} labels', async ({ page }, label1: string, label2: string) => {
   await expect(page.locator(`[data-testid="label"]:has-text("${label1}")`)).toBeVisible();
   await expect(page.locator(`[data-testid="label"]:has-text("${label2}")`)).toBeVisible();

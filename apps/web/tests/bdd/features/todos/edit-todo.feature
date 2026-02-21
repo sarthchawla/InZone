@@ -62,6 +62,12 @@ Feature: Edit Todo
     And I click "Save"
     Then the todo "Dated task" should not show a due date
 
+  Scenario: Due date is saved in ISO 8601 datetime format
+    When I click on the todo "Original task"
+    And I set the due date to tomorrow
+    And I click "Save"
+    Then the due date should be saved in ISO 8601 format
+
   @skip
   # SKIP: Label assignment in edit modal requires LabelSelector component which is complex to mock
   Scenario: Add label to existing todo

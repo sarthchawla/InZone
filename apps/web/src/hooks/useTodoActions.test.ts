@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '../test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMoveTodo, useReorderTodos, useArchiveTodo } from './useTodoActions';
@@ -35,6 +35,15 @@ const COL_PROGRESS_ID = 'col-progress';
 const TODO_A_ID = 'todo-a';
 const TODO_B_ID = 'todo-b';
 const TODO_C_ID = 'todo-c';
+
+// Register MSW handler so that onSettled invalidation refetches the correct board
+function useMockBoardHandler(board: Board) {
+  server.use(
+    http.get(`/api/boards/${board.id}`, () => {
+      return HttpResponse.json(board);
+    })
+  );
+}
 
 function buildMockBoard(): Board {
   const todoA = createMockTodo({
@@ -86,6 +95,7 @@ describe('useMoveTodo', () => {
   it('should move a todo between columns with optimistic update', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useMoveTodo(), { wrapper });
@@ -118,6 +128,7 @@ describe('useMoveTodo', () => {
   it('should insert at the correct position in the target column', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useMoveTodo(), { wrapper });
@@ -183,6 +194,7 @@ describe('useMoveTodo', () => {
   it('should handle moving a non-existent todo gracefully', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useMoveTodo(), { wrapper });
@@ -208,6 +220,7 @@ describe('useReorderTodos', () => {
   it('should reorder todos within a column with optimistic update', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useReorderTodos(), { wrapper });
@@ -238,6 +251,7 @@ describe('useReorderTodos', () => {
   it('should not affect other columns', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useReorderTodos(), { wrapper });
@@ -299,6 +313,7 @@ describe('useReorderTodos', () => {
   it('should filter out unknown todo IDs gracefully', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useReorderTodos(), { wrapper });
@@ -327,6 +342,7 @@ describe('useArchiveTodo', () => {
   it('should archive a todo with optimistic update (removes from visible list)', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useArchiveTodo(), { wrapper });
@@ -357,6 +373,7 @@ describe('useArchiveTodo', () => {
   it('should decrement todoCount when archiving', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     queryClient.setQueryData(boardKeys.detail(BOARD_ID), mockBoard);
 
     const { result } = renderHook(() => useArchiveTodo(), { wrapper });
@@ -378,6 +395,7 @@ describe('useArchiveTodo', () => {
   it('should unarchive a todo with optimistic update (sets archived: false)', async () => {
     const { queryClient, wrapper } = createWrapper();
     const mockBoard = buildMockBoard();
+    useMockBoardHandler(mockBoard);
     // Modify todo-a to be archived for the unarchive test
     const archivedBoard: Board = {
       ...mockBoard,
