@@ -8,7 +8,7 @@ Feature: View Boards
     Given no boards exist
     When I navigate to the boards list
     Then I should see an empty state message
-    And I should see a "Create your first board" prompt
+    And I should see a "creating your first board" prompt
 
   Scenario: View boards list with multiple boards
     Given the following boards exist:

@@ -221,12 +221,12 @@ When('I click on {string} board', async ({ page }, boardName: string) => {
 
 // Board deletion steps
 When('I click the delete button for {string}', async ({ page }, boardName: string) => {
-  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
-  // Hover on the board card to make the delete button visible (it's hidden by default)
-  await boardCard.hover();
-  await boardCard.getByRole('button', { name: /delete/i }).click();
-  // Wait for the confirmation modal to appear
-  await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+  // Open the CardDropdown menu for this board
+  await page.getByLabel(`Actions for ${boardName}`).click();
+  // Click "Delete" from the dropdown
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  // Wait briefly for the deletion to process
+  await page.waitForTimeout(500);
 });
 
 // Assertion steps
@@ -237,15 +237,20 @@ Then('I should see {string} in the boards list', async ({ page }, boardName: str
 });
 
 Then('{string} should no longer appear in the boards list', async ({ page }, boardName: string) => {
-  await expect(page.getByText(boardName)).not.toBeVisible();
+  // Use board card locator to avoid matching template buttons or other text
+  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
+  await expect(boardCard).not.toBeVisible({ timeout: 10000 });
 });
 
 Then('{string} should still appear in the boards list', async ({ page }, boardName: string) => {
-  await expect(page.getByText(boardName)).toBeVisible();
+  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
+  await expect(boardCard).toBeVisible();
 });
 
 Then('I should see an empty state message', async ({ page }) => {
-  await expect(page.getByText(/no boards/i)).toBeVisible();
+  // Revamped UI uses "Start by creating your first board" instead of "no boards"
+  const emptyMsg = page.getByText(/no boards|start by creating|create your first board/i);
+  await expect(emptyMsg).toBeVisible();
 });
 
 Then('I should see a {string} prompt', async ({ page }, promptText: string) => {

@@ -391,6 +391,8 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                 onClose();
               }
             }}
+            role="dialog"
+            aria-label="Task details"
             className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col safe-bottom"
           >
             {/* Drag handle */}
@@ -412,6 +414,8 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       animate={{ width: panelWidth, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      role="dialog"
+      aria-label="Task details"
       className="flex-shrink-0 bg-white border-l border-stone-200 flex flex-col h-full overflow-hidden relative"
     >
       {/* Resize handle */}

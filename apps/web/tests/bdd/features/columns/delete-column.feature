@@ -7,20 +7,12 @@ Feature: Delete Column
     Given I am viewing a board with columns "Todo, In Progress, Done"
 
   # Happy Path Scenarios
-  Scenario: Delete empty column with confirmation
+  Scenario: Delete empty column
     Given the "Done" column has no todos
     And the delete column endpoint returns success
     When I click the delete button for "Done" column
-    Then I should see a confirmation dialog
-    When I confirm the deletion
     Then "Done" should no longer appear in the column list
     And I should see 2 columns on the board
-
-  Scenario: Cancel column deletion
-    When I click the delete button for "Done" column
-    And I cancel the deletion
-    Then "Done" should still appear in the column list
-    And I should see 3 columns on the board
 
   @skip
   Scenario: Delete column with todos after confirmation

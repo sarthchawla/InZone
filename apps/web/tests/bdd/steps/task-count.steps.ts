@@ -291,8 +291,8 @@ When('I add a new task {string} to the first column', async ({ page }, taskTitle
   // Click Add button (the inline form has an "Add" button)
   await page.getByRole('button', { name: 'Add', exact: true }).click();
 
-  // Wait for the task to appear
-  await expect(page.locator(`[data-testid="todo-card"]:has-text("${taskTitle}")`)).toBeVisible({ timeout: 5000 });
+  // Wait for the task to appear (use .first() to handle optimistic update duplicates)
+  await expect(page.locator(`[data-testid="todo-card"]:has-text("${taskTitle}")`).first()).toBeVisible({ timeout: 5000 });
 });
 
 // Navigate back to boards list
@@ -321,70 +321,60 @@ Then('I should see {string} showing {int} tasks', async ({ page }, boardName: st
   await expect(todoCountElement).toContainText(`${expectedCount} task`, { timeout: 5000 });
 });
 
-// Delete a task from the first column (opens modal, deletes, confirms)
+// Delete a task from the first column (opens DetailPanel, clicks "Delete task")
 When('I delete a task from the first column', async ({ page }) => {
   const firstColumn = page.locator('[data-testid="column"]').first();
   const firstTask = firstColumn.locator('[data-testid="todo-card"]').first();
 
-  // Click on the task to open the edit modal
+  // Click on the task to open the DetailPanel
   await firstTask.click();
 
-  // Wait for modal to appear
-  const modal = page.getByRole('dialog');
-  await expect(modal).toBeVisible({ timeout: 5000 });
+  // Wait for DetailPanel to appear
+  const panel = page.locator('[role="dialog"][aria-label="Task details"]');
+  await expect(panel).toBeVisible({ timeout: 5000 });
 
-  // Click Delete button
-  await modal.getByRole('button', { name: 'Delete' }).click();
+  // Click "Delete task" button — no confirmation needed
+  await page.getByRole('button', { name: /delete task/i }).click();
 
-  // Confirm deletion by clicking "Confirm Delete"
-  await modal.getByRole('button', { name: 'Confirm Delete' }).click();
-
-  // Wait for modal to close
-  await expect(modal).not.toBeVisible({ timeout: 5000 });
+  // Wait for panel to close
+  await expect(panel).not.toBeVisible({ timeout: 5000 });
 });
 
 // Archive a task from the first column (treat as delete since no archive feature exists)
 When('I archive a task from the first column', async ({ page }) => {
-  // Archive is the same as delete in this implementation
   const firstColumn = page.locator('[data-testid="column"]').first();
   const firstTask = firstColumn.locator('[data-testid="todo-card"]').first();
 
-  // Click on the task to open the edit modal
+  // Click on the task to open the DetailPanel
   await firstTask.click();
 
-  // Wait for modal to appear
-  const modal = page.getByRole('dialog');
-  await expect(modal).toBeVisible({ timeout: 5000 });
+  // Wait for DetailPanel to appear
+  const panel = page.locator('[role="dialog"][aria-label="Task details"]');
+  await expect(panel).toBeVisible({ timeout: 5000 });
 
-  // Click Delete button (no archive exists)
-  await modal.getByRole('button', { name: 'Delete' }).click();
+  // Click "Delete task" button — no confirmation needed
+  await page.getByRole('button', { name: /delete task/i }).click();
 
-  // Confirm deletion by clicking "Confirm Delete"
-  await modal.getByRole('button', { name: 'Confirm Delete' }).click();
-
-  // Wait for modal to close
-  await expect(modal).not.toBeVisible({ timeout: 5000 });
+  // Wait for panel to close
+  await expect(panel).not.toBeVisible({ timeout: 5000 });
 });
 
 // Delete a specific task by name
 When('I delete the task {string}', async ({ page }, taskTitle: string) => {
   const task = page.locator(`[data-testid="todo-card"]:has-text("${taskTitle}")`);
 
-  // Click on the task to open the edit modal
+  // Click on the task to open the DetailPanel
   await task.click();
 
-  // Wait for modal to appear
-  const modal = page.getByRole('dialog');
-  await expect(modal).toBeVisible({ timeout: 5000 });
+  // Wait for DetailPanel to appear
+  const panel = page.locator('[role="dialog"][aria-label="Task details"]');
+  await expect(panel).toBeVisible({ timeout: 5000 });
 
-  // Click Delete button
-  await modal.getByRole('button', { name: 'Delete' }).click();
+  // Click "Delete task" button — no confirmation needed
+  await page.getByRole('button', { name: /delete task/i }).click();
 
-  // Confirm deletion by clicking "Confirm Delete"
-  await modal.getByRole('button', { name: 'Confirm Delete' }).click();
-
-  // Wait for modal to close
-  await expect(modal).not.toBeVisible({ timeout: 5000 });
+  // Wait for panel to close
+  await expect(panel).not.toBeVisible({ timeout: 5000 });
 });
 
 // Delete the only task in the column
@@ -392,19 +382,16 @@ When('I delete the only task in the column', async ({ page }) => {
   const firstColumn = page.locator('[data-testid="column"]').first();
   const task = firstColumn.locator('[data-testid="todo-card"]').first();
 
-  // Click on the task to open the edit modal
+  // Click on the task to open the DetailPanel
   await task.click();
 
-  // Wait for modal to appear
-  const modal = page.getByRole('dialog');
-  await expect(modal).toBeVisible({ timeout: 5000 });
+  // Wait for DetailPanel to appear
+  const panel = page.locator('[role="dialog"][aria-label="Task details"]');
+  await expect(panel).toBeVisible({ timeout: 5000 });
 
-  // Click Delete button
-  await modal.getByRole('button', { name: 'Delete' }).click();
+  // Click "Delete task" button — no confirmation needed
+  await page.getByRole('button', { name: /delete task/i }).click();
 
-  // Confirm deletion by clicking "Confirm Delete"
-  await modal.getByRole('button', { name: 'Confirm Delete' }).click();
-
-  // Wait for modal to close
-  await expect(modal).not.toBeVisible({ timeout: 5000 });
+  // Wait for panel to close
+  await expect(panel).not.toBeVisible({ timeout: 5000 });
 });
