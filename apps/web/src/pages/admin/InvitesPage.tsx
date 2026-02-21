@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, getErrorMessage } from '../../api/client';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 interface Invite {
   id: string;
@@ -75,44 +77,44 @@ export function InvitesPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Invite Management</h1>
+      <h1 className="text-2xl font-bold text-stone-900 mb-6">Invite Management</h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+      <form onSubmit={handleCreate} className="bg-white border border-stone-200 rounded-lg p-4 mb-6">
         <div className="flex gap-3 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
+            <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent/30 focus:border-accent"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={!email || loading}
-            className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+            className="whitespace-nowrap"
           >
             Create Invite
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -135,16 +137,16 @@ export function InvitesPage() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Invites</h2>
+      <h2 className="text-lg font-semibold text-stone-900 mb-3">Pending Invites</h2>
       {pending.length === 0 ? (
-        <p className="text-gray-500 text-sm mb-6">No pending invites.</p>
+        <p className="text-stone-500 text-sm mb-6">No pending invites.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100 mb-6">
+        <div className="bg-white border border-stone-200 rounded-lg divide-y divide-stone-100 mb-6">
           {pending.map((invite) => (
             <div key={invite.id} className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">{invite.email}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm font-medium text-stone-900">{invite.email}</p>
+                <p className="text-xs text-stone-500">
                   Role: {invite.role} &middot; Expires{' '}
                   {new Date(invite.expiresAt).toLocaleDateString()}
                 </p>
@@ -152,7 +154,7 @@ export function InvitesPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => copyLink(invite.token)}
-                  className="text-xs text-blue-600 hover:underline"
+                  className="text-xs text-accent hover:underline"
                 >
                   Copy Link
                 </button>
@@ -170,13 +172,13 @@ export function InvitesPage() {
 
       {history.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">History</h2>
-          <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+          <h2 className="text-lg font-semibold text-stone-900 mb-3">History</h2>
+          <div className="bg-white border border-stone-200 rounded-lg divide-y divide-stone-100">
             {history.map((invite) => (
               <div key={invite.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{invite.email}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-stone-900">{invite.email}</p>
+                  <p className="text-xs text-stone-500">
                     Role: {invite.role} &middot;{' '}
                     <span className="capitalize">{invite.status}</span>{' '}
                     {new Date(invite.createdAt).toLocaleDateString()}

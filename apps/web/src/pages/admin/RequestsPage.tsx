@@ -54,19 +54,19 @@ export function RequestsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Access Requests</h1>
+      <h1 className="text-2xl font-bold text-stone-900 mb-6">Access Requests</h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
           {error}
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending</h2>
+      <h2 className="text-lg font-semibold text-stone-900 mb-3">Pending</h2>
       {pending.length === 0 ? (
-        <p className="text-gray-500 text-sm mb-6">No pending requests.</p>
+        <p className="text-stone-500 text-sm mb-6">No pending requests.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100 mb-6">
+        <div className="bg-white border border-stone-200 rounded-lg divide-y divide-stone-100 mb-6">
           {pending.map((req) => (
             <PendingRequestRow
               key={req.id}
@@ -80,14 +80,14 @@ export function RequestsPage() {
 
       {reviewed.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Reviewed</h2>
-          <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+          <h2 className="text-lg font-semibold text-stone-900 mb-3">Reviewed</h2>
+          <div className="bg-white border border-stone-200 rounded-lg divide-y divide-stone-100">
             {reviewed.map((req) => (
               <div key={req.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{req.name}</p>
-                    <p className="text-xs text-gray-500">{req.email}</p>
+                    <p className="text-sm font-medium text-stone-900">{req.name}</p>
+                    <p className="text-xs text-stone-500">{req.email}</p>
                   </div>
                   <span
                     className={`text-xs font-medium px-2 py-1 rounded ${
@@ -123,12 +123,12 @@ function PendingRequestRow({
     <div className="p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-900">{request.name}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-medium text-stone-900">{request.name}</p>
+          <p className="text-xs text-stone-500">
             {request.email} &middot; {new Date(request.createdAt).toLocaleDateString()}
           </p>
           {request.reason && (
-            <p className="text-sm text-gray-600 mt-1 italic">"{request.reason}"</p>
+            <p className="text-sm text-stone-600 mt-1 italic">"{request.reason}"</p>
           )}
         </div>
       </div>
@@ -136,7 +136,7 @@ function PendingRequestRow({
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1 text-xs"
+          className="border border-stone-300 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-accent/30 focus:border-accent"
         >
           <option value="user">User</option>
           <option value="admin">Admin</option>

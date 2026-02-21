@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { signUp, signIn } from '../lib/auth-client';
 import { apiClient, getErrorMessage } from '../api/client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 const SECURITY_QUESTIONS = [
   'What was the name of your first pet?',
@@ -138,21 +140,25 @@ export function SignUpPage() {
 
   if (token && tokenValid === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-surface-0">
+        <div
+          role="status"
+          aria-label="Loading"
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"
+        />
       </div>
     );
   }
 
   if (token && tokenValid === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-surface-0 p-4">
         <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Invite</h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-stone-600 mb-6">
             This invite link is invalid, expired, or has already been used.
           </p>
-          <Link to="/login" className="text-blue-600 hover:underline">
+          <Link to="/login" className="text-accent hover:underline">
             Back to Sign In
           </Link>
         </div>
@@ -161,24 +167,24 @@ export function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-blue-600 mb-2 text-center">
+        <h1 className="text-2xl font-bold text-accent mb-2 text-center">
           Create your InZone account
         </h1>
-        <p className="text-gray-500 text-sm text-center mb-6">
+        <p className="text-stone-500 text-sm text-center mb-6">
           {inviteEmail ? `You've been invited as ${inviteEmail}` : 'Sign up with an approved email'}
         </p>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
             {error}
           </div>
         )}
 
         <button
           onClick={handleGoogleSignUp}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition-colors mb-4"
+          className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-700 font-medium hover:bg-stone-50 transition-colors mb-4"
         >
           <GoogleIcon />
           Continue with Google
@@ -186,62 +192,63 @@ export function SignUpPage() {
 
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-stone-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">or</span>
+            <span className="bg-white px-2 text-stone-500">or</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-            <input
+            <label className="block text-sm font-medium text-stone-700 mb-1">Email *</label>
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               readOnly={!!inviteEmail}
-              className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${inviteEmail ? 'bg-gray-100' : ''}`}
+              className={inviteEmail ? 'bg-stone-100' : ''}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-            <input
+            <label className="block text-sm font-medium text-stone-700 mb-1">Name *</label>
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username <span className="text-gray-400">(optional)</span>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Username <span className="text-stone-400">(optional)</span>
             </label>
-            <input
+            <Input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-            <input
+            <label className="block text-sm font-medium text-stone-700 mb-1">Password *</label>
+            <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <div className="mt-1 space-y-0.5">
               {passwordChecks.map((check) => (
-                <div key={check.label} className="flex items-center gap-1.5 text-xs">
-                  <span className={check.passed ? 'text-green-500' : 'text-gray-400'}>
-                    {check.passed ? '✓' : '✗'}
+                <div
+                  key={check.label}
+                  className="flex items-center gap-1.5 text-xs"
+                  aria-label={`${check.label}: ${check.passed ? 'met' : 'not met'}`}
+                >
+                  <span className={check.passed ? 'text-green-500' : 'text-stone-400'}>
+                    {check.passed ? '\u2713' : '\u2717'}
                   </span>
-                  <span className={check.passed ? 'text-green-700' : 'text-gray-500'}>
+                  <span className={check.passed ? 'text-green-700' : 'text-stone-500'}>
                     {check.label}
                   </span>
                 </div>
@@ -250,14 +257,13 @@ export function SignUpPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Confirm Password *
             </label>
-            <input
+            <Input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {confirmPassword && confirmPassword !== password && (
               <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
@@ -265,8 +271,8 @@ export function SignUpPage() {
           </div>
 
           <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-1">Security Questions</h3>
-            <p className="text-xs text-gray-500 mb-3">
+            <h3 className="text-sm font-medium text-stone-700 mb-1">Security Questions</h3>
+            <p className="text-xs text-stone-500 mb-3">
               Required — used to reset your password if forgotten.
             </p>
             {questions.map((q, i) => (
@@ -278,7 +284,8 @@ export function SignUpPage() {
                     updated[i] = { ...updated[i], question: e.target.value };
                     setQuestions(updated);
                   }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  aria-label={`Security question ${i + 1}`}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mb-1 focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 >
                   <option value="">Select a question</option>
                   {SECURITY_QUESTIONS.filter(
@@ -289,7 +296,7 @@ export function SignUpPage() {
                     </option>
                   ))}
                 </select>
-                <input
+                <Input
                   type="text"
                   placeholder="Your answer"
                   value={q.answer}
@@ -298,24 +305,24 @@ export function SignUpPage() {
                     updated[i] = { ...updated[i], answer: e.target.value };
                     setQuestions(updated);
                   }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             ))}
           </div>
 
-          <button
+          <Button
+            variant="primary"
             type="submit"
+            className="w-full"
             disabled={!formValid || loading}
-            className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Creating Account...' : 'Create Account'}
-          </button>
+          </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="text-center text-sm text-stone-500 mt-4">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
+          <Link to="/login" className="text-accent hover:underline">
             Sign in
           </Link>
         </p>

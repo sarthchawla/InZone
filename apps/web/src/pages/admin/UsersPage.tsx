@@ -86,45 +86,45 @@ export function UsersPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">User Management</h1>
+      <h1 className="text-2xl font-bold text-stone-900 mb-6">User Management</h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-stone-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-stone-50 border-b border-stone-200">
             <tr>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Name</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Email</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Role</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Status</th>
-              <th className="text-right px-4 py-3 text-gray-600 font-medium">Actions</th>
+              <th className="text-left px-4 py-3 text-stone-600 font-medium">Name</th>
+              <th className="text-left px-4 py-3 text-stone-600 font-medium">Email</th>
+              <th className="text-left px-4 py-3 text-stone-600 font-medium">Role</th>
+              <th className="text-left px-4 py-3 text-stone-600 font-medium">Status</th>
+              <th className="text-right px-4 py-3 text-stone-600 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-stone-100">
             {users.map((u) => {
               const isSelf = u.id === currentUser?.id;
               return (
                 <tr key={u.id}>
-                  <td className="px-4 py-3 text-gray-900">
+                  <td className="px-4 py-3 text-stone-900">
                     {u.name}
                     {isSelf && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs bg-accent-light text-accent px-1.5 py-0.5 rounded">
                         you
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{u.email}</td>
+                  <td className="px-4 py-3 text-stone-500">{u.email}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded ${
                         u.role === 'admin'
                           ? 'bg-purple-100 text-purple-700'
-                          : 'bg-gray-100 text-gray-700'
+                          : 'bg-stone-100 text-stone-700'
                       }`}
                     >
                       {u.role || 'user'}
@@ -144,7 +144,7 @@ export function UsersPage() {
                           onClick={() =>
                             handleSetRole(u.id, u.role === 'admin' ? 'user' : 'admin')
                           }
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-accent hover:underline"
                         >
                           {u.role === 'admin' ? 'Make User' : 'Make Admin'}
                         </button>
