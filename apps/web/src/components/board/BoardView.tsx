@@ -197,7 +197,7 @@ export function BoardView() {
     createTodo.mutate({ columnId, boardId, title });
   };
 
-  const handleUpdateColumn = (id: string, updates: { name?: string; description?: string | null }) => {
+  const handleUpdateColumn = (id: string, updates: { name?: string; description?: string | null; wipLimit?: number | null }) => {
     if (!boardId) return;
     updateColumn.mutate({ id, boardId, ...updates });
   };

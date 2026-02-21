@@ -13,7 +13,7 @@ import type { Column, Todo } from '../../types';
 interface BoardColumnProps {
   column: Column;
   onAddTodo: (columnId: string, title: string) => void;
-  onUpdateColumn?: (id: string, updates: { name?: string; description?: string | null }) => void;
+  onUpdateColumn?: (id: string, updates: { name?: string; description?: string | null; wipLimit?: number | null }) => void;
   onDeleteColumn?: (id: string) => void;
   onTodoClick?: (todo: Todo) => void;
   onTodoContextMenu?: (todo: Todo, event: React.MouseEvent) => void;
@@ -164,8 +164,12 @@ export function BoardColumn({
   };
 
   const handleWipLimitSave = () => {
-    // WIP limit updates would go through onUpdateColumn if the Column type supports it
-    // For now, close the editor
+    const parsed = parseInt(wipLimitValue, 10);
+    const newLimit = isNaN(parsed) || parsed <= 0 ? null : parsed;
+    const currentLimit = column.wipLimit ?? null;
+    if (newLimit !== currentLimit) {
+      onUpdateColumn?.(column.id, { wipLimit: newLimit });
+    }
     setIsSettingWipLimit(false);
   };
 
