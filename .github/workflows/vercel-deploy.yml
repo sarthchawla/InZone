@@ -1,0 +1,169 @@
+# Vercel Deployment Workflow
+#
+# Required GitHub Secrets:
+#   - VERCEL_TOKEN       : Vercel API token (Settings > Tokens > Create)
+#   - VERCEL_ORG_ID      : Vercel organization/user ID (Settings > General > "Vercel ID")
+#   - VERCEL_PROJECT_ID  : Vercel project ID (Project Settings > General > "Project ID")
+
+name: Vercel Deploy
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      deployment-url: ${{ steps.deploy-production.outputs.url || steps.deploy-preview.outputs.url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel Environment (Production)
+        if: github.event_name == 'push'
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Pull Vercel Environment (Preview)
+        if: github.event_name == 'pull_request'
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project (Production)
+        if: github.event_name == 'push'
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project (Preview)
+        if: github.event_name == 'pull_request'
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        if: github.event_name == 'push'
+        id: deploy-production
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed to: $URL"
+
+      - name: Deploy Preview
+        if: github.event_name == 'pull_request'
+        id: deploy-preview
+        run: |
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Preview deployed to: $URL"
+
+      - name: Comment PR with Preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy-preview.outputs.url }}
+          COMMIT_SHA: ${{ github.sha }}
+        with:
+          script: |
+            const url = process.env.PREVIEW_URL;
+            const sha = process.env.COMMIT_SHA;
+            const body = `### Vercel Preview Deployment\n\nPreview URL: ${url}\n\nThis preview was deployed from commit ${sha.substring(0, 7)}.`;
+
+            // Find existing comment to update instead of creating duplicates
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Vercel Preview Deployment')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  smoke-test:
+    name: Smoke Test
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: needs.deploy.outputs.deployment-url != ''
+
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 15
+
+      - name: Health check
+        env:
+          DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+        run: |
+          echo "Running smoke test against: $DEPLOY_URL"
+
+          # Test health endpoint
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/health" --max-time 30 --retry 3 --retry-delay 5)
+          echo "Health endpoint status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Health check failed with status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Health check passed"
+
+      - name: Verify frontend loads
+        env:
+          DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+        run: |
+          # Test that the frontend HTML is served
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL" --max-time 30 --retry 3 --retry-delay 5)
+          echo "Frontend status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Frontend load check failed with status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Frontend loads successfully"
+
+      - name: Verify protected routes require auth
+        env:
+          DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+        run: |
+          # Test that /api/boards returns 401 without auth
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/boards" --max-time 30)
+          echo "Protected route status (expected 401): $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ne 401 ]; then
+            echo "Warning: Expected 401 for unauthenticated request, got $HTTP_STATUS"
+          fi
+          echo "Auth check completed"
