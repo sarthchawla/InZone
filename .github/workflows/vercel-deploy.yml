@@ -247,12 +247,24 @@ jobs:
       - name: Health check
         env:
           DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          IS_PREVIEW: ${{ github.event_name == 'pull_request' }}
         run: |
           echo "Running smoke test against: $DEPLOY_URL"
 
+          # Build curl args — include bypass header if secret is set
+          CURL_ARGS="--max-time 30 --retry 3 --retry-delay 5"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            CURL_ARGS="$CURL_ARGS -H x-vercel-protection-bypass:$VERCEL_AUTOMATION_BYPASS_SECRET"
+          fi
+
           # Test health endpoint
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/health" --max-time 30 --retry 3 --retry-delay 5)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CURL_ARGS "$DEPLOY_URL/api/health")
           echo "Health endpoint status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 401 ] && [ "$IS_PREVIEW" = "true" ] && [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "Skipping: Vercel deployment protection blocks preview access (set VERCEL_AUTOMATION_BYPASS_SECRET to enable)"
+            exit 0
+          fi
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Health check failed with status $HTTP_STATUS"
             exit 1
@@ -262,10 +274,20 @@ jobs:
       - name: Verify frontend loads
         env:
           DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          IS_PREVIEW: ${{ github.event_name == 'pull_request' }}
         run: |
-          # Test that the frontend HTML is served
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL" --max-time 30 --retry 3 --retry-delay 5)
+          CURL_ARGS="--max-time 30 --retry 3 --retry-delay 5"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            CURL_ARGS="$CURL_ARGS -H x-vercel-protection-bypass:$VERCEL_AUTOMATION_BYPASS_SECRET"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CURL_ARGS "$DEPLOY_URL")
           echo "Frontend status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 401 ] && [ "$IS_PREVIEW" = "true" ] && [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "Skipping: Vercel deployment protection blocks preview access"
+            exit 0
+          fi
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Frontend load check failed with status $HTTP_STATUS"
             exit 1
@@ -275,9 +297,15 @@ jobs:
       - name: Verify protected routes require auth
         env:
           DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          IS_PREVIEW: ${{ github.event_name == 'pull_request' }}
         run: |
-          # Test that /api/boards returns 401 without auth
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/boards" --max-time 30)
+          CURL_ARGS="--max-time 30"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            CURL_ARGS="$CURL_ARGS -H x-vercel-protection-bypass:$VERCEL_AUTOMATION_BYPASS_SECRET"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CURL_ARGS "$DEPLOY_URL/api/boards")
           echo "Protected route status (expected 401): $HTTP_STATUS"
           if [ "$HTTP_STATUS" -ne 401 ]; then
             echo "Warning: Expected 401 for unauthenticated request, got $HTTP_STATUS"
