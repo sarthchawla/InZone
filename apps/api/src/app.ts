@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
+import { allowedOrigins } from './lib/origins.js';
 import { requireAuth } from './middleware/auth.js';
 import { boardsRouter } from './routes/boards.js';
 import { columnsRouter } from './routes/columns.js';
@@ -14,7 +15,13 @@ const app: Express = express();
 
 // CORS must be before all handlers (including auth) for preflight requests
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 

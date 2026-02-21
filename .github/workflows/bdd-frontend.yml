@@ -23,6 +23,7 @@ on:
 env:
   NODE_ENV: test
   DATABASE_URL: postgresql://test:test@localhost:5432/inzone_test
+  DIRECT_URL: postgresql://test:test@localhost:5432/inzone_test
 
 jobs:
   e2e-tests:

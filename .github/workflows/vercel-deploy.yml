@@ -4,6 +4,9 @@
 #   - VERCEL_TOKEN       : Vercel API token (Settings > Tokens > Create)
 #   - VERCEL_ORG_ID      : Vercel organization/user ID (Settings > General > "Vercel ID")
 #   - VERCEL_PROJECT_ID  : Vercel project ID (Project Settings > General > "Project ID")
+#   - NEON_DIRECT_URL    : Neon direct (non-pooled) connection string for migrations
+#   - NEON_API_KEY       : Neon API token (for PR preview branch creation)
+#   - NEON_PROJECT_ID    : Neon project ID (for PR preview branch creation)
 
 name: Vercel Deploy
 
@@ -13,15 +16,81 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
+  neon-branch:
+    name: Create Neon Preview Branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    outputs:
+      db-url: ${{ steps.create-branch.outputs.db-url }}
+      direct-url: ${{ steps.create-branch.outputs.direct-url }}
+      branch-name: ${{ steps.create-branch.outputs.branch-name }}
+
+    steps:
+      - name: Install neonctl
+        run: npm install -g neonctl
+
+      - name: Create or reuse Neon branch
+        id: create-branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          BRANCH_NAME="preview/pr-${PR_NUMBER}"
+          echo "branch-name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+          # Check if branch already exists
+          EXISTING=$(neonctl branches list \
+            --project-id "$NEON_PROJECT_ID" \
+            --output json 2>/dev/null | \
+            jq -r ".[] | select(.name == \"$BRANCH_NAME\") | .id" || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "Branch '$BRANCH_NAME' already exists (id: $EXISTING), reusing it"
+            BRANCH_ID="$EXISTING"
+          else
+            echo "Creating new Neon branch: $BRANCH_NAME"
+            CREATE_OUTPUT=$(neonctl branches create \
+              --project-id "$NEON_PROJECT_ID" \
+              --name "$BRANCH_NAME" \
+              --output json)
+            BRANCH_ID=$(echo "$CREATE_OUTPUT" | jq -r '.branch.id')
+            echo "Created branch '$BRANCH_NAME' (id: $BRANCH_ID)"
+          fi
+
+          # Get connection string (pooled for app usage)
+          DB_URL=$(neonctl connection-string "$BRANCH_NAME" \
+            --project-id "$NEON_PROJECT_ID" \
+            --pooled)
+
+          # Get direct connection string (for migrations)
+          DIRECT_URL=$(neonctl connection-string "$BRANCH_NAME" \
+            --project-id "$NEON_PROJECT_ID")
+
+          # Mask secrets in logs
+          echo "::add-mask::$DB_URL"
+          echo "::add-mask::$DIRECT_URL"
+
+          echo "db-url=$DB_URL" >> "$GITHUB_OUTPUT"
+          echo "direct-url=$DIRECT_URL" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [neon-branch]
+    if: always() && (github.event_name == 'push' || needs.neon-branch.result == 'success')
     outputs:
       deployment-url: ${{ steps.deploy-production.outputs.url || steps.deploy-preview.outputs.url }}
 
@@ -73,8 +142,14 @@ jobs:
       - name: Deploy Preview
         if: github.event_name == 'pull_request'
         id: deploy-preview
+        env:
+          BRANCH_DB_URL: ${{ needs.neon-branch.outputs.db-url }}
+          BRANCH_DIRECT_URL: ${{ needs.neon-branch.outputs.direct-url }}
         run: |
-          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt \
+            --env DATABASE_URL="$BRANCH_DB_URL" \
+            --env DIRECT_URL="$BRANCH_DIRECT_URL" \
+            --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Preview deployed to: $URL"
 
@@ -84,11 +159,13 @@ jobs:
         env:
           PREVIEW_URL: ${{ steps.deploy-preview.outputs.url }}
           COMMIT_SHA: ${{ github.sha }}
+          NEON_BRANCH: ${{ needs.neon-branch.outputs.branch-name }}
         with:
           script: |
             const url = process.env.PREVIEW_URL;
             const sha = process.env.COMMIT_SHA;
-            const body = `### Vercel Preview Deployment\n\nPreview URL: ${url}\n\nThis preview was deployed from commit ${sha.substring(0, 7)}.`;
+            const neonBranch = process.env.NEON_BRANCH;
+            const body = `### Vercel Preview Deployment\n\nPreview URL: ${url}\nNeon DB Branch: \`${neonBranch}\`\n\nThis preview was deployed from commit ${sha.substring(0, 7)} with an isolated database branch.`;
 
             // Find existing comment to update instead of creating duplicates
             const { data: comments } = await github.rest.issues.listComments({
@@ -117,12 +194,51 @@ jobs:
               });
             }
 
-  smoke-test:
-    name: Smoke Test
-    needs: deploy
+  migrate:
+    name: Run Database Migrations
+    needs: [neon-branch, deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: needs.deploy.outputs.deployment-url != ''
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Prisma migrations
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+        run: pnpm prisma migrate deploy
+
+      - name: Seed database (idempotent)
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+        run: pnpm prisma db seed
+
+  smoke-test:
+    name: Smoke Test
+    needs: [deploy, migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
 
     steps:
       - name: Wait for deployment to stabilize
@@ -131,12 +247,24 @@ jobs:
       - name: Health check
         env:
           DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          IS_PREVIEW: ${{ github.event_name == 'pull_request' }}
         run: |
           echo "Running smoke test against: $DEPLOY_URL"
 
+          # Build curl args — include bypass header if secret is set
+          CURL_ARGS="--max-time 30 --retry 3 --retry-delay 5"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            CURL_ARGS="$CURL_ARGS -H x-vercel-protection-bypass:$VERCEL_AUTOMATION_BYPASS_SECRET"
+          fi
+
           # Test health endpoint
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/health" --max-time 30 --retry 3 --retry-delay 5)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CURL_ARGS "$DEPLOY_URL/api/health")
           echo "Health endpoint status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 401 ] && [ "$IS_PREVIEW" = "true" ] && [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "Skipping: Vercel deployment protection blocks preview access (set VERCEL_AUTOMATION_BYPASS_SECRET to enable)"
+            exit 0
+          fi
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Health check failed with status $HTTP_STATUS"
             exit 1
@@ -146,10 +274,20 @@ jobs:
       - name: Verify frontend loads
         env:
           DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          IS_PREVIEW: ${{ github.event_name == 'pull_request' }}
         run: |
-          # Test that the frontend HTML is served
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL" --max-time 30 --retry 3 --retry-delay 5)
+          CURL_ARGS="--max-time 30 --retry 3 --retry-delay 5"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            CURL_ARGS="$CURL_ARGS -H x-vercel-protection-bypass:$VERCEL_AUTOMATION_BYPASS_SECRET"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CURL_ARGS "$DEPLOY_URL")
           echo "Frontend status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 401 ] && [ "$IS_PREVIEW" = "true" ] && [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "Skipping: Vercel deployment protection blocks preview access"
+            exit 0
+          fi
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Frontend load check failed with status $HTTP_STATUS"
             exit 1
@@ -159,9 +297,15 @@ jobs:
       - name: Verify protected routes require auth
         env:
           DEPLOY_URL: ${{ needs.deploy.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          IS_PREVIEW: ${{ github.event_name == 'pull_request' }}
         run: |
-          # Test that /api/boards returns 401 without auth
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/boards" --max-time 30)
+          CURL_ARGS="--max-time 30"
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            CURL_ARGS="$CURL_ARGS -H x-vercel-protection-bypass:$VERCEL_AUTOMATION_BYPASS_SECRET"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $CURL_ARGS "$DEPLOY_URL/api/boards")
           echo "Protected route status (expected 401): $HTTP_STATUS"
           if [ "$HTTP_STATUS" -ne 401 ]; then
             echo "Warning: Expected 401 for unauthenticated request, got $HTTP_STATUS"
