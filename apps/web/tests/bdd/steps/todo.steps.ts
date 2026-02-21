@@ -715,8 +715,11 @@ When('I clear the description', async ({ page }) => {
   const editor = page.locator('.ProseMirror[contenteditable="true"]');
   if (await editor.isVisible().catch(() => false)) {
     await editor.click();
-    await page.keyboard.press('Meta+a');
+    // Use ControlOrMeta+a to work on both macOS and Linux CI
+    await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.press('Backspace');
+    // Wait for the content to clear
+    await page.waitForTimeout(200);
   } else {
     await page.getByRole('textbox', { name: /description/i }).clear();
   }

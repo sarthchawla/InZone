@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "../../test/utils";
+import { render, screen, waitFor, fireEvent } from "../../test/utils";
 import userEvent from "@testing-library/user-event";
 import { TodoEditModal } from "./TodoEditModal";
 import { server } from "../../test/mocks/server";
@@ -823,8 +823,7 @@ describe("TodoEditModal", () => {
       expect(editor).toBeInTheDocument();
     });
 
-    it("handles very long title", async () => {
-      const user = userEvent.setup();
+    it("handles very long title", () => {
       const longTitle = "A".repeat(500);
       const todo = createTestTodo();
       render(
@@ -837,14 +836,12 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, longTitle);
+      fireEvent.change(titleInput, { target: { value: longTitle } });
 
       expect(titleInput).toHaveValue(longTitle);
     });
 
-    it("handles special characters in title", async () => {
-      const user = userEvent.setup();
+    it("handles special characters in title", () => {
       const onSave = vi.fn();
       const todo = createTestTodo();
       render(
@@ -857,9 +854,8 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "<script>alert('xss')</script>");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
+      fireEvent.change(titleInput, { target: { value: "<script>alert('xss')</script>" } });
+      fireEvent.click(screen.getByRole("button", { name: /Save/i }));
 
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -868,8 +864,7 @@ describe("TodoEditModal", () => {
       );
     });
 
-    it("handles whitespace-only title", async () => {
-      const user = userEvent.setup();
+    it("handles whitespace-only title", () => {
       const onSave = vi.fn();
       const todo = createTestTodo({ title: "Original" });
       render(
@@ -882,9 +877,8 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "   ");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
+      fireEvent.change(titleInput, { target: { value: "   " } });
+      fireEvent.click(screen.getByRole("button", { name: /Save/i }));
 
       expect(onSave).not.toHaveBeenCalled();
     });
@@ -909,8 +903,7 @@ describe("TodoEditModal", () => {
       expect(screen.getByText("Labels")).toBeInTheDocument();
     });
 
-    it("trims whitespace from title before saving", async () => {
-      const user = userEvent.setup();
+    it("trims whitespace from title before saving", () => {
       const onSave = vi.fn();
       const todo = createTestTodo({ title: "Original" });
       render(
@@ -923,9 +916,8 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "  Trimmed Title  ");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
+      fireEvent.change(titleInput, { target: { value: "  Trimmed Title  " } });
+      fireEvent.click(screen.getByRole("button", { name: /Save/i }));
 
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Trimmed Title" })
