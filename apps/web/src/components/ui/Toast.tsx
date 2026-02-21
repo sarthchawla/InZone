@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -46,22 +47,35 @@ export function Toast({ id, type, message, onDismiss, duration = 5000 }: ToastPr
   }, [id, duration, onDismiss]);
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: 80, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 80, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 20, stiffness: 300 }}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-lg border shadow-lg animate-slide-in',
+        'flex items-start gap-3 p-4 rounded-xl border shadow-lg',
         styles[type]
       )}
       role="alert"
     >
-      <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', iconStyles[type])} />
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', damping: 15, stiffness: 400, delay: 0.1 }}
+      >
+        <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', iconStyles[type])} />
+      </motion.div>
       <p className="flex-1 text-sm font-medium">{message}</p>
       <button
         onClick={() => onDismiss(id)}
         className="flex-shrink-0 p-1 rounded hover:bg-black/5 transition-colors"
+        title="Dismiss"
+        aria-label="Dismiss notification"
       >
         <X className="h-4 w-4" />
       </button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -71,19 +85,19 @@ export interface ToastContainerProps {
 }
 
 export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
-  if (toasts.length === 0) return null;
-
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-md">
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          id={toast.id}
-          type={toast.type}
-          message={toast.message}
-          onDismiss={onDismiss}
-        />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            id={toast.id}
+            type={toast.type}
+            message={toast.message}
+            onDismiss={onDismiss}
+          />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

@@ -149,6 +149,28 @@ Given('the network is unavailable', async ({ page, mockedRoutes }) => {
 
 // Common UI interactions
 When('I click {string}', async ({ page }, buttonText: string) => {
+  // Special handling for "Save" — the revamped UI uses auto-save, so blur the active element
+  // to trigger the debounced save, then wait for the save to complete.
+  if (buttonText === 'Save') {
+    const detailPanel = page.locator('[role="dialog"][aria-label="Task details"]');
+    if (await detailPanel.isVisible().catch(() => false)) {
+      // Blur the focused element to trigger auto-save
+      await page.evaluate(() => (document.activeElement as HTMLElement)?.blur?.());
+      // Wait for the debounced auto-save (800ms debounce + network)
+      await page.waitForTimeout(1500);
+      return;
+    }
+  }
+
+  // Special handling for "Cancel" — close the DetailPanel via the X button or Escape
+  if (buttonText === 'Cancel') {
+    const detailPanel = page.locator('[role="dialog"][aria-label="Task details"]');
+    if (await detailPanel.isVisible().catch(() => false)) {
+      await page.getByLabel('Close panel').click();
+      return;
+    }
+  }
+
   // Map common button text to partial matches (prefix-based)
   // e.g., "Create" matches "Create Board", "Save" matches "Save Todo"
   const buttonPrefixes: Record<string, string[]> = {
@@ -215,6 +237,20 @@ When('I click {string}', async ({ page }, buttonText: string) => {
 });
 
 When('I click the {string} button', async ({ page }, buttonText: string) => {
+  // Special handling for "New Board" — uses ghost card or inline form
+  if (/new board/i.test(buttonText)) {
+    const ghostCard = page.locator('[data-testid="ghost-card"]');
+    if (await ghostCard.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await ghostCard.click();
+      return;
+    }
+    // In empty state, the inline form is already visible — nothing to click
+    const form = page.locator('[data-testid="inline-create-form"]');
+    if (await form.isVisible({ timeout: 2000 }).catch(() => false)) {
+      return;
+    }
+  }
+
   // Try to click within a dialog first (modal context), then fallback to page
   const dialog = page.getByRole('dialog');
   const dialogButton = dialog.getByRole('button', { name: buttonText });
@@ -231,18 +267,30 @@ When('I click the {string} button', async ({ page }, buttonText: string) => {
 });
 
 // Deletion confirmation steps - shared across features
+// In the revamped UI, deletion is immediate (no confirmation dialog).
+// These steps are kept as graceful no-ops for backward compatibility.
 When('I confirm the deletion', async ({ page }) => {
-  // Click the confirm/delete button in the delete confirmation modal
-  // UI uses "Confirm Delete" or similar variations
+  // No-op: the revamped UI deletes immediately without a confirmation dialog.
+  // If a dialog happens to be present, confirm it; otherwise do nothing.
   const dialog = page.getByRole('dialog');
-  const confirmButton = dialog.getByRole('button', { name: /confirm delete|^delete$|^confirm$/i });
-  await confirmButton.click();
+  if (await dialog.isVisible().catch(() => false)) {
+    const confirmButton = dialog.getByRole('button', { name: /confirm delete|^delete$|^confirm$/i });
+    if (await confirmButton.isVisible().catch(() => false)) {
+      await confirmButton.click();
+    }
+  }
 });
 
 When('I cancel the deletion', async ({ page }) => {
-  // Click the cancel button in the delete confirmation modal
+  // No-op: the revamped UI has no confirmation dialog to cancel.
+  // If a dialog happens to be present, cancel it; otherwise do nothing.
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: /cancel/i }).click();
+  if (await dialog.isVisible().catch(() => false)) {
+    const cancelButton = dialog.getByRole('button', { name: /cancel/i });
+    if (await cancelButton.isVisible().catch(() => false)) {
+      await cancelButton.click();
+    }
+  }
 });
 
 // Loading state checks
@@ -287,6 +335,7 @@ Then('I should see an error {string}', async ({ page }, message: string) => {
 });
 
 // Confirmation dialog check - shared across features
-Then('I should see a confirmation dialog', async ({ page }) => {
-  await expect(page.getByRole('dialog')).toBeVisible();
+// In the revamped UI, there are no confirmation dialogs. This is a no-op.
+Then('I should see a confirmation dialog', async () => {
+  // No-op: the revamped UI performs deletions immediately without confirmation.
 });

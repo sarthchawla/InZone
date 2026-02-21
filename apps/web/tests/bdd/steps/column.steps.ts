@@ -329,10 +329,12 @@ When('I try to drag {string}', async ({ page }, columnName: string) => {
 
 When('I click the delete button for {string} column', async ({ page }, columnName: string) => {
   const column = page.locator(`[data-testid="column"]:has-text("${columnName}")`);
-  // Click the three dots menu button first (column options)
-  await column.getByRole('button', { name: /column options/i }).click();
-  // Then click Delete from the dropdown menu
-  await page.getByRole('button', { name: /delete/i }).click();
+  // Click the three dots menu button (exact match to avoid strict mode violation)
+  await column.getByRole('button', { name: 'Column options', exact: true }).click();
+  // Then click "Delete Column" from the dropdown menu — immediate, no confirmation
+  await page.getByText('Delete Column').click();
+  // Wait briefly for the deletion to process
+  await page.waitForTimeout(500);
 });
 
 When('I choose to move todos to {string} column', async ({ page }, targetColumn: string) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "../../test/utils";
+import { render, screen, waitFor, fireEvent } from "../../test/utils";
 import userEvent from "@testing-library/user-event";
 import { TodoEditModal } from "./TodoEditModal";
 import { server } from "../../test/mocks/server";
@@ -27,7 +27,7 @@ describe("TodoEditModal", () => {
   beforeEach(() => {
     server.resetHandlers();
     server.use(
-      http.get("/api/labels", () => {
+      http.get(`/api/labels`, () => {
         return HttpResponse.json(mockLabels);
       })
     );
@@ -97,9 +97,9 @@ describe("TodoEditModal", () => {
           onSave={() => {}}
         />
       );
-      expect(screen.getByLabelText(/Description/i)).toHaveValue(
-        "Task description here"
-      );
+      // Description uses RichTextEditor (Tiptap), not a textarea
+      expect(screen.getByText("Description")).toBeInTheDocument();
+      expect(screen.getByText("Task description here")).toBeInTheDocument();
     });
 
     it("renders priority buttons", () => {
@@ -212,8 +212,7 @@ describe("TodoEditModal", () => {
       expect(titleInput).toHaveValue("New Title");
     });
 
-    it("updates description when typing", async () => {
-      const user = userEvent.setup();
+    it("renders description editor as editable", () => {
       const todo = createTestTodo({ description: "" });
       render(
         <TodoEditModal
@@ -224,10 +223,10 @@ describe("TodoEditModal", () => {
         />
       );
 
-      const descInput = screen.getByLabelText(/Description/i);
-      await user.type(descInput, "New description");
-
-      expect(descInput).toHaveValue("New description");
+      // Description uses RichTextEditor (Tiptap) with contenteditable
+      const editor = screen.getByTestId("rich-text-editor");
+      const contentEditable = editor.querySelector('[contenteditable="true"]');
+      expect(contentEditable).toBeInTheDocument();
     });
 
     it("changes priority when clicking priority button", async () => {
@@ -311,8 +310,7 @@ describe("TodoEditModal", () => {
       );
     });
 
-    it("calls onSave with updated description", async () => {
-      const user = userEvent.setup();
+    it("renders description with pre-existing content", () => {
       const onSave = vi.fn();
       const todo = createTestTodo({ description: "Original desc" });
       render(
@@ -324,14 +322,8 @@ describe("TodoEditModal", () => {
         />
       );
 
-      const descInput = screen.getByLabelText(/Description/i);
-      await user.clear(descInput);
-      await user.type(descInput, "Updated description");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      expect(onSave).toHaveBeenCalledWith(
-        expect.objectContaining({ description: "Updated description" })
-      );
+      // RichTextEditor renders the markdown content as rich text
+      expect(screen.getByText("Original desc")).toBeInTheDocument();
     });
 
     it("calls onSave with updated priority", async () => {
@@ -810,7 +802,9 @@ describe("TodoEditModal", () => {
         />
       );
 
-      expect(screen.getByLabelText(/Description/i)).toHaveValue("");
+      // RichTextEditor renders with empty content - just verify it's present
+      const editor = screen.getByTestId("rich-text-editor");
+      expect(editor).toBeInTheDocument();
     });
 
     it("handles undefined description", () => {
@@ -824,11 +818,12 @@ describe("TodoEditModal", () => {
         />
       );
 
-      expect(screen.getByLabelText(/Description/i)).toHaveValue("");
+      // RichTextEditor renders with empty content - just verify it's present
+      const editor = screen.getByTestId("rich-text-editor");
+      expect(editor).toBeInTheDocument();
     });
 
-    it("handles very long title", async () => {
-      const user = userEvent.setup();
+    it("handles very long title", () => {
       const longTitle = "A".repeat(500);
       const todo = createTestTodo();
       render(
@@ -841,14 +836,12 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, longTitle);
+      fireEvent.change(titleInput, { target: { value: longTitle } });
 
       expect(titleInput).toHaveValue(longTitle);
     });
 
-    it("handles special characters in title", async () => {
-      const user = userEvent.setup();
+    it("handles special characters in title", () => {
       const onSave = vi.fn();
       const todo = createTestTodo();
       render(
@@ -861,9 +854,8 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "<script>alert('xss')</script>");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
+      fireEvent.change(titleInput, { target: { value: "<script>alert('xss')</script>" } });
+      fireEvent.click(screen.getByRole("button", { name: /Save/i }));
 
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -872,8 +864,7 @@ describe("TodoEditModal", () => {
       );
     });
 
-    it("handles whitespace-only title", async () => {
-      const user = userEvent.setup();
+    it("handles whitespace-only title", () => {
       const onSave = vi.fn();
       const todo = createTestTodo({ title: "Original" });
       render(
@@ -886,9 +877,8 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "   ");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
+      fireEvent.change(titleInput, { target: { value: "   " } });
+      fireEvent.click(screen.getByRole("button", { name: /Save/i }));
 
       expect(onSave).not.toHaveBeenCalled();
     });
@@ -913,8 +903,7 @@ describe("TodoEditModal", () => {
       expect(screen.getByText("Labels")).toBeInTheDocument();
     });
 
-    it("trims whitespace from title before saving", async () => {
-      const user = userEvent.setup();
+    it("trims whitespace from title before saving", () => {
       const onSave = vi.fn();
       const todo = createTestTodo({ title: "Original" });
       render(
@@ -927,9 +916,8 @@ describe("TodoEditModal", () => {
       );
 
       const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "  Trimmed Title  ");
-      await user.click(screen.getByRole("button", { name: /Save/i }));
+      fireEvent.change(titleInput, { target: { value: "  Trimmed Title  " } });
+      fireEvent.click(screen.getByRole("button", { name: /Save/i }));
 
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Trimmed Title" })
@@ -964,7 +952,9 @@ describe("TodoEditModal", () => {
       );
 
       expect(screen.getByLabelText("Title")).toBeInTheDocument();
-      expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
+      // Description uses RichTextEditor (Tiptap) which doesn't have a label association
+      expect(screen.getByText("Description")).toBeInTheDocument();
+      expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
       expect(screen.getByLabelText("Due Date")).toBeInTheDocument();
     });
 

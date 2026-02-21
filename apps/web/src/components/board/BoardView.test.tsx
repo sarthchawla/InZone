@@ -9,6 +9,33 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../contexts/ToastContext";
 
+// Mock RichTextEditor since tiptap's useEditor does not work in jsdom
+vi.mock("../ui/RichTextEditor", () => ({
+  RichTextEditor: ({ content, onChange, placeholder }: { content: string; onChange: (v: string) => void; placeholder?: string }) => (
+    <textarea
+      data-testid="rich-text-editor"
+      value={content}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
+// Mock window.matchMedia for useIsMobile / useMediaQuery
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Custom render for BoardView that sets up routing with boardId param
 // Does NOT use the default wrapper since it includes BrowserRouter
 function renderBoardView(boardId: string = "board-1") {
@@ -99,7 +126,7 @@ describe("BoardView", () => {
     server.resetHandlers();
     // Set up default handler for board-1
     server.use(
-      http.get("/api/boards/:id", ({ params }) => {
+      http.get(`/api/boards/:id`, ({ params }) => {
         if (params.id === "board-1") {
           return HttpResponse.json(mockBoardWithTodos);
         }
@@ -112,9 +139,8 @@ describe("BoardView", () => {
   describe("rendering", () => {
     it("renders loading state initially", () => {
       renderBoardView();
-      // Look for loading spinner
-      const spinner = document.querySelector(".animate-spin");
-      expect(spinner).toBeInTheDocument();
+      // Loading state uses skeleton loaders with animate-pulse
+      expect(screen.getByTestId("board-view-loading")).toBeInTheDocument();
     });
 
     it("renders board name after loading", async () => {
@@ -125,8 +151,7 @@ describe("BoardView", () => {
       });
     });
 
-    it("renders board description indicator when description exists", async () => {
-      const user = userEvent.setup();
+    it("renders board description inline when description exists", async () => {
       renderBoardView();
 
       // Wait for board to load
@@ -134,16 +159,8 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Description is collapsed by default - check for FileText icon button (description indicator)
-      const descriptionIndicator = screen.getByTitle(/expand description/i);
-      expect(descriptionIndicator).toBeInTheDocument();
-
-      // Click to expand and see full description
-      await user.click(descriptionIndicator);
-
-      await waitFor(() => {
-        expect(screen.getByText("Main project board")).toBeInTheDocument();
-      });
+      // Description is shown inline as plain text (click to edit)
+      expect(screen.getByText("Main project board")).toBeInTheDocument();
     });
 
     it("renders all columns", async () => {
@@ -200,7 +217,7 @@ describe("BoardView", () => {
   describe("label manager", () => {
     beforeEach(() => {
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -268,7 +285,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           return HttpResponse.json(
             createMockColumn({ name: body.name, boardId: "board-1" }),
@@ -335,7 +352,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           return HttpResponse.json(
             createMockColumn({ name: body.name, boardId: "board-1" }),
@@ -379,7 +396,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post("/api/todos", async ({ request }) => {
+        http.post(`/api/todos`, async ({ request }) => {
           const body = await request.json() as { title: string; columnId: string };
           return HttpResponse.json(
             createMockTodo({ title: body.title, columnId: body.columnId }),
@@ -412,7 +429,7 @@ describe("BoardView", () => {
   describe("error handling", () => {
     it("shows board not found when board does not exist", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json({ error: "Board not found" }, { status: 404 });
         })
       );
@@ -426,7 +443,7 @@ describe("BoardView", () => {
 
     it("shows back to boards button on error", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json({ error: "Board not found" }, { status: 404 });
         })
       );
@@ -440,7 +457,7 @@ describe("BoardView", () => {
 
     it("shows error state when API fails", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -460,7 +477,7 @@ describe("BoardView", () => {
       const columnCreateHandler = vi.fn();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           columnCreateHandler(body);
           if (!body.name || !body.name.trim()) {
@@ -497,7 +514,7 @@ describe("BoardView", () => {
       const columnCreateHandler = vi.fn();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           columnCreateHandler(body);
           return HttpResponse.json(
@@ -534,7 +551,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(emptyBoard);
         })
       );
@@ -559,7 +576,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -569,6 +586,9 @@ describe("BoardView", () => {
       await waitFor(() => {
         expect(screen.getByText("No Description Board")).toBeInTheDocument();
       });
+
+      // Should show "Add a description..." link
+      expect(screen.getByText("Add a description...")).toBeInTheDocument();
     });
 
     it("handles columns with empty todos array", async () => {
@@ -587,7 +607,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithEmptyColumns);
         })
       );
@@ -618,7 +638,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithUndefinedTodos);
         })
       );
@@ -657,7 +677,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithUnorderedColumns);
         })
       );
@@ -684,7 +704,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithLongName);
         })
       );
@@ -704,7 +724,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithSpecialChars);
         })
       );
@@ -734,7 +754,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithManyColumns);
         })
       );
@@ -776,7 +796,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithManyTodos);
         })
       );
@@ -847,7 +867,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
+        http.patch(`/api/boards/:id`, async ({ request }) => {
           const body = await request.json() as { name?: string };
           return HttpResponse.json({
             ...mockBoardWithTodos,
@@ -883,7 +903,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
+        http.patch(`/api/boards/:id`, async ({ request }) => {
           const body = await request.json() as { name?: string };
           return HttpResponse.json({
             ...mockBoardWithTodos,
@@ -933,7 +953,7 @@ describe("BoardView", () => {
       const patchHandler = vi.fn();
 
       server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
+        http.patch(`/api/boards/:id`, async ({ request }) => {
           patchHandler(await request.json());
           return HttpResponse.json(mockBoardWithTodos);
         })
@@ -955,8 +975,19 @@ describe("BoardView", () => {
     });
   });
 
-  describe("board description modal", () => {
-    it("opens description modal when Edit Description is clicked", async () => {
+  describe("inline board description editing", () => {
+    it("shows inline description when board has description", async () => {
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
+      });
+
+      // Description is rendered as plain text (click to edit)
+      expect(screen.getByText("Main project board")).toBeInTheDocument();
+    });
+
+    it("opens inline editor when clicking description", async () => {
       const user = userEvent.setup();
       renderBoardView();
 
@@ -964,14 +995,16 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
+      // Click on the description text to start editing
+      await user.click(screen.getByText("Main project board"));
 
-      expect(screen.getByText("Edit Board Description")).toBeInTheDocument();
-      // Use the specific ID for the textarea in the description modal
-      expect(document.getElementById("boardDescription")).toBeInTheDocument();
+      // Should show the RichTextEditor textarea (mocked) for inline editing
+      await waitFor(() => {
+        expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
+      });
     });
 
-    it("pre-fills description in modal", async () => {
+    it("shows editor with current description when entering edit mode", async () => {
       const user = userEvent.setup();
       renderBoardView();
 
@@ -979,47 +1012,17 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
-
-      // Use the specific ID for the textarea in the description modal
-      const textarea = document.getElementById("boardDescription") as HTMLTextAreaElement;
-      expect(textarea).toHaveValue("Main project board");
-    });
-
-    it("saves description when Save is clicked", async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
-          const body = await request.json() as { description?: string };
-          return HttpResponse.json({
-            ...mockBoardWithTodos,
-            description: body.description || mockBoardWithTodos.description,
-          });
-        })
-      );
-
-      renderBoardView();
+      // Click description text to edit
+      await user.click(screen.getByText("Main project board"));
 
       await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByText("Edit Description"));
-
-      // Use the specific ID for the textarea in the description modal
-      const textarea = document.getElementById("boardDescription") as HTMLTextAreaElement;
-      await user.clear(textarea);
-      await user.type(textarea, "Updated description");
-
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Board Description")).not.toBeInTheDocument();
+        const editor = screen.getByTestId("rich-text-editor") as HTMLTextAreaElement;
+        expect(editor).toBeInTheDocument();
+        expect(editor.value).toBe("Main project board");
       });
     });
 
-    it("closes modal when Cancel is clicked", async () => {
+    it("reverts to read-only mode after blur", async () => {
       const user = userEvent.setup();
       renderBoardView();
 
@@ -1027,17 +1030,23 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
-      expect(screen.getByText("Edit Board Description")).toBeInTheDocument();
-
-      await user.click(screen.getByRole("button", { name: /Cancel/i }));
+      // Click description text to edit
+      await user.click(screen.getByText("Main project board"));
 
       await waitFor(() => {
-        expect(screen.queryByText("Edit Board Description")).not.toBeInTheDocument();
+        expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
+      });
+
+      // Click elsewhere to blur
+      await user.click(screen.getByText("Project Alpha"));
+
+      // Should revert to read-only description text
+      await waitFor(() => {
+        expect(screen.getByText("Main project board")).toBeInTheDocument();
       });
     });
 
-    it("shows add description prompt when board has no description", async () => {
+    it("shows 'Add a description...' link when board has no description", async () => {
       const boardWithoutDesc = createMockBoard({
         id: "board-1",
         name: "No Description Board",
@@ -1046,7 +1055,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -1054,11 +1063,11 @@ describe("BoardView", () => {
       renderBoardView();
 
       await waitFor(() => {
-        expect(screen.getByText(/Add a description to help your team/i)).toBeInTheDocument();
+        expect(screen.getByText("Add a description...")).toBeInTheDocument();
       });
     });
 
-    it("opens description modal when add description prompt is clicked", async () => {
+    it("opens inline editor when 'Add a description...' link is clicked", async () => {
       const user = userEvent.setup();
       const boardWithoutDesc = createMockBoard({
         id: "board-1",
@@ -1068,7 +1077,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -1076,21 +1085,47 @@ describe("BoardView", () => {
       renderBoardView();
 
       await waitFor(() => {
-        expect(screen.getByText(/Add a description to help your team/i)).toBeInTheDocument();
+        expect(screen.getByText("Add a description...")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText(/Add a description to help your team/i));
+      await user.click(screen.getByText("Add a description..."));
 
-      expect(screen.getByText("Edit Board Description")).toBeInTheDocument();
+      // Should show inline editor (RichTextEditor)
+      await waitFor(() => {
+        expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
+      });
     });
   });
 
-  describe("todo edit modal", () => {
-    it("opens edit modal when clicking on a todo", async () => {
+  describe("detail panel (todo editing)", () => {
+    it("opens detail panel when clicking on a todo", async () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`/api/labels`, () => {
+          return HttpResponse.json(mockLabels);
+        })
+      );
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByText("First Task")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("First Task"));
+
+      // DetailPanel renders a close button with aria-label="Close panel"
+      await waitFor(() => {
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
+      });
+    });
+
+    it("closes detail panel when close button is clicked", async () => {
+      const user = userEvent.setup();
+
+      server.use(
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1104,15 +1139,21 @@ describe("BoardView", () => {
       await user.click(screen.getByText("First Task"));
 
       await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByLabelText("Close panel"));
+
+      await waitFor(() => {
+        expect(screen.queryByLabelText("Close panel")).not.toBeInTheDocument();
       });
     });
 
-    it("closes edit modal when Cancel is clicked", async () => {
+    it("shows todo title in detail panel", async () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1126,62 +1167,22 @@ describe("BoardView", () => {
       await user.click(screen.getByText("First Task"));
 
       await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /Cancel/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Task")).not.toBeInTheDocument();
-      });
+      // DetailPanel shows a title input with the todo's title
+      const titleInput = screen.getByDisplayValue("First Task");
+      expect(titleInput).toBeInTheDocument();
     });
 
-    it("saves todo changes", async () => {
+    it("shows delete task button in detail panel", async () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         }),
-        http.patch("/api/todos/:id", async ({ request }) => {
-          const body = await request.json() as { title?: string };
-          return HttpResponse.json({
-            ...createMockTodo({ id: "todo-1", title: body.title || "First Task" }),
-          });
-        })
-      );
-
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("First Task")).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByText("First Task"));
-
-      await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
-      });
-
-      const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "Updated Task Title");
-
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Task")).not.toBeInTheDocument();
-      });
-    });
-
-    it("deletes todo when delete is confirmed", async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.get("/api/labels", () => {
-          return HttpResponse.json(mockLabels);
-        }),
-        http.delete("/api/todos/:id", () => {
+        http.delete(`/api/todos/:id`, () => {
           return new HttpResponse(null, { status: 204 });
         })
       );
@@ -1195,37 +1196,17 @@ describe("BoardView", () => {
       await user.click(screen.getByText("First Task"));
 
       await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
       });
 
-      // Click Delete
-      await user.click(screen.getByRole("button", { name: /Delete/i }));
-
-      // Confirm deletion
-      await waitFor(() => {
-        expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByRole("button", { name: /Confirm Delete/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Task")).not.toBeInTheDocument();
-      });
+      // DetailPanel has a "Delete task" button in the footer
+      expect(screen.getByText("Delete task")).toBeInTheDocument();
     });
   });
 
   describe("column management", () => {
-    it("updates column when edited", async () => {
+    it("shows column options menu with Edit Description and Delete Column", async () => {
       const user = userEvent.setup();
-
-      server.use(
-        http.patch("/api/columns/:id", async ({ request }) => {
-          const body = await request.json() as { name?: string; description?: string };
-          return HttpResponse.json({
-            ...createMockColumn({ id: "column-1", name: body.name || "Todo" }),
-          });
-        })
-      );
 
       renderBoardView();
 
@@ -1237,30 +1218,16 @@ describe("BoardView", () => {
       const columnOptions = screen.getAllByLabelText("Column options")[0];
       await user.click(columnOptions);
 
-      // Click Edit
-      await user.click(screen.getByText("Edit"));
-
-      await waitFor(() => {
-        expect(screen.getByText("Edit Column")).toBeInTheDocument();
-      });
-
-      // Update name
-      const nameInput = screen.getByLabelText("Name");
-      await user.clear(nameInput);
-      await user.type(nameInput, "Updated Column");
-
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Column")).not.toBeInTheDocument();
-      });
+      // Menu should show Edit Description and Delete Column options
+      expect(screen.getByText("Edit Description")).toBeInTheDocument();
+      expect(screen.getByText("Delete Column")).toBeInTheDocument();
     });
 
-    it("deletes column when confirmed", async () => {
+    it("deletes column when Delete Column is clicked", async () => {
       const user = userEvent.setup();
 
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`/api/columns/:id`, () => {
           return new HttpResponse(null, { status: 204 });
         })
       );
@@ -1275,66 +1242,12 @@ describe("BoardView", () => {
       const columnOptions = screen.getAllByLabelText("Column options")[2];
       await user.click(columnOptions);
 
-      // Click Delete
-      await user.click(screen.getByText("Delete"));
+      // Click Delete Column (immediate, no confirmation dialog)
+      await user.click(screen.getByText("Delete Column"));
 
-      await waitFor(() => {
-        expect(screen.getByText("Delete Column")).toBeInTheDocument();
-      });
-
-      // Confirm deletion
-      await user.click(screen.getByRole("button", { name: /^Delete$/i }));
-
+      // Menu should close after clicking
       await waitFor(() => {
         expect(screen.queryByText("Delete Column")).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  describe("description collapse/expand", () => {
-    it("expands description when indicator is clicked", async () => {
-      const user = userEvent.setup();
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-      });
-
-      // Click the expand button
-      const expandButton = screen.getByTitle(/expand description/i);
-      await user.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Main project board")).toBeInTheDocument();
-      });
-    });
-
-    it("collapses description when collapse button is clicked", async () => {
-      const user = userEvent.setup();
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-      });
-
-      // Expand first
-      const expandButton = screen.getByTitle(/expand description/i);
-      await user.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Main project board")).toBeInTheDocument();
-      });
-
-      // Now collapse - find the ChevronDown button within the expanded description section
-      // The collapse button is within the description section, which contains "Main project board"
-      const descriptionSection = screen.getByText("Main project board").closest("div")?.parentElement;
-      expect(descriptionSection).toBeInTheDocument();
-      const collapseButton = descriptionSection?.querySelector("button");
-      expect(collapseButton).toBeInTheDocument();
-      await user.click(collapseButton!);
-
-      await waitFor(() => {
-        expect(screen.queryByText("Main project board")).not.toBeInTheDocument();
       });
     });
   });

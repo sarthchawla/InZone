@@ -97,7 +97,7 @@ describe("useCreateColumn hook", () => {
 
     it("handles server error during creation", async () => {
       server.use(
-        http.post("/api/boards/:boardId/columns", () => {
+        http.post(`/api/boards/:boardId/columns`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -119,7 +119,7 @@ describe("useCreateColumn hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.post("/api/boards/:boardId/columns", () => {
+        http.post(`/api/boards/:boardId/columns`, () => {
           return HttpResponse.error();
         })
       );
@@ -138,7 +138,7 @@ describe("useCreateColumn hook", () => {
 
     it("handles validation error for negative WIP limit", async () => {
       server.use(
-        http.post("/api/boards/:boardId/columns", () => {
+        http.post(`/api/boards/:boardId/columns`, () => {
           return HttpResponse.json(
             { error: "WIP limit must be positive" },
             { status: 400 }
@@ -243,7 +243,7 @@ describe("useUpdateColumn hook", () => {
   describe("error handling", () => {
     it("handles 404 for non-existent column", async () => {
       server.use(
-        http.put("/api/columns/:id", () => {
+        http.put(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Column not found" },
             { status: 404 }
@@ -266,7 +266,7 @@ describe("useUpdateColumn hook", () => {
 
     it("handles server error during update", async () => {
       server.use(
-        http.put("/api/columns/:id", () => {
+        http.put(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -289,7 +289,7 @@ describe("useUpdateColumn hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.put("/api/columns/:id", () => {
+        http.put(`/api/columns/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -309,7 +309,7 @@ describe("useUpdateColumn hook", () => {
 
     it("handles validation error for empty name", async () => {
       server.use(
-        http.put("/api/columns/:id", () => {
+        http.put(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Name is required" },
             { status: 400 }
@@ -382,7 +382,7 @@ describe("useDeleteColumn hook", () => {
   describe("error handling", () => {
     it("handles 404 for non-existent column", async () => {
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Column not found" },
             { status: 404 }
@@ -404,7 +404,7 @@ describe("useDeleteColumn hook", () => {
 
     it("handles 404 for non-existent move target column", async () => {
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Target column not found" },
             { status: 404 }
@@ -427,7 +427,7 @@ describe("useDeleteColumn hook", () => {
 
     it("handles server error during deletion", async () => {
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -449,7 +449,7 @@ describe("useDeleteColumn hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`/api/columns/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -468,7 +468,7 @@ describe("useDeleteColumn hook", () => {
 
     it("handles deletion of last column in board", async () => {
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`/api/columns/:id`, () => {
           return HttpResponse.json(
             { error: "Cannot delete the last column" },
             { status: 400 }
@@ -552,7 +552,7 @@ describe("useReorderColumns hook", () => {
   describe("error handling", () => {
     it("handles server error during reorder", async () => {
       server.use(
-        http.patch("/api/columns/reorder", () => {
+        http.patch(`/api/columns/reorder`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -574,7 +574,7 @@ describe("useReorderColumns hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.patch("/api/columns/reorder", () => {
+        http.patch(`/api/columns/reorder`, () => {
           return HttpResponse.error();
         })
       );
@@ -593,7 +593,7 @@ describe("useReorderColumns hook", () => {
 
     it("handles validation error for invalid column IDs", async () => {
       server.use(
-        http.patch("/api/columns/reorder", () => {
+        http.patch(`/api/columns/reorder`, () => {
           return HttpResponse.json(
             { error: "Invalid column IDs" },
             { status: 400 }
@@ -615,7 +615,7 @@ describe("useReorderColumns hook", () => {
 
     it("handles validation error for empty column IDs", async () => {
       server.use(
-        http.patch("/api/columns/reorder", () => {
+        http.patch(`/api/columns/reorder`, () => {
           return HttpResponse.json(
             { error: "Column IDs are required" },
             { status: 400 }
@@ -637,7 +637,7 @@ describe("useReorderColumns hook", () => {
 
     it("handles columns from different boards", async () => {
       server.use(
-        http.patch("/api/columns/reorder", () => {
+        http.patch(`/api/columns/reorder`, () => {
           return HttpResponse.json(
             { error: "Columns must belong to the same board" },
             { status: 400 }

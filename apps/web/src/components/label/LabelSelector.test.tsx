@@ -312,7 +312,7 @@ describe("LabelSelector", () => {
   describe("edge cases", () => {
     it("handles empty labels list", async () => {
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -345,7 +345,7 @@ describe("LabelSelector", () => {
 
     it("handles label creation failure", async () => {
       server.use(
-        http.post("/api/labels", () => {
+        http.post(`/api/labels`, () => {
           return HttpResponse.json({ error: "Label already exists" }, { status: 400 });
         })
       );

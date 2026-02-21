@@ -14,19 +14,19 @@ describe("Button", () => {
     it("renders with default variant styling", () => {
       render(<Button>Default</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("bg-gray-100");
+      expect(button).toHaveClass("bg-stone-100");
     });
 
     it("renders with primary variant styling", () => {
       render(<Button variant="primary">Primary</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("bg-blue-600");
+      expect(button).toHaveClass("bg-accent");
     });
 
     it("renders with ghost variant styling", () => {
       render(<Button variant="ghost">Ghost</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("hover:bg-gray-100");
+      expect(button).toHaveClass("hover:bg-stone-100");
     });
 
     it("renders with danger variant styling", () => {
@@ -38,19 +38,19 @@ describe("Button", () => {
     it("renders with small size", () => {
       render(<Button size="sm">Small</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("h-8");
+      expect(button).toHaveClass("min-h-[36px]");
     });
 
     it("renders with medium size (default)", () => {
       render(<Button size="md">Medium</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("h-10");
+      expect(button).toHaveClass("min-h-[44px]");
     });
 
     it("renders with large size", () => {
       render(<Button size="lg">Large</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("h-12");
+      expect(button).toHaveClass("min-h-[48px]");
     });
 
     it("applies custom className", () => {

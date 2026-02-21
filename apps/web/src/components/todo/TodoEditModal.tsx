@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, FileText } from 'lucide-react';
-import { Modal, Button, Input } from '../ui';
+import { Modal, Button, Input, RichTextEditor } from '../ui';
 import { LabelSelector } from '../label';
 import { PriorityBadge } from '../ui/Badge';
 import type { Todo, Priority, Label } from '../../types';
@@ -115,23 +115,17 @@ export function TodoEditModal({
 
         {/* Description */}
         <div>
-          <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             <span className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
               Description
             </span>
           </label>
-          <textarea
-            id="todoDescription"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a more detailed description... (Markdown supported)"
-            rows={6}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm font-mono"
+          <RichTextEditor
+            content={description}
+            onChange={setDescription}
+            placeholder="Add a more detailed description..."
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Supports Markdown: **bold**, *italic*, `code`, - lists, etc.
-          </p>
         </div>
 
         {/* Priority */}
@@ -145,6 +139,7 @@ export function TodoEditModal({
                 key={p}
                 type="button"
                 onClick={() => setPriority(p)}
+                title={`Set priority to ${p.charAt(0) + p.slice(1).toLowerCase()}`}
                 className={`px-3 py-1.5 rounded-md border transition-colors ${
                   priority === p
                     ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'

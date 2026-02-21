@@ -49,18 +49,19 @@ describe("TodoCard", () => {
       expect(screen.queryByTitle("Has description")).not.toBeInTheDocument();
     });
 
-    it("renders priority badge", () => {
+    it("renders priority as dot and lowercase label", () => {
       const todo = createMockTodo({ priority: "HIGH" });
       renderWithDnd(<TodoCard todo={todo} />);
-      expect(screen.getByText("HIGH")).toBeInTheDocument();
+      expect(screen.getByText("high")).toBeInTheDocument();
     });
 
     it("renders all priority levels correctly", () => {
       const priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+      const labels = { LOW: "low", MEDIUM: "medium", HIGH: "high", URGENT: "urgent" };
       priorities.forEach((priority) => {
         const todo = createMockTodo({ priority, id: `todo-${priority}` });
         const { unmount } = renderWithDnd(<TodoCard todo={todo} />);
-        expect(screen.getByText(priority)).toBeInTheDocument();
+        expect(screen.getByText(labels[priority])).toBeInTheDocument();
         unmount();
       });
     });
@@ -68,9 +69,9 @@ describe("TodoCard", () => {
     it("renders due date when provided", () => {
       const todo = createMockTodo({ dueDate: "2025-02-15T00:00:00.000Z" });
       renderWithDnd(<TodoCard todo={todo} />);
-      // Date should be formatted - look for any date pattern
-      const dateContainer = document.querySelector('.inline-flex.items-center.gap-1.text-xs');
-      expect(dateContainer).toBeInTheDocument();
+      // Due date should be rendered with data-testid
+      const dateElement = screen.getByTestId("due-date");
+      expect(dateElement).toBeInTheDocument();
     });
 
     it("does not render due date when not provided", () => {
@@ -103,8 +104,8 @@ describe("TodoCard", () => {
     it("renders without labels when array is empty", () => {
       const todo = createMockTodo({ labels: [] });
       renderWithDnd(<TodoCard todo={todo} />);
-      // Should render without crashing, only priority badge should be visible
-      expect(screen.getByText("MEDIUM")).toBeInTheDocument();
+      // Should render without crashing, priority label should be visible
+      expect(screen.getByText("medium")).toBeInTheDocument();
     });
   });
 
@@ -122,16 +123,24 @@ describe("TodoCard", () => {
     it("applies dragging styles when isDragging is true", () => {
       const todo = createMockTodo();
       renderWithDnd(<TodoCard todo={todo} isDragging />);
-      // The card should have opacity-50 class when dragging
-      const card = screen.getByText("Test Todo").closest(".opacity-50");
-      expect(card).toBeInTheDocument();
+      // The card should show a dashed border placeholder when being dragged
+      const card = screen.getByTestId("todo-card");
+      expect(card).toHaveClass("border-dashed");
+      expect(card.className).toContain("border-accent-muted");
     });
 
     it("does not apply dragging styles when isDragging is false", () => {
       const todo = createMockTodo();
       renderWithDnd(<TodoCard todo={todo} isDragging={false} />);
-      const card = screen.getByText("Test Todo").closest(".opacity-50");
-      expect(card).not.toBeInTheDocument();
+      const card = screen.getByTestId("todo-card");
+      expect(card).not.toHaveClass("border-dashed");
+    });
+
+    it("applies overlay styles when isOverlay is true", () => {
+      const todo = createMockTodo();
+      renderWithDnd(<TodoCard todo={todo} isOverlay />);
+      const card = screen.getByTestId("todo-card");
+      expect(card).toHaveClass("shadow-2xl");
     });
   });
 
@@ -140,8 +149,8 @@ describe("TodoCard", () => {
     it("handles empty title", () => {
       const todo = createMockTodo({ title: "" });
       renderWithDnd(<TodoCard todo={todo} />);
-      // Card should render without crashing
-      expect(screen.getByText("MEDIUM")).toBeInTheDocument();
+      // Card should render without crashing, priority label should be visible
+      expect(screen.getByText("medium")).toBeInTheDocument();
     });
 
     it("handles very long title", () => {
@@ -197,7 +206,7 @@ describe("TodoCard", () => {
       });
     });
 
-    it("handles many labels", () => {
+    it("handles many labels (shows max 3 plus overflow count)", () => {
       const manyLabels = Array.from({ length: 10 }, (_, i) => ({
         id: `label-${i}`,
         name: `Label ${i}`,
@@ -205,10 +214,14 @@ describe("TodoCard", () => {
       }));
       const todo = createMockTodo({ labels: manyLabels });
       renderWithDnd(<TodoCard todo={todo} />);
-      // All labels should be rendered
-      manyLabels.forEach((label) => {
-        expect(screen.getByText(label.name)).toBeInTheDocument();
-      });
+      // Only first 3 labels should be rendered as chips
+      expect(screen.getByText("Label 0")).toBeInTheDocument();
+      expect(screen.getByText("Label 1")).toBeInTheDocument();
+      expect(screen.getByText("Label 2")).toBeInTheDocument();
+      // Labels beyond 3 should not be rendered individually
+      expect(screen.queryByText("Label 3")).not.toBeInTheDocument();
+      // Overflow indicator should show "+7 more"
+      expect(screen.getByText("+7 more")).toBeInTheDocument();
     });
 
     it("handles invalid date format gracefully", () => {
@@ -222,8 +235,8 @@ describe("TodoCard", () => {
     it("has proper semantic structure", () => {
       const todo = createMockTodo();
       renderWithDnd(<TodoCard todo={todo} />);
-      // Card should be wrapped in a div - find the outer card container
-      const card = screen.getByText("Test Todo").closest('[class*="rounded-lg"]');
+      // Card should be wrapped in a div with rounded-xl styling
+      const card = screen.getByText("Test Todo").closest('[class*="rounded-xl"]');
       expect(card).toBeInTheDocument();
     });
   });
@@ -313,14 +326,14 @@ describe("TodoCard", () => {
       expect(onClick).toHaveBeenCalledWith(todo);
     });
 
-    it("click on priority badge triggers onClick", () => {
+    it("click on priority label triggers onClick", () => {
       const { fireEvent } = require("@testing-library/react");
       const onClick = vi.fn();
       const todo = createMockTodo({ priority: "URGENT" });
       renderWithDnd(<TodoCard todo={todo} onClick={onClick} />);
 
-      const priorityBadge = screen.getByText("URGENT");
-      fireEvent.click(priorityBadge);
+      const priorityLabel = screen.getByText("urgent");
+      fireEvent.click(priorityLabel);
 
       expect(onClick).toHaveBeenCalledWith(todo);
     });

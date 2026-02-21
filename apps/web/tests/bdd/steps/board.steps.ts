@@ -193,44 +193,21 @@ Given('the following boards exist:', async ({ page, baseUrl, mockedRoutes }, dat
 
 // Board creation steps
 When('I enter {string} as the board name', async ({ page }, boardName: string) => {
-  await page.getByPlaceholder(/enter board name/i).fill(boardName);
+  await page.getByPlaceholder(/board name/i).fill(boardName);
 });
 
 When('I leave the board name empty', async ({ page }) => {
-  await page.getByPlaceholder(/enter board name/i).clear();
+  await page.getByPlaceholder(/board name/i).clear();
 });
 
 When('I enter a {int} character board name', async ({ page }, length: number) => {
   const longName = 'A'.repeat(length);
-  await page.getByPlaceholder(/enter board name/i).fill(longName);
+  await page.getByPlaceholder(/board name/i).fill(longName);
 });
 
 When('I select {string} template', async ({ page }, templateName: string) => {
-  // Native <select> element - use selectOption
-  // The option labels are formatted as "{name} - {description}" in the UI
-  const select = page.locator('#template-select');
-
-  // Wait for options to be populated (more than just the default empty option)
-  await page.waitForFunction(() => {
-    const select = document.getElementById('template-select') as HTMLSelectElement;
-    return select && select.options.length > 1;
-  }, { timeout: 5000 });
-
-  // Find the option that starts with the template name followed by " - "
-  // This ensures we match exactly "Simple - ..." and not "Basic Kanban - Simple..."
-  const options = select.locator('option');
-  const count = await options.count();
-  for (let i = 0; i < count; i++) {
-    const optionText = await options.nth(i).textContent();
-    if (optionText?.startsWith(`${templateName} - `)) {
-      const value = await options.nth(i).getAttribute('value');
-      if (value) {
-        await select.selectOption(value);
-        return;
-      }
-    }
-  }
-  throw new Error(`Template "${templateName}" not found in dropdown options`);
+  // Templates are button chips in the inline create form
+  await page.getByRole('button', { name: templateName, exact: true }).click();
 });
 
 When('I click on {string} board', async ({ page }, boardName: string) => {
@@ -244,12 +221,12 @@ When('I click on {string} board', async ({ page }, boardName: string) => {
 
 // Board deletion steps
 When('I click the delete button for {string}', async ({ page }, boardName: string) => {
-  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
-  // Hover on the board card to make the delete button visible (it's hidden by default)
-  await boardCard.hover();
-  await boardCard.getByRole('button', { name: /delete/i }).click();
-  // Wait for the confirmation modal to appear
-  await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+  // Open the CardDropdown menu for this board
+  await page.getByLabel(`Actions for ${boardName}`).click();
+  // Click "Delete" from the dropdown
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  // Wait briefly for the deletion to process
+  await page.waitForTimeout(500);
 });
 
 // Assertion steps
@@ -260,15 +237,20 @@ Then('I should see {string} in the boards list', async ({ page }, boardName: str
 });
 
 Then('{string} should no longer appear in the boards list', async ({ page }, boardName: string) => {
-  await expect(page.getByText(boardName)).not.toBeVisible();
+  // Use board card locator to avoid matching template buttons or other text
+  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
+  await expect(boardCard).not.toBeVisible({ timeout: 10000 });
 });
 
 Then('{string} should still appear in the boards list', async ({ page }, boardName: string) => {
-  await expect(page.getByText(boardName)).toBeVisible();
+  const boardCard = page.locator(`[data-testid="board-card"]:has-text("${boardName}")`);
+  await expect(boardCard).toBeVisible();
 });
 
 Then('I should see an empty state message', async ({ page }) => {
-  await expect(page.getByText(/no boards/i)).toBeVisible();
+  // Revamped UI uses "Start by creating your first board" instead of "no boards"
+  const emptyMsg = page.getByText(/no boards|start by creating|create your first board/i);
+  await expect(emptyMsg).toBeVisible();
 });
 
 Then('I should see a {string} prompt', async ({ page }, promptText: string) => {
@@ -664,14 +646,13 @@ Given('a board named {string} exists', async ({ page, baseUrl, mockedRoutes }, b
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
 });
 
-// Dialog closed assertion
+// Inline create form closed assertion
 Then('the create dialog should be closed', async ({ page }) => {
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('[data-testid="inline-create-form"]')).not.toBeVisible();
 });
 
 // Button state assertions
 Then('the create button should be disabled', async ({ page }) => {
-  // Target the Create Board button specifically within the dialog
-  const createButton = page.getByRole('dialog').getByRole('button', { name: /create board/i });
+  const createButton = page.getByRole('button', { name: /^create$/i });
   await expect(createButton).toBeDisabled();
 });

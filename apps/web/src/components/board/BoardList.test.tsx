@@ -35,11 +35,11 @@ describe("BoardList", () => {
       expect(screen.getByText("Personal task tracking")).toBeInTheDocument();
     });
 
-    it("renders New Board button", async () => {
+    it("renders New Board ghost card button", async () => {
       render(<BoardList />);
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /new board/i })).toBeInTheDocument();
+        expect(screen.getByTestId("ghost-card")).toBeInTheDocument();
       });
     });
 
@@ -54,7 +54,7 @@ describe("BoardList", () => {
 
     it("uses singular grammar for 1 column", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-1",
@@ -75,7 +75,7 @@ describe("BoardList", () => {
 
     it("uses singular grammar for 1 task", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-1",
@@ -98,7 +98,7 @@ describe("BoardList", () => {
   describe("empty state", () => {
     beforeEach(() => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -108,22 +108,23 @@ describe("BoardList", () => {
       render(<BoardList />);
 
       await waitFor(() => {
-        expect(screen.getByText("No boards yet")).toBeInTheDocument();
+        expect(screen.getByText("Start by creating your first board")).toBeInTheDocument();
       });
-      expect(screen.getByText("Create your first board to get started")).toBeInTheDocument();
+      expect(screen.getByText(/Boards help you organise tasks into columns/)).toBeInTheDocument();
     });
 
-    it("shows Create Board button in empty state", async () => {
+    it("shows inline create form in empty state", async () => {
       render(<BoardList />);
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /create board/i })).toBeInTheDocument();
+        expect(screen.getByTestId("inline-create-form")).toBeInTheDocument();
       });
+      expect(screen.getByPlaceholderText(/board name/i)).toBeInTheDocument();
     });
   });
 
-  describe("create board modal", () => {
-    it("opens modal when New Board button is clicked", async () => {
+  describe("inline board creation", () => {
+    it("opens inline form when ghost card is clicked", async () => {
       const user = userEvent.setup();
       render(<BoardList />);
 
@@ -131,14 +132,13 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      expect(screen.getByText("Create New Board")).toBeInTheDocument();
-      // Check for the input with placeholder
-      expect(screen.getByPlaceholderText(/enter board name/i)).toBeInTheDocument();
+      expect(screen.getByTestId("inline-create-form")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/board name/i)).toBeInTheDocument();
     });
 
-    it("closes modal when Cancel is clicked", async () => {
+    it("closes inline form when Cancel is clicked", async () => {
       const user = userEvent.setup();
       render(<BoardList />);
 
@@ -146,13 +146,13 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
-      expect(screen.getByText("Create New Board")).toBeInTheDocument();
+      await user.click(screen.getByTestId("ghost-card"));
+      expect(screen.getByTestId("inline-create-form")).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: /cancel/i }));
 
       await waitFor(() => {
-        expect(screen.queryByText("Create New Board")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("inline-create-form")).not.toBeInTheDocument();
       });
     });
 
@@ -164,16 +164,16 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      const nameInput = screen.getByPlaceholderText(/enter board name/i);
+      const nameInput = screen.getByPlaceholderText(/board name/i);
       await user.type(nameInput, "New Test Board");
 
-      await user.click(screen.getByRole("button", { name: /^create board$/i }));
+      await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-      // Modal should close after successful creation
+      // Form should close after successful creation
       await waitFor(() => {
-        expect(screen.queryByText("Create New Board")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("ghost-card-form")).not.toBeInTheDocument();
       });
     });
 
@@ -185,9 +185,9 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      const createButton = screen.getByRole("button", { name: /^create board$/i });
+      const createButton = screen.getByRole("button", { name: /^create$/i });
       expect(createButton).toBeDisabled();
     });
 
@@ -199,16 +199,16 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      const nameInput = screen.getByPlaceholderText(/enter board name/i);
+      const nameInput = screen.getByPlaceholderText(/board name/i);
       await user.type(nameInput, "New Board");
 
-      const createButton = screen.getByRole("button", { name: /^create board$/i });
+      const createButton = screen.getByRole("button", { name: /^create$/i });
       expect(createButton).not.toBeDisabled();
     });
 
-    it("shows template selector in create modal", async () => {
+    it("shows template chips in create form", async () => {
       const user = userEvent.setup();
       render(<BoardList />);
 
@@ -216,15 +216,15 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      expect(screen.getByLabelText(/template/i)).toBeInTheDocument();
-      expect(screen.getByText(/no template \(empty board\)/i)).toBeInTheDocument();
+      // The inline form shows template chips including "Empty board" default
+      expect(screen.getByRole("button", { name: /empty board/i })).toBeInTheDocument();
     });
   });
 
   describe("delete board", () => {
-    it("shows confirmation modal when delete button is clicked", async () => {
+    it("shows dropdown menu when actions button is clicked", async () => {
       const user = userEvent.setup();
 
       render(<BoardList />);
@@ -233,24 +233,27 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Find the delete button for Project Alpha
-      const boardCard = screen.getByText("Project Alpha").closest("a");
-      const deleteButton = boardCard?.querySelector("button");
+      // Find the actions button for Project Alpha
+      const actionsButton = screen.getByLabelText("Actions for Project Alpha");
+      await user.click(actionsButton);
 
-      expect(deleteButton).toBeTruthy();
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
-
-      // Check that the confirmation modal appears
+      // Check that the dropdown menu appears with Rename and Delete options
       await waitFor(() => {
-        expect(screen.getByText("Delete Board")).toBeInTheDocument();
+        expect(screen.getByText("Delete")).toBeInTheDocument();
       });
-      expect(screen.getByText(/Are you sure you want to delete this board/)).toBeInTheDocument();
+      expect(screen.getByText("Rename")).toBeInTheDocument();
     });
 
-    it("deletes board when confirmed", async () => {
+    it("deletes board directly when Delete is clicked from dropdown", async () => {
       const user = userEvent.setup();
+
+      let deleteWasCalled = false;
+      server.use(
+        http.delete(`/api/boards/:id`, () => {
+          deleteWasCalled = true;
+          return new HttpResponse(null, { status: 204 });
+        })
+      );
 
       render(<BoardList />);
 
@@ -258,58 +261,19 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      const boardCard = screen.getByText("Project Alpha").closest("a");
-      const deleteButton = boardCard?.querySelector("button");
-
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
-
-      // Wait for confirmation modal
-      await waitFor(() => {
-        expect(screen.getByText("Delete Board")).toBeInTheDocument();
-      });
-
-      // Click confirm delete button
-      await user.click(screen.getByRole("button", { name: /confirm delete/i }));
-
-      // Modal should close after successful deletion
-      await waitFor(() => {
-        expect(screen.queryByText("Delete Board")).not.toBeInTheDocument();
-      });
-    });
-
-    it("does not delete board when cancelled", async () => {
-      const user = userEvent.setup();
-
-      render(<BoardList />);
+      const actionsButton = screen.getByLabelText("Actions for Project Alpha");
+      await user.click(actionsButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getByText("Delete")).toBeInTheDocument();
       });
 
-      const boardCard = screen.getByText("Project Alpha").closest("a");
-      const deleteButton = boardCard?.querySelector("button");
+      await user.click(screen.getByText("Delete"));
 
-      if (deleteButton) {
-        await user.click(deleteButton);
-      }
-
-      // Wait for confirmation modal
+      // Delete API should have been called and toast should appear
       await waitFor(() => {
-        expect(screen.getByText("Delete Board")).toBeInTheDocument();
+        expect(deleteWasCalled).toBe(true);
       });
-
-      // Click cancel button
-      await user.click(screen.getByRole("button", { name: /cancel/i }));
-
-      // Modal should close
-      await waitFor(() => {
-        expect(screen.queryByText("Delete Board")).not.toBeInTheDocument();
-      });
-
-      // Board should still be visible
-      expect(screen.getByText("Project Alpha")).toBeInTheDocument();
     });
   });
 
@@ -317,7 +281,7 @@ describe("BoardList", () => {
   describe("error handling", () => {
     it("shows error state when API fails", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -334,7 +298,7 @@ describe("BoardList", () => {
 
     it("shows error message on create failure", async () => {
       server.use(
-        http.post("/api/boards", () => {
+        http.post(`/api/boards`, () => {
           return HttpResponse.json(
             { error: "Board name already exists" },
             { status: 400 }
@@ -349,21 +313,21 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      const nameInput = screen.getByPlaceholderText(/enter board name/i);
+      const nameInput = screen.getByPlaceholderText(/board name/i);
       await user.type(nameInput, "Duplicate Board");
 
-      await user.click(screen.getByRole("button", { name: /^create board$/i }));
+      await user.click(screen.getByRole("button", { name: /^create$/i }));
 
       await waitFor(() => {
         expect(screen.getByText("Board name already exists")).toBeInTheDocument();
       });
     });
 
-    it("clears error when modal is closed and reopened", async () => {
+    it("clears error when form is closed and reopened", async () => {
       server.use(
-        http.post("/api/boards", () => {
+        http.post(`/api/boards`, () => {
           return HttpResponse.json(
             { error: "Board name already exists" },
             { status: 400 }
@@ -378,23 +342,26 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Open modal and trigger error
-      await user.click(screen.getByRole("button", { name: /new board/i }));
-      const nameInput = screen.getByPlaceholderText(/enter board name/i);
+      // Open form and trigger error
+      await user.click(screen.getByTestId("ghost-card"));
+      const nameInput = screen.getByPlaceholderText(/board name/i);
       await user.type(nameInput, "Duplicate Board");
-      await user.click(screen.getByRole("button", { name: /^create board$/i }));
+      await user.click(screen.getByRole("button", { name: /^create$/i }));
 
       await waitFor(() => {
         expect(screen.getByText("Board name already exists")).toBeInTheDocument();
       });
 
-      // Close modal
+      // Close form
       await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-      // Reopen modal
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      // Reopen form
+      await waitFor(() => {
+        expect(screen.getByTestId("ghost-card")).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId("ghost-card"));
 
-      // Error should be cleared
+      // Error should be cleared (new form instance)
       expect(screen.queryByText("Board name already exists")).not.toBeInTheDocument();
     });
   });
@@ -415,7 +382,7 @@ describe("BoardList", () => {
   describe("edge cases", () => {
     it("handles boards without columns", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-no-columns",
@@ -436,7 +403,7 @@ describe("BoardList", () => {
 
     it("handles boards without description", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-no-desc",
@@ -462,12 +429,12 @@ describe("BoardList", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /new board/i }));
+      await user.click(screen.getByTestId("ghost-card"));
 
-      const nameInput = screen.getByPlaceholderText(/enter board name/i);
+      const nameInput = screen.getByPlaceholderText(/board name/i);
       await user.type(nameInput, "   ");
 
-      const createButton = screen.getByRole("button", { name: /^create board$/i });
+      const createButton = screen.getByRole("button", { name: /^create$/i });
       expect(createButton).toBeDisabled();
     });
   });

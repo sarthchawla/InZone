@@ -53,3 +53,13 @@ export interface BoardTemplate {
 }
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface ContextMenuItem {
+  label: string;
+  icon?: React.ReactNode;
+  shortcut?: string;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  submenu?: ContextMenuItem[];
+}

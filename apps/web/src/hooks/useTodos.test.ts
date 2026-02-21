@@ -107,7 +107,7 @@ describe("useCreateTodo hook", () => {
 
     it("handles validation error for missing columnId", async () => {
       server.use(
-        http.post("/api/todos", () => {
+        http.post(`/api/todos`, () => {
           return HttpResponse.json(
             { error: "Column ID is required" },
             { status: 400 }
@@ -130,7 +130,7 @@ describe("useCreateTodo hook", () => {
 
     it("handles server error during creation", async () => {
       server.use(
-        http.post("/api/todos", () => {
+        http.post(`/api/todos`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -153,7 +153,7 @@ describe("useCreateTodo hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.post("/api/todos", () => {
+        http.post(`/api/todos`, () => {
           return HttpResponse.error();
         })
       );
@@ -173,7 +173,7 @@ describe("useCreateTodo hook", () => {
 
     it("handles non-existent column", async () => {
       server.use(
-        http.post("/api/todos", () => {
+        http.post(`/api/todos`, () => {
           return HttpResponse.json(
             { error: "Column not found" },
             { status: 404 }
@@ -338,7 +338,7 @@ describe("useUpdateTodo hook", () => {
   describe("error handling", () => {
     it("handles 404 for non-existent todo", async () => {
       server.use(
-        http.put("/api/todos/:id", () => {
+        http.put(`/api/todos/:id`, () => {
           return HttpResponse.json({ error: "Todo not found" }, { status: 404 });
         })
       );
@@ -358,7 +358,7 @@ describe("useUpdateTodo hook", () => {
 
     it("handles server error during update", async () => {
       server.use(
-        http.put("/api/todos/:id", () => {
+        http.put(`/api/todos/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -381,7 +381,7 @@ describe("useUpdateTodo hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.put("/api/todos/:id", () => {
+        http.put(`/api/todos/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -431,7 +431,7 @@ describe("useDeleteTodo hook", () => {
   describe("error handling", () => {
     it("handles 404 for non-existent todo", async () => {
       server.use(
-        http.delete("/api/todos/:id", () => {
+        http.delete(`/api/todos/:id`, () => {
           return HttpResponse.json({ error: "Todo not found" }, { status: 404 });
         })
       );
@@ -447,7 +447,7 @@ describe("useDeleteTodo hook", () => {
 
     it("handles server error during deletion", async () => {
       server.use(
-        http.delete("/api/todos/:id", () => {
+        http.delete(`/api/todos/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -466,7 +466,7 @@ describe("useDeleteTodo hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.delete("/api/todos/:id", () => {
+        http.delete(`/api/todos/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -538,7 +538,7 @@ describe("useMoveTodo hook", () => {
   describe("error handling", () => {
     it("handles 404 for non-existent todo", async () => {
       server.use(
-        http.patch("/api/todos/:id/move", () => {
+        http.patch(`/api/todos/:id/move`, () => {
           return HttpResponse.json({ error: "Todo not found" }, { status: 404 });
         })
       );
@@ -559,7 +559,7 @@ describe("useMoveTodo hook", () => {
 
     it("handles 404 for non-existent target column", async () => {
       server.use(
-        http.patch("/api/todos/:id/move", () => {
+        http.patch(`/api/todos/:id/move`, () => {
           return HttpResponse.json(
             { error: "Column not found" },
             { status: 404 }
@@ -583,7 +583,7 @@ describe("useMoveTodo hook", () => {
 
     it("handles server error during move", async () => {
       server.use(
-        http.patch("/api/todos/:id/move", () => {
+        http.patch(`/api/todos/:id/move`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -607,7 +607,7 @@ describe("useMoveTodo hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.patch("/api/todos/:id/move", () => {
+        http.patch(`/api/todos/:id/move`, () => {
           return HttpResponse.error();
         })
       );
@@ -696,7 +696,7 @@ describe("useReorderTodos hook", () => {
   describe("error handling", () => {
     it("handles server error during reorder", async () => {
       server.use(
-        http.patch("/api/todos/reorder", () => {
+        http.patch(`/api/todos/reorder`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -719,7 +719,7 @@ describe("useReorderTodos hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.patch("/api/todos/reorder", () => {
+        http.patch(`/api/todos/reorder`, () => {
           return HttpResponse.error();
         })
       );
@@ -739,7 +739,7 @@ describe("useReorderTodos hook", () => {
 
     it("handles validation error for invalid todo IDs", async () => {
       server.use(
-        http.patch("/api/todos/reorder", () => {
+        http.patch(`/api/todos/reorder`, () => {
           return HttpResponse.json(
             { error: "Invalid todo IDs" },
             { status: 400 }
@@ -815,7 +815,7 @@ describe("useArchiveTodo hook", () => {
   describe("error handling", () => {
     it("handles 404 for non-existent todo", async () => {
       server.use(
-        http.patch("/api/todos/:id/archive", () => {
+        http.patch(`/api/todos/:id/archive`, () => {
           return HttpResponse.json({ error: "Todo not found" }, { status: 404 });
         })
       );
@@ -835,7 +835,7 @@ describe("useArchiveTodo hook", () => {
 
     it("handles server error during archive", async () => {
       server.use(
-        http.patch("/api/todos/:id/archive", () => {
+        http.patch(`/api/todos/:id/archive`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -858,7 +858,7 @@ describe("useArchiveTodo hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.patch("/api/todos/:id/archive", () => {
+        http.patch(`/api/todos/:id/archive`, () => {
           return HttpResponse.error();
         })
       );
