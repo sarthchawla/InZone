@@ -5,6 +5,8 @@
 #   - VERCEL_ORG_ID      : Vercel organization/user ID (Settings > General > "Vercel ID")
 #   - VERCEL_PROJECT_ID  : Vercel project ID (Project Settings > General > "Project ID")
 #   - NEON_DIRECT_URL    : Neon direct (non-pooled) connection string for migrations
+#   - NEON_API_KEY       : Neon API token (for PR preview branch creation)
+#   - NEON_PROJECT_ID    : Neon project ID (for PR preview branch creation)
 
 name: Vercel Deploy
 
@@ -19,10 +21,71 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
+  neon-branch:
+    name: Create Neon Preview Branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    outputs:
+      db-url: ${{ steps.create-branch.outputs.db-url }}
+      direct-url: ${{ steps.create-branch.outputs.direct-url }}
+      branch-name: ${{ steps.create-branch.outputs.branch-name }}
+
+    steps:
+      - name: Install neonctl
+        run: npm install -g neonctl
+
+      - name: Create or reuse Neon branch
+        id: create-branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          BRANCH_NAME="preview/pr-${PR_NUMBER}"
+          echo "branch-name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+          # Check if branch already exists
+          EXISTING=$(neonctl branches list \
+            --project-id "$NEON_PROJECT_ID" \
+            --output json 2>/dev/null | \
+            jq -r ".[] | select(.name == \"$BRANCH_NAME\") | .id" || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "Branch '$BRANCH_NAME' already exists (id: $EXISTING), reusing it"
+            BRANCH_ID="$EXISTING"
+          else
+            echo "Creating new Neon branch: $BRANCH_NAME"
+            CREATE_OUTPUT=$(neonctl branches create \
+              --project-id "$NEON_PROJECT_ID" \
+              --name "$BRANCH_NAME" \
+              --output json)
+            BRANCH_ID=$(echo "$CREATE_OUTPUT" | jq -r '.branch.id')
+            echo "Created branch '$BRANCH_NAME' (id: $BRANCH_ID)"
+          fi
+
+          # Get connection string (pooled for app usage)
+          DB_URL=$(neonctl connection-string "$BRANCH_NAME" \
+            --project-id "$NEON_PROJECT_ID" \
+            --pooled)
+
+          # Get direct connection string (for migrations)
+          DIRECT_URL=$(neonctl connection-string "$BRANCH_NAME" \
+            --project-id "$NEON_PROJECT_ID")
+
+          # Mask secrets in logs
+          echo "::add-mask::$DB_URL"
+          echo "::add-mask::$DIRECT_URL"
+
+          echo "db-url=$DB_URL" >> "$GITHUB_OUTPUT"
+          echo "direct-url=$DIRECT_URL" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [neon-branch]
+    if: always() && (github.event_name == 'push' || needs.neon-branch.result == 'success')
     outputs:
       deployment-url: ${{ steps.deploy-production.outputs.url || steps.deploy-preview.outputs.url }}
 
@@ -74,8 +137,14 @@ jobs:
       - name: Deploy Preview
         if: github.event_name == 'pull_request'
         id: deploy-preview
+        env:
+          BRANCH_DB_URL: ${{ needs.neon-branch.outputs.db-url }}
+          BRANCH_DIRECT_URL: ${{ needs.neon-branch.outputs.direct-url }}
         run: |
-          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt \
+            --env DATABASE_URL="$BRANCH_DB_URL" \
+            --env DIRECT_URL="$BRANCH_DIRECT_URL" \
+            --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Preview deployed to: $URL"
 
@@ -85,11 +154,13 @@ jobs:
         env:
           PREVIEW_URL: ${{ steps.deploy-preview.outputs.url }}
           COMMIT_SHA: ${{ github.sha }}
+          NEON_BRANCH: ${{ needs.neon-branch.outputs.branch-name }}
         with:
           script: |
             const url = process.env.PREVIEW_URL;
             const sha = process.env.COMMIT_SHA;
-            const body = `### Vercel Preview Deployment\n\nPreview URL: ${url}\n\nThis preview was deployed from commit ${sha.substring(0, 7)}.`;
+            const neonBranch = process.env.NEON_BRANCH;
+            const body = `### Vercel Preview Deployment\n\nPreview URL: ${url}\nNeon DB Branch: \`${neonBranch}\`\n\nThis preview was deployed from commit ${sha.substring(0, 7)} with an isolated database branch.`;
 
             // Find existing comment to update instead of creating duplicates
             const { data: comments } = await github.rest.issues.listComments({
@@ -120,10 +191,10 @@ jobs:
 
   migrate:
     name: Run Database Migrations
-    needs: deploy
+    needs: [neon-branch, deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: github.event_name == 'push' && needs.deploy.outputs.deployment-url != ''
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
 
     steps:
       - name: Checkout repository
@@ -146,15 +217,15 @@ jobs:
       - name: Run Prisma migrations
         working-directory: apps/api
         env:
-          DATABASE_URL: ${{ secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
         run: pnpm prisma migrate deploy
 
       - name: Seed database (idempotent)
         working-directory: apps/api
         env:
-          DATABASE_URL: ${{ secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
         run: pnpm prisma db seed
 
   smoke-test:
@@ -162,7 +233,7 @@ jobs:
     needs: [deploy, migrate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: needs.deploy.outputs.deployment-url != ''
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
 
     steps:
       - name: Wait for deployment to stabilize
