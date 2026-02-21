@@ -48,6 +48,7 @@ export function generateWebEnvFile(worktreePath: string, ports: Ports, worktreeI
 # DO NOT COMMIT
 
 VITE_API_URL=http://localhost:${ports.backend}
+VITE_DEV_PORT=${ports.frontend}
 VITE_AUTH_BYPASS=true
 `;
 
@@ -111,6 +112,7 @@ export function generateDevcontainerJson(
       HOME: '/home/node',
       VITE_DEV_PORT: String(ports.frontend),
       API_PORT: String(ports.backend),
+      VITE_API_URL: `http://localhost:${ports.backend}`,
       VITE_AUTH_BYPASS: 'true',
     },
     postCreateCommand:
@@ -149,6 +151,7 @@ services:
     environment:
       - VITE_DEV_PORT=${ports.frontend}
       - API_PORT=${ports.backend}
+      - VITE_API_URL=http://localhost:${ports.backend}
       - DATABASE_URL=postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@host.docker.internal:${ports.database}/${DB_CONFIG.database}?schema=public
       - VITE_AUTH_BYPASS=true
     ports:
@@ -167,17 +170,20 @@ services:
 }
 
 /**
- * Copy base devcontainer files (Dockerfile, docker-compose.yml)
+ * Copy base devcontainer files (Dockerfile, docker-compose.yml, scripts)
+ *
+ * For docker-compose.yml, we strip environment variables that are worktree-specific
+ * (DATABASE_URL, ports, etc.) so the worktree overlay is the sole source of truth.
+ * This avoids relying on Docker Compose merge behavior for critical env vars.
  */
 export function copyBaseDevcontainerFiles(worktreePath: string, mainRepoPath: string): void {
   const sourceDir = path.join(mainRepoPath, '.devcontainer');
   const targetDir = path.join(worktreePath, '.devcontainer');
   ensureDir(targetDir);
 
-  // Files to copy (not the ones we generate)
+  // Files to copy verbatim
   const filesToCopy = [
     'Dockerfile',
-    'docker-compose.yml',
     'fix-permissions.sh',
     'init-firewall.sh',
   ];
@@ -188,11 +194,26 @@ export function copyBaseDevcontainerFiles(worktreePath: string, mainRepoPath: st
 
     if (fs.existsSync(sourcePath)) {
       fs.copyFileSync(sourcePath, targetPath);
-      // Preserve executable permissions
       if (file.endsWith('.sh')) {
         fs.chmodSync(targetPath, 0o755);
       }
     }
+  }
+
+  // Copy docker-compose.yml but strip worktree-specific env vars
+  // so the worktree overlay is the sole source for DATABASE_URL, ports, etc.
+  const composeSrc = path.join(sourceDir, 'docker-compose.yml');
+  const composeDst = path.join(targetDir, 'docker-compose.yml');
+  if (fs.existsSync(composeSrc)) {
+    let content = fs.readFileSync(composeSrc, 'utf-8');
+    // Remove lines that set env vars overridden by the worktree overlay
+    const worktreeOverriddenVars = ['DATABASE_URL', 'VITE_DEV_PORT', 'API_PORT', 'VITE_AUTH_BYPASS'];
+    for (const varName of worktreeOverriddenVars) {
+      content = content.replace(new RegExp(`^\\s*-\\s*${varName}=.*\\n?`, 'gm'), '');
+    }
+    // Also remove comment lines referencing the stripped vars
+    content = content.replace(/^\s*#.*Same DATABASE_URL.*\n?/gm, '');
+    fs.writeFileSync(composeDst, content);
   }
 
   console.log(`Copied base devcontainer files to ${targetDir}`);

@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { setup } from './commands/setup.js';
 import { cleanup } from './commands/cleanup.js';
 import { list } from './commands/list.js';
+import { dbStart } from './commands/db-start.js';
 
 const program = new Command();
 
@@ -36,6 +37,11 @@ program
   .option('-j, --json', 'Output as JSON')
   .option('-v, --verbose', 'Show additional details')
   .action(list);
+
+program
+  .command('db-start')
+  .description('Start the database container for the current worktree')
+  .action(dbStart);
 
 // Parse arguments
 program.parse();

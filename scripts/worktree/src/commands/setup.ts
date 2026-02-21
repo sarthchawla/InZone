@@ -3,7 +3,6 @@ import { Worktree } from '../types.js';
 import {
   sanitizeBranchName,
   getRepoRoot,
-  runCommand,
   runCommandSafe,
 } from '../lib/utils.js';
 import {
@@ -13,7 +12,7 @@ import {
   getSettings,
 } from '../lib/registry.js';
 import { findAllPorts } from '../lib/port-allocator.js';
-import { startDatabase, getAppContainerName, isDockerAvailable } from '../lib/docker.js';
+import { getDbContainerName, getAppContainerName } from '../lib/docker.js';
 import {
   branchExists,
   createBranch,
@@ -32,16 +31,13 @@ interface SetupOptions {
 }
 
 /**
- * Setup command - creates a new worktree with isolated environment
+ * Setup command - creates a new worktree with isolated environment.
+ * Only creates the git worktree, generates config files, and registers it.
+ * Database startup, migrations, and seeding happen on first `pnpm dev`.
  */
 export async function setup(options: SetupOptions): Promise<void> {
   try {
     console.log(chalk.blue('Setting up new worktree...\n'));
-
-    // Check Docker is available
-    if (!isDockerAvailable()) {
-      throw new Error('Docker is not available. Please start Docker and try again.');
-    }
 
     // Initialize registry
     initRegistry();
@@ -106,25 +102,12 @@ export async function setup(options: SetupOptions): Promise<void> {
     console.log(`\nCreating git worktree at ${worktreePath}...`);
     createWorktree(worktreePath, branch);
 
-    // Start database container on host
-    console.log('\nStarting database container on host...');
-    const dbContainerName = await startDatabase(worktreeId, ports.database);
-
     // Generate configuration files
     console.log('\nGenerating configuration files...');
     generateAllConfigs(worktreePath, worktreeId, ports, mainRepoPath);
 
-    // Run migrations
-    console.log('\nRunning database migrations...');
-    try {
-      runCommand('pnpm', ['install'], { stdio: 'inherit' });
-      runCommand('pnpm', ['run', 'db:migrate:deploy'], { stdio: 'inherit' });
-      runCommand('pnpm', ['run', 'db:seed'], { stdio: 'inherit' });
-    } catch (error) {
-      console.log(chalk.yellow('Warning: Could not run migrations/seed. Run them manually.'));
-    }
-
     // Register worktree
+    const dbContainerName = getDbContainerName(worktreeId);
     console.log('\nRegistering worktree...');
     const worktreeEntry: Omit<Worktree, 'createdAt' | 'lastAccessed'> = {
       id: worktreeId,
@@ -154,8 +137,8 @@ export async function setup(options: SetupOptions): Promise<void> {
     console.log(`│ DB Container: ${dbContainerName.padEnd(42)} │`);
     console.log('└─────────────────────────────────────────────────────────┘');
     console.log('\nTo start developing:');
-    console.log(chalk.cyan(`  Option A (Direct): cd ${worktreePath} && pnpm dev`));
-    console.log(chalk.cyan('  Option B (DevContainer): Click "Reopen in Container" in VS Code/Cursor'));
+    console.log(chalk.cyan(`  cd ${worktreePath} && pnpm dev`));
+    console.log(chalk.gray('\nNote: pnpm dev will start the DB, run migrations, and launch the app.'));
   } catch (error) {
     console.error(chalk.red('\n✗ Setup failed:'), error instanceof Error ? error.message : error);
     process.exit(1);

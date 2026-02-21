@@ -61,6 +61,7 @@ describe('config-generator', () => {
 
       expect(filePath).toBe(path.join(mockWorktreePath, 'apps', 'web', '.env'));
       expect(content).toContain('VITE_API_URL=http://localhost:3002');
+      expect(content).toContain('VITE_DEV_PORT=5174');
       expect(content).toContain('VITE_AUTH_BYPASS=true');
       expect(content).toContain('feature-auth');
     });
@@ -127,11 +128,22 @@ describe('config-generator', () => {
 
   describe('copyBaseDevcontainerFiles', () => {
     const mainRepoPath = '/path/to/main';
+    const mockComposeContent = `services:
+  app:
+    build:
+      context: .
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - DATABASE_URL=postgresql://inzone:inzone_dev@host.docker.internal:7432/inzone?schema=public
+      - HOME=/home/node
+    command: sleep infinity
+`;
 
-    it('copies base devcontainer files', () => {
+    it('copies base devcontainer files and strips worktree-specific env vars from compose', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.copyFileSync).mockReturnValue(undefined);
       vi.mocked(fs.chmodSync).mockReturnValue(undefined);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockComposeContent);
 
       copyBaseDevcontainerFiles(mockWorktreePath, mainRepoPath);
 
@@ -139,19 +151,27 @@ describe('config-generator', () => {
         path.join(mockWorktreePath, '.devcontainer')
       );
 
-      // Should check for each file
+      // Should copy non-compose files directly
       expect(fs.existsSync).toHaveBeenCalledWith(
         path.join(mainRepoPath, '.devcontainer', 'Dockerfile')
       );
-      expect(fs.existsSync).toHaveBeenCalledWith(
-        path.join(mainRepoPath, '.devcontainer', 'docker-compose.yml')
+
+      // Should write modified docker-compose.yml without DATABASE_URL
+      const writeCall = vi.mocked(fs.writeFileSync).mock.calls.find(
+        ([filePath]) => (filePath as string).includes('docker-compose.yml')
       );
+      expect(writeCall).toBeDefined();
+      const writtenContent = writeCall![1] as string;
+      expect(writtenContent).not.toContain('DATABASE_URL=');
+      expect(writtenContent).toContain('NODE_OPTIONS=');
+      expect(writtenContent).toContain('HOME=/home/node');
     });
 
     it('sets executable permissions on shell scripts', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.copyFileSync).mockReturnValue(undefined);
       vi.mocked(fs.chmodSync).mockReturnValue(undefined);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockComposeContent);
 
       copyBaseDevcontainerFiles(mockWorktreePath, mainRepoPath);
 
@@ -172,6 +192,7 @@ describe('config-generator', () => {
       copyBaseDevcontainerFiles(mockWorktreePath, mainRepoPath);
 
       expect(fs.copyFileSync).not.toHaveBeenCalled();
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
   });
 });

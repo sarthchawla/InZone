@@ -9,13 +9,14 @@ import * as path from 'path';
 export function runCommand(
   command: string,
   args: string[],
-  options: { encoding?: BufferEncoding; stdio?: 'pipe' | 'inherit' } = {}
+  options: { encoding?: BufferEncoding; stdio?: 'pipe' | 'inherit'; cwd?: string } = {}
 ): string {
   try {
     const result = execFileSync(command, args, {
       encoding: 'utf-8',
       stdio: options.stdio ?? 'pipe',
       maxBuffer: 10 * 1024 * 1024, // 10MB
+      ...(options.cwd && { cwd: options.cwd }),
     });
     return result;
   } catch (error) {
