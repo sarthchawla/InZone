@@ -3,6 +3,7 @@ import { auth } from '../lib/auth.js';
 import { fromNodeHeaders } from 'better-auth/node';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: {

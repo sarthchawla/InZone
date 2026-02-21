@@ -76,6 +76,7 @@ jobs:
           sleep 5
         env:
           PORT: 3001
+          VITE_AUTH_BYPASS: 'true'
 
       - name: Wait for API server
         run: npx wait-on http://localhost:3001/health --timeout 30000
