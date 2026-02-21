@@ -669,14 +669,25 @@ Examples:
         help="Path to the activity log file (default: activity.md)",
     )
 
+    parser.add_argument(
+        "--workdir", "-w",
+        type=str,
+        default=None,
+        help="Working directory to run in (default: project root derived from script location)",
+    )
+
     args = parser.parse_args()
 
     # Handle stop-on-complete logic
     stop_on_complete = args.stop_on_complete and not args.no_stop_on_complete
 
-    # Change to project root (parent of scripts/ralph/)
-    script_dir = Path(__file__).parent
-    project_root = script_dir.parent.parent
+    # Change to working directory
+    if args.workdir:
+        project_root = Path(args.workdir).resolve()
+    else:
+        # Default: project root (parent of scripts/ralph/)
+        script_dir = Path(__file__).parent
+        project_root = script_dir.parent.parent
     os.chdir(project_root)
 
     # Validate prompt file
