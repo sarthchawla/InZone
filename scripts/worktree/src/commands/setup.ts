@@ -119,8 +119,9 @@ export async function setup(options: SetupOptions): Promise<void> {
     try {
       runCommand('pnpm', ['install'], { stdio: 'inherit' });
       runCommand('pnpm', ['run', 'db:migrate:deploy'], { stdio: 'inherit' });
+      runCommand('pnpm', ['run', 'db:seed'], { stdio: 'inherit' });
     } catch (error) {
-      console.log(chalk.yellow('Warning: Could not run migrations. Run them manually.'));
+      console.log(chalk.yellow('Warning: Could not run migrations/seed. Run them manually.'));
     }
 
     // Register worktree

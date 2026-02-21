@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   generateEnvFile,
+  generateWebEnvFile,
   generateDevcontainerJson,
   generateDockerComposeOverride,
   copyBaseDevcontainerFiles,
@@ -43,6 +44,24 @@ describe('config-generator', () => {
       expect(content).toContain('VITE_DEV_PORT=5174');
       expect(content).toContain('API_PORT=3002');
       expect(content).toContain('DATABASE_URL=postgresql://inzone:inzone_dev@localhost:7433/inzone?schema=public');
+      expect(content).toContain('feature-auth');
+    });
+  });
+
+  describe('generateWebEnvFile', () => {
+    it('generates web .env file with correct content', () => {
+      generateWebEnvFile(mockWorktreePath, mockPorts, mockWorktreeId);
+
+      expect(utils.ensureDir).toHaveBeenCalledWith(
+        path.join(mockWorktreePath, 'apps', 'web')
+      );
+
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      const [filePath, content] = vi.mocked(fs.writeFileSync).mock.calls[0];
+
+      expect(filePath).toBe(path.join(mockWorktreePath, 'apps', 'web', '.env'));
+      expect(content).toContain('VITE_API_URL=http://localhost:3002');
+      expect(content).toContain('VITE_AUTH_BYPASS=true');
       expect(content).toContain('feature-auth');
     });
   });
