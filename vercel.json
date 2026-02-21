@@ -1,7 +1,6 @@
 {
   "buildCommand": "pnpm run build",
   "outputDirectory": "apps/web/dist",
-  "framework": "vite",
   "rewrites": [
     { "source": "/api/auth/:path*", "destination": "/api" },
     { "source": "/api/:path*", "destination": "/api" }
