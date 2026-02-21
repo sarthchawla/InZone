@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Check, CloudOff } from 'lucide-react';
-import type { SyncState } from '../../hooks/useSyncStatus';
+
+export type SyncState = 'idle' | 'syncing' | 'synced' | 'error';
 
 interface SyncStatusIndicatorProps {
   state: SyncState;
