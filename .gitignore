@@ -64,3 +64,4 @@ apps/web/test-results/
 
 # Vercel
 .vercel
+.env*.local
