@@ -63,9 +63,9 @@ function markdownToHtml(markdown: string): string {
   // Highlight
   html = html.replace(/==(.+?)==/g, '<mark>$1</mark>');
 
-  // Task lists
-  html = html.replace(/^- \[x\] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>$1</p></li></ul>');
-  html = html.replace(/^- \[ \] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>$1</p></li></ul>');
+  // Task lists (allow empty task items)
+  html = html.replace(/^- \[x\] (.*)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>$1</p></li></ul>');
+  html = html.replace(/^- \[ \] (.*)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>$1</p></li></ul>');
 
   // Unordered lists
   html = html.replace(/^- (.+)$/gm, '<ul><li><p>$1</p></li></ul>');

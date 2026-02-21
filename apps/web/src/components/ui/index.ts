@@ -8,8 +8,8 @@ export { Skeleton, BoardCardSkeleton, ColumnSkeleton, TodoCardSkeleton } from '.
 export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 export { ContextMenu } from './ContextMenu';
 export type { ContextMenuItem, ContextMenuProps } from './ContextMenu';
-export { DetailPanel } from './DetailPanel';
-export type { DetailPanelProps } from './DetailPanel';
+export { DetailPanel } from '../board/DetailPanel';
+export type { DetailPanelProps } from '../board/DetailPanel';
 export { UndoToast } from './UndoToast';
 export type { UndoToastProps } from './UndoToast';
 export { BottomSheet } from './BottomSheet';

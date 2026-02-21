@@ -21,6 +21,7 @@ interface BoardColumnProps {
   isDropTarget?: boolean;
   activeTodoId?: string | null;
   overTodoId?: string | null;
+  isColumnDragActive?: boolean;
 }
 
 export function BoardColumn({
@@ -34,6 +35,7 @@ export function BoardColumn({
   isDropTarget,
   activeTodoId,
   overTodoId,
+  isColumnDragActive,
 }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState('');
@@ -62,9 +64,13 @@ export function BoardColumn({
     },
   });
 
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+  const { setNodeRef: setDroppableRef, isOver: isOverRaw } = useDroppable({
     id: column.id,
+    disabled: isColumnDragActive,
   });
+
+  // Suppress drop indicators during column drags
+  const isOver = isOverRaw && !isColumnDragActive;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -382,7 +388,7 @@ export function BoardColumn({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
               >
-                <TodoCard todo={todo} onClick={onTodoClick} onContextMenu={onTodoContextMenu} isDropTarget={overTodoId === todo.id} />
+                <TodoCard todo={todo} onClick={onTodoClick} onContextMenu={onTodoContextMenu} isDropTarget={overTodoId === todo.id} sortDisabled={isColumnDragActive} />
               </motion.div>
             ))}
           </AnimatePresence>

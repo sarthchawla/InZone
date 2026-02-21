@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { useUpdateTodo, useDeleteTodo } from '../../hooks/useTodos';
 import { useLabels } from '../../hooks/useLabels';
-import { RichTextEditor } from './RichTextEditor';
+import { RichTextEditor } from '../ui/RichTextEditor';
 import type { Todo, Column, Priority } from '../../types';
 
 export interface DetailPanelProps {
@@ -48,6 +48,8 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const panelRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState(400);
+  const isResizingRef = useRef(false);
 
   // Sync state when todo changes
   useEffect(() => {
@@ -75,14 +77,14 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
           {
             onSuccess: () => {
               setSaveStatus('saved');
-              savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 1500);
+              savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
             },
             onError: () => {
               setSaveStatus('idle');
             },
           }
         );
-      }, 500);
+      }, 800);
     },
     [todo, boardId, updateTodo]
   );
@@ -103,6 +105,28 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       clearTimeout(savedTimerRef.current);
     };
   }, []);
+
+  const handleResizeStart = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const delta = startX - moveEvent.clientX;
+      const newWidth = Math.min(Math.max(startWidth + delta, 320), 700);
+      setPanelWidth(newWidth);
+    };
+
+    const handleUp = () => {
+      isResizingRef.current = false;
+      document.removeEventListener('pointermove', handleMove);
+      document.removeEventListener('pointerup', handleUp);
+    };
+
+    document.addEventListener('pointermove', handleMove);
+    document.addEventListener('pointerup', handleUp);
+  }, [panelWidth]);
 
   const handleDelete = () => {
     if (!todo) return;
@@ -380,30 +404,24 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
     );
   }
 
-  // Desktop: slide-in side panel
+  // Desktop: inline side panel (Jira-like, non-blocking)
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/20"
-          onClick={onClose}
-        />
-        {/* Panel */}
-        <motion.div
-          ref={panelRef}
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-          className="absolute top-0 right-0 bottom-0 w-[400px] bg-white shadow-2xl border-l border-stone-200 flex flex-col"
-        >
-          {panelContent}
-        </motion.div>
+    <motion.div
+      ref={panelRef}
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: panelWidth, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      className="flex-shrink-0 bg-white border-l border-stone-200 flex flex-col h-full overflow-hidden relative"
+    >
+      {/* Resize handle */}
+      <div
+        onPointerDown={handleResizeStart}
+        className="group/resize absolute top-0 left-0 bottom-0 w-2 cursor-col-resize hover:bg-accent/20 active:bg-accent/30 transition-colors z-10 flex items-center justify-center"
+      >
+        <div className="w-0.5 h-8 bg-stone-300 rounded-full group-hover/resize:bg-accent group-active/resize:bg-accent transition-colors" />
       </div>
-    </AnimatePresence>
+      {panelContent}
+    </motion.div>
   );
 }

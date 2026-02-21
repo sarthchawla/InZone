@@ -1,47 +1,40 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
   DragOverlay,
   closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-  type DragOverEvent,
   MeasuringStrategy,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   horizontalListSortingStrategy,
-  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Tags, Columns } from 'lucide-react';
+import { ArrowLeft, Plus, Tags, Columns, FileText } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';
 import { useKeyboardShortcuts, BOARD_SHORTCUTS } from '../../hooks/useKeyboardShortcuts';
+import { useBoardDnD } from '../../hooks/useBoardDnD';
+import { useBoardActions } from '../../hooks/useBoardActions';
 import { BoardColumn } from '../column/BoardColumn';
 import { TodoCard } from '../todo';
 import { LabelManager } from '../label';
 import {
   Button,
   Input,
+  Modal,
   RichTextEditor,
   ColumnSkeleton,
   KeyboardShortcutsHelp,
-  DetailPanel,
   ContextMenu,
   UndoToast,
 } from '../ui';
-import type { ContextMenuItem } from '../ui';
-import type { Todo, Column, Priority } from '../../types';
+import { DetailPanel } from './DetailPanel';
+import type { Todo } from '../../types';
 
 interface UndoState {
   message: string;
@@ -63,11 +56,18 @@ export function BoardView() {
   const reorderColumns = useReorderColumns();
   const updateBoard = useUpdateBoard();
 
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
-  const [activeColumn, setActiveColumn] = useState<Column | null>(null);
-  const [overColumnId, setOverColumnId] = useState<string | null>(null);
-  const [overTodoId, setOverTodoId] = useState<string | null>(null);
+  const {
+    activeId,
+    activeTodo,
+    activeColumn,
+    overColumnId,
+    overTodoId,
+    sensors,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderTodos });
+
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
@@ -82,6 +82,20 @@ export function BoardView() {
   // Undo toast state
   const [undoState, setUndoState] = useState<UndoState | null>(null);
 
+  const { handleTodoDeleteWithUndo, getContextMenuItems } = useBoardActions({
+    boardId,
+    columns: board?.columns,
+    selectedTodo,
+    setSelectedTodo,
+    setContextMenuPosition,
+    setContextMenuTodo,
+    setUndoState,
+    deleteTodo,
+    createTodo,
+    updateTodo,
+    moveTodo,
+  });
+
   // Keyboard shortcuts state
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [lastClickedTodo, setLastClickedTodo] = useState<Todo | null>(null);
@@ -94,8 +108,6 @@ export function BoardView() {
 
   const boardNameInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [hasOverflow, setHasOverflow] = useState(false);
-  const [scrolledEnd, setScrolledEnd] = useState(false);
 
   // Mobile column pagination
   const [activeColumnIndex, setActiveColumnIndex] = useState(0);
@@ -116,42 +128,21 @@ export function BoardView() {
     }
   }, [board]);
 
-  // Check for horizontal overflow and scroll position
+  // Track active column index on mobile for dot indicators
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const checkOverflow = () => {
-      const hasHorizontalOverflow = container.scrollWidth > container.clientWidth;
-      setHasOverflow(hasHorizontalOverflow);
-      const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
-      setScrolledEnd(atEnd);
-    };
+    if (!container || !isMobile) return;
 
     const handleScroll = () => {
-      const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
-      setScrolledEnd(atEnd);
-
-      // Track active column index on mobile
-      if (isMobile && container.clientWidth > 0) {
+      if (container.clientWidth > 0) {
         const index = Math.round(container.scrollLeft / container.clientWidth);
         setActiveColumnIndex(index);
       }
     };
 
-    checkOverflow();
     container.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', checkOverflow);
-
-    const observer = new ResizeObserver(checkOverflow);
-    observer.observe(container);
-
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', checkOverflow);
-      observer.disconnect();
-    };
-  }, [board?.columns.length, isMobile]);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isMobile]);
 
   // Wire up keyboard shortcuts
   useKeyboardShortcuts([
@@ -201,201 +192,6 @@ export function BoardView() {
       },
     },
   ]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150,
-        tolerance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const findTodo = useCallback(
-    (id: string): { todo: Todo; column: Column } | null => {
-      if (!board) return null;
-      for (const column of board.columns) {
-        const todo = (column.todos ?? []).find((t) => t.id === id);
-        if (todo) return { todo, column };
-      }
-      return null;
-    },
-    [board]
-  );
-
-  const findColumn = useCallback(
-    (id: string): Column | null => {
-      if (!board) return null;
-      const columnId = id.startsWith('column-') ? id.replace('column-', '') : id;
-      return board.columns.find((c) => c.id === columnId) ?? null;
-    },
-    [board]
-  );
-
-  // DnD handlers
-  /* istanbul ignore next */
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const activeIdStr = active.id as string;
-    setActiveId(activeIdStr);
-
-    if (activeIdStr.startsWith('column-')) {
-      const column = findColumn(activeIdStr);
-      if (column) {
-        setActiveColumn(column);
-        setActiveTodo(null);
-      }
-    } else {
-      const result = findTodo(activeIdStr);
-      if (result) {
-        setActiveTodo(result.todo);
-        setActiveColumn(null);
-      }
-    }
-  };
-
-  /* istanbul ignore next */
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (!over || !board) {
-      setOverColumnId(null);
-      setOverTodoId(null);
-      return;
-    }
-
-    const overIdStr = over.id as string;
-
-    // When dragging a column, only track column-level targets
-    if (activeColumn) {
-      if (overIdStr.startsWith('column-')) {
-        setOverColumnId(overIdStr.replace('column-', ''));
-      }
-      setOverTodoId(null);
-      return;
-    }
-
-    // Determine which column is being hovered (todo drag)
-    if (overIdStr.startsWith('column-')) {
-      setOverColumnId(overIdStr.replace('column-', ''));
-      setOverTodoId(null);
-    } else {
-      const overResult = findTodo(overIdStr);
-      if (overResult) {
-        setOverColumnId(overResult.column.id);
-        if (activeTodo) {
-          setOverTodoId(overIdStr);
-        } else {
-          setOverTodoId(null);
-        }
-      } else {
-        const col = board.columns.find((c) => c.id === overIdStr);
-        if (col) {
-          setOverColumnId(col.id);
-        }
-        setOverTodoId(null);
-      }
-    }
-  };
-
-  /* istanbul ignore next */
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-    setActiveTodo(null);
-    setActiveColumn(null);
-    setOverColumnId(null);
-    setOverTodoId(null);
-
-    if (!over || !board || !boardId) return;
-
-    const activeIdStr = active.id as string;
-    const overIdStr = over.id as string;
-
-    // Handle column reordering
-    if (activeIdStr.startsWith('column-')) {
-      let targetColumnId: string | null = null;
-      if (overIdStr.startsWith('column-')) {
-        targetColumnId = overIdStr.replace('column-', '');
-      } else {
-        const overResult = findTodo(overIdStr);
-        if (overResult) {
-          targetColumnId = overResult.column.id;
-        }
-      }
-
-      if (!targetColumnId) return;
-
-      const activeColumnId = activeIdStr.replace('column-', '');
-      if (activeColumnId !== targetColumnId) {
-        const sortedColumns = [...board.columns].sort((a, b) => a.position - b.position);
-        const activeIndex = sortedColumns.findIndex((c) => c.id === activeColumnId);
-        const overIndex = sortedColumns.findIndex((c) => c.id === targetColumnId);
-
-        if (activeIndex !== -1 && overIndex !== -1) {
-          const newOrder = [...sortedColumns];
-          const [moved] = newOrder.splice(activeIndex, 1);
-          newOrder.splice(overIndex, 0, moved);
-          reorderColumns.mutate({ boardId, columnIds: newOrder.map((c) => c.id) });
-        }
-      }
-      return;
-    }
-
-    // Handle todo drag-and-drop
-    const activeResult = findTodo(activeIdStr);
-    if (!activeResult) return;
-
-    const { todo: activeTodoItem, column: sourceColumn } = activeResult;
-
-    let targetColumn: Column | undefined;
-    let newPosition = 0;
-
-    targetColumn = board.columns.find((c) => c.id === overIdStr);
-
-    if (!targetColumn) {
-      const overResult = findTodo(overIdStr);
-      if (overResult) {
-        targetColumn = overResult.column;
-        const overTodo = overResult.todo;
-        newPosition = overTodo.position;
-      }
-    } else {
-      newPosition = (targetColumn.todos ?? []).length;
-    }
-
-    if (!targetColumn) return;
-
-    if (sourceColumn.id === targetColumn.id) {
-      const sortedTodos = [...(sourceColumn.todos ?? [])].sort((a, b) => a.position - b.position);
-      const oldIndex = sortedTodos.findIndex((t) => t.id === activeTodoItem.id);
-      const overTodoResult = findTodo(overIdStr);
-
-      if (overTodoResult && overTodoResult.column.id === sourceColumn.id) {
-        const newIndex = sortedTodos.findIndex((t) => t.id === overIdStr);
-        if (oldIndex !== newIndex && oldIndex !== -1 && newIndex !== -1) {
-          const newOrder = [...sortedTodos];
-          const [moved] = newOrder.splice(oldIndex, 1);
-          newOrder.splice(newIndex, 0, moved);
-          reorderTodos.mutate({ boardId, columnId: sourceColumn.id, todoIds: newOrder.map((t) => t.id) });
-        }
-      }
-    } else {
-      moveTodo.mutate({
-        id: activeTodoItem.id,
-        boardId,
-        columnId: targetColumn.id,
-        position: newPosition,
-      });
-    }
-  };
 
   const handleAddTodo = (columnId: string, title: string) => {
     if (!boardId) return;
@@ -472,87 +268,16 @@ export function BoardView() {
     setIsEditingDescription(false);
   };
 
-  // Todo click → open detail panel
+  // Todo click -> open detail panel
   const handleTodoClick = (todo: Todo) => {
     setSelectedTodo(todo);
     setLastClickedTodo(todo);
   };
 
-  // Context menu on right-click or ⋯ button
+  // Context menu on right-click or button
   const handleTodoContextMenu = (todo: Todo, event: React.MouseEvent) => {
     setContextMenuTodo(todo);
     setContextMenuPosition({ x: event.clientX, y: event.clientY });
-  };
-
-  // Delete with undo toast
-  const handleTodoDeleteWithUndo = (todo: Todo) => {
-    if (!boardId) return;
-    // Close detail panel if this todo is open
-    if (selectedTodo?.id === todo.id) {
-      setSelectedTodo(null);
-    }
-    // Close context menu
-    setContextMenuPosition(null);
-    setContextMenuTodo(null);
-
-    deleteTodo.mutate({ id: todo.id, boardId });
-    setUndoState({
-      message: `"${todo.title}" deleted`,
-      onUndo: () => {
-        // Re-create the todo (best-effort undo)
-        createTodo.mutate({
-          columnId: todo.columnId,
-          boardId,
-          title: todo.title,
-          description: todo.description,
-          priority: todo.priority,
-          dueDate: todo.dueDate,
-          labelIds: todo.labels.map((l) => l.id),
-        });
-      },
-    });
-  };
-
-  // Build context menu items for a todo
-  const getContextMenuItems = (todo: Todo): ContextMenuItem[] => {
-    const priorityItems: ContextMenuItem[] = (['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as Priority[]).map((p) => ({
-      label: p.charAt(0) + p.slice(1).toLowerCase(),
-      onClick: () => {
-        if (!boardId) return;
-        updateTodo.mutate({ id: todo.id, boardId, priority: p });
-      },
-    }));
-
-    const moveToItems: ContextMenuItem[] = (board?.columns ?? [])
-      .filter((c) => c.id !== todo.columnId)
-      .map((c) => ({
-        label: c.name,
-        onClick: () => {
-          if (!boardId) return;
-          moveTodo.mutate({ id: todo.id, boardId, columnId: c.id, position: 0 });
-        },
-      }));
-
-    return [
-      {
-        label: 'Edit',
-        onClick: () => setSelectedTodo(todo),
-      },
-      { label: '---' },
-      {
-        label: 'Priority',
-        submenu: priorityItems,
-      },
-      ...(moveToItems.length > 0
-        ? [{ label: 'Move to', submenu: moveToItems }]
-        : []),
-      { label: '---' },
-      {
-        label: 'Delete',
-        danger: true,
-        onClick: () => handleTodoDeleteWithUndo(todo),
-      },
-    ];
   };
 
   if (isLoading) {
@@ -629,6 +354,19 @@ export function BoardView() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => {
+                setEditedDescription(board.description || '');
+                setIsEditingDescription(true);
+              }}
+              aria-label="Description"
+              title={board.description ? 'Edit board description' : 'Add board description'}
+            >
+              <FileText className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Description</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowLabelManager(true)}
               aria-label="Labels"
               title="Manage labels"
@@ -639,72 +377,50 @@ export function BoardView() {
           </div>
         </div>
 
-        {/* Inline description editing */}
-        {isEditingDescription ? (
-          <div className="mt-3 ml-0 sm:ml-11">
-            <RichTextEditor
-              content={editedDescription}
-              onChange={setEditedDescription}
-              placeholder="Add a description for this board..."
-              className="min-h-[80px]"
-            />
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="primary" onClick={handleDescriptionBlur}>
-                Save
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setEditedDescription(board.description || '');
-                  setIsEditingDescription(false);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : board.description ? (
-          <div
-            className="mt-2 ml-0 sm:ml-11 text-sm text-stone-500 line-clamp-2 cursor-pointer hover:text-stone-700 transition-colors"
-            onClick={() => {
-              setEditedDescription(board.description || '');
-              setIsEditingDescription(true);
-            }}
-          >
-            <RichTextEditor
-              content={board.description}
-              onChange={() => {}}
-              editable={false}
-              className="border-0 bg-transparent pointer-events-none"
-            />
-          </div>
-        ) : (
-          <div className="mt-2 ml-0 sm:ml-11">
-            <button
+        {/* Board description modal */}
+        <Modal
+          isOpen={isEditingDescription}
+          onClose={() => {
+            setEditedDescription(board.description || '');
+            setIsEditingDescription(false);
+          }}
+          title="Board Description"
+          className="md:max-w-lg"
+        >
+          <RichTextEditor
+            content={editedDescription}
+            onChange={setEditedDescription}
+            placeholder="Add a description for this board..."
+            className="min-h-[120px]"
+          />
+          <div className="flex gap-2 mt-3">
+            <Button size="sm" variant="primary" onClick={handleDescriptionBlur}>
+              Save
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => {
-                setEditedDescription('');
-                setIsEditingDescription(true);
+                setEditedDescription(board.description || '');
+                setIsEditingDescription(false);
               }}
-              className="text-sm text-stone-400 hover:text-accent flex items-center gap-1 transition-colors"
             >
-              <Plus className="h-3 w-3" />
-              Add a description...
-            </button>
+              Cancel
+            </Button>
           </div>
-        )}
+        </Modal>
       </div>
 
       <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
 
+      {/* Board content + Detail panel row */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Board content */}
       <div
         ref={scrollContainerRef}
         className={cn(
-          'flex-1 overflow-x-auto p-4 md:p-6 scroll-shadow-container',
-          isMobile && 'column-scroll-container',
-          hasOverflow && 'has-overflow',
-          scrolledEnd && 'scrolled-end'
+          'flex-1 overflow-x-auto p-4 md:p-6 min-w-0',
+          isMobile && 'column-scroll-container'
         )}
         data-testid="columns-container"
       >
@@ -758,6 +474,7 @@ export function BoardView() {
                       isDropTarget={overColumnId === column.id && activeTodo !== null}
                       activeTodoId={activeTodo?.id ?? null}
                       overTodoId={overColumnId === column.id ? overTodoId : null}
+                      isColumnDragActive={activeColumn !== null}
                     />
                   </motion.div>
                 ))}
@@ -883,15 +600,18 @@ export function BoardView() {
         </div>
       )}
 
-      {/* Detail Panel (replaces TodoEditModal) */}
-      {selectedTodo && boardId && (
-        <DetailPanel
-          todo={selectedTodo}
-          boardId={boardId}
-          columns={board.columns}
-          onClose={() => setSelectedTodo(null)}
-        />
-      )}
+      {/* Detail Panel — inline side panel (Jira-like) */}
+      <AnimatePresence>
+        {selectedTodo && boardId && (
+          <DetailPanel
+            todo={selectedTodo}
+            boardId={boardId}
+            columns={board.columns}
+            onClose={() => setSelectedTodo(null)}
+          />
+        )}
+      </AnimatePresence>
+      </div>{/* End board content + detail panel row */}
 
       {/* Context Menu */}
       {contextMenuTodo && (

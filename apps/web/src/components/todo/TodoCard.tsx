@@ -14,6 +14,7 @@ interface TodoCardProps {
   onContextMenu?: (todo: Todo, event: React.MouseEvent) => void;
   isDropTarget?: boolean;
   isSelected?: boolean;
+  sortDisabled?: boolean;
 }
 
 const priorityBarClass: Record<Priority, string> = {
@@ -45,6 +46,7 @@ export function TodoCard({
   onContextMenu,
   isDropTarget,
   isSelected,
+  sortDisabled,
 }: TodoCardProps) {
   const [isChecked, setIsChecked] = useState(false);
 
@@ -55,7 +57,7 @@ export function TodoCard({
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ id: todo.id });
+  } = useSortable({ id: todo.id, disabled: sortDisabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),

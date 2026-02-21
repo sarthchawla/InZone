@@ -300,7 +300,7 @@ export function BoardList() {
   /* ---- Empty state ---- */
   if (!boards || boards.length === 0) {
     return (
-      <div className="p-6" data-testid="board-list">
+      <div className="p-6 flex-1 overflow-y-auto" data-testid="board-list">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -323,7 +323,7 @@ export function BoardList() {
 
   /* ---- Board grid ---- */
   return (
-    <div className="p-6" data-testid="board-list">
+    <div className="p-6 flex-1 overflow-y-auto" data-testid="board-list">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-stone-900">Your Boards</h2>
       </div>

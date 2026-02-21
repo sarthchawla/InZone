@@ -76,7 +76,7 @@ function AnimatedRoutes() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-        className="flex-1 flex flex-col"
+        className="flex-1 flex flex-col min-h-0"
       >
         <Routes location={location}>
           <Route path="/" element={<BoardList />} />
@@ -91,7 +91,7 @@ function AppContent() {
   return (
     <BrowserRouter>
       <AuthGuard>
-        <div className="min-h-screen flex flex-col">
+        <div className="h-screen flex flex-col overflow-hidden">
           <header className="bg-white border-b border-stone-200">
             <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
               <Link to="/" className="inline-block">
@@ -102,7 +102,7 @@ function AppContent() {
               <UserMenu />
             </div>
           </header>
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <AnimatedRoutes />
           </main>
         </div>
