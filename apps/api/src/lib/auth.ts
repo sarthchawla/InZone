@@ -32,7 +32,7 @@ export const auth = betterAuth({
   },
   rateLimit: {
     enabled: true,
-    storage: 'database',
+    storage: 'memory',
     customRules: {
       '/api/auth/sign-in/*': { window: 60, max: 5 },
       '/api/auth/sign-up/*': { window: 60, max: 3 },
