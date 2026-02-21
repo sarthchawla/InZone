@@ -73,6 +73,23 @@ async function main() {
     });
   }
 
+  // Seed dev bypass user when auth is bypassed (worktree development)
+  if (process.env.VITE_AUTH_BYPASS === 'true') {
+    await prisma.user.upsert({
+      where: { id: 'dev-user-000' },
+      update: {},
+      create: {
+        id: 'dev-user-000',
+        name: 'Dev User',
+        email: 'dev@localhost',
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    console.log('Seeded dev bypass user (dev-user-000)');
+  }
+
   console.log('Seed data created successfully');
 }
 

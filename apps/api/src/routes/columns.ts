@@ -26,6 +26,17 @@ columnsRouter.put('/:id', async (req, res, next) => {
   try {
     const data = updateColumnSchema.parse(req.body);
 
+    // Verify ownership through board
+    const existing = await prisma.column.findUnique({
+      where: { id: req.params.id },
+      include: { board: { select: { userId: true } } },
+    });
+
+    if (!existing || existing.board.userId !== req.user!.id) {
+      res.status(existing ? 403 : 404).json({ error: existing ? 'Forbidden' : 'Column not found' });
+      return;
+    }
+
     const column = await prisma.column.update({
       where: { id: req.params.id },
       data,
@@ -39,14 +50,6 @@ columnsRouter.put('/:id', async (req, res, next) => {
 
     res.json(column);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Column not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -56,14 +59,19 @@ columnsRouter.delete('/:id', async (req, res, next) => {
   try {
     const { moveToColumnId } = req.query;
 
-    // Get the column to be deleted
+    // Get the column to be deleted with ownership check
     const columnToDelete = await prisma.column.findUnique({
       where: { id: req.params.id },
-      include: { todos: true },
+      include: { todos: true, board: { select: { userId: true } } },
     });
 
     if (!columnToDelete) {
       res.status(404).json({ error: 'Column not found' });
+      return;
+    }
+
+    if (columnToDelete.board.userId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
@@ -107,10 +115,6 @@ columnsRouter.delete('/:id', async (req, res, next) => {
 
     res.status(204).send();
   } catch (error) {
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Column not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -119,6 +123,15 @@ columnsRouter.delete('/:id', async (req, res, next) => {
 columnsRouter.patch('/reorder', async (req, res, next) => {
   try {
     const data = reorderColumnsSchema.parse(req.body);
+
+    // Verify board ownership
+    const board = await prisma.board.findFirst({
+      where: { id: data.boardId, userId: req.user!.id },
+    });
+    if (!board) {
+      res.status(404).json({ error: 'Board not found' });
+      return;
+    }
 
     // Verify all columns belong to the specified board
     const columns = await prisma.column.findMany({
@@ -157,10 +170,6 @@ columnsRouter.patch('/reorder', async (req, res, next) => {
 
     res.json(updatedColumns);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });

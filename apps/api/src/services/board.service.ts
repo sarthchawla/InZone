@@ -17,6 +17,7 @@ export type CreateBoardInput = {
   name: string;
   description?: string;
   templateId?: string;
+  userId: string;
 };
 
 export type UpdateBoardInput = {
@@ -121,6 +122,7 @@ export class BoardService {
         description: input.description,
         templateId: input.templateId,
         position: newPosition,
+        userId: input.userId,
         columns: {
           create: columnsToCreate,
         },
@@ -169,7 +171,8 @@ export class BoardService {
    * Excludes soft-deleted items
    */
   async duplicateBoard(
-    id: string
+    id: string,
+    userId: string,
   ): Promise<BoardWithDetails | null> {
     // Get source board with all details (excluding soft-deleted)
     const sourceBoard = await this.prisma.board.findFirst({
@@ -209,6 +212,7 @@ export class BoardService {
         description: sourceBoard.description,
         templateId: sourceBoard.templateId,
         position: newPosition,
+        userId,
         columns: {
           create: sourceBoard.columns.map((column) => ({
             name: column.name,

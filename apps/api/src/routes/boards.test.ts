@@ -278,7 +278,7 @@ describe("Boards Routes", () => {
           ],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
 
         const response = await request(app).get("/api/boards/board-1");
 
@@ -295,7 +295,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
 
         const response = await request(app).get("/api/boards/board-1");
 
@@ -306,7 +306,7 @@ describe("Boards Routes", () => {
 
     describe("unhappy path", () => {
       it("returns 404 when board not found", async () => {
-        prismaMock.board.findUnique.mockResolvedValue(null);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const response = await request(app).get("/api/boards/non-existent");
 
@@ -315,7 +315,7 @@ describe("Boards Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
-        prismaMock.board.findUnique.mockRejectedValue(new Error("DB Error"));
+        prismaMock.board.findFirst.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app).get("/api/boards/board-1");
 
@@ -335,6 +335,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
+        prismaMock.board.findFirst.mockResolvedValue(createMockBoard({ id: "board-1" }) as any);
         prismaMock.board.update.mockResolvedValue(mockBoard as any);
 
         const response = await request(app)
@@ -351,6 +352,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
+        prismaMock.board.findFirst.mockResolvedValue(createMockBoard({ id: "board-1" }) as any);
         prismaMock.board.update.mockResolvedValue(mockBoard as any);
 
         const response = await request(app)
@@ -367,6 +369,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
+        prismaMock.board.findFirst.mockResolvedValue(createMockBoard({ id: "board-1" }) as any);
         prismaMock.board.update.mockResolvedValue(mockBoard as any);
 
         const response = await request(app)
@@ -383,6 +386,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
+        prismaMock.board.findFirst.mockResolvedValue(createMockBoard({ id: "board-1" }) as any);
         prismaMock.board.update.mockResolvedValue(mockBoard as any);
 
         const response = await request(app)
@@ -421,9 +425,7 @@ describe("Boards Routes", () => {
       });
 
       it("returns 404 when board not found", async () => {
-        const error: any = new Error("Record not found");
-        error.code = "P2025";
-        prismaMock.board.update.mockRejectedValue(error);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const response = await request(app)
           .put("/api/boards/non-existent")
@@ -434,6 +436,7 @@ describe("Boards Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        prismaMock.board.findFirst.mockResolvedValue(createMockBoard({ id: "board-1" }) as any);
         prismaMock.board.update.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)
@@ -451,6 +454,9 @@ describe("Boards Routes", () => {
   describe("DELETE /api/boards/:id", () => {
     describe("happy path", () => {
       it("returns 204 when board deleted successfully", async () => {
+        prismaMock.board.findFirst.mockResolvedValue(
+          createMockBoard({ id: "board-1" }) as any
+        );
         prismaMock.board.delete.mockResolvedValue(
           createMockBoard({ id: "board-1" }) as any
         );
@@ -466,9 +472,7 @@ describe("Boards Routes", () => {
 
     describe("unhappy path", () => {
       it("returns 404 when board not found", async () => {
-        const error: any = new Error("Record not found");
-        error.code = "P2025";
-        prismaMock.board.delete.mockRejectedValue(error);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const response = await request(app).delete("/api/boards/non-existent");
 
@@ -477,6 +481,9 @@ describe("Boards Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        prismaMock.board.findFirst.mockResolvedValue(
+          createMockBoard({ id: "board-1" }) as any
+        );
         prismaMock.board.delete.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app).delete("/api/boards/board-1");
@@ -522,7 +529,7 @@ describe("Boards Routes", () => {
           ],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockSourceBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockSourceBoard as any);
         prismaMock.board.aggregate.mockResolvedValue({
           _max: { position: 0 },
         } as any);
@@ -545,7 +552,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockSourceBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockSourceBoard as any);
         prismaMock.board.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -560,7 +567,7 @@ describe("Boards Routes", () => {
 
     describe("unhappy path", () => {
       it("returns 404 when source board not found", async () => {
-        prismaMock.board.findUnique.mockResolvedValue(null);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const response = await request(app).post(
           "/api/boards/non-existent/duplicate"
@@ -576,7 +583,7 @@ describe("Boards Routes", () => {
           columns: [],
         };
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.board.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -602,7 +609,7 @@ describe("Boards Routes", () => {
           boardId: "board-1",
         });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -625,7 +632,7 @@ describe("Boards Routes", () => {
           boardId: "board-1",
         });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);
@@ -646,7 +653,7 @@ describe("Boards Routes", () => {
           position: 3,
         });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: 2 },
         } as any);
@@ -710,7 +717,7 @@ describe("Boards Routes", () => {
       });
 
       it("returns 404 when board not found", async () => {
-        prismaMock.board.findUnique.mockResolvedValue(null);
+        prismaMock.board.findFirst.mockResolvedValue(null);
 
         const response = await request(app)
           .post("/api/boards/non-existent/columns")
@@ -723,7 +730,7 @@ describe("Boards Routes", () => {
       it("returns 500 on database error", async () => {
         const mockBoard = createMockBoard({ id: "board-1" });
 
-        prismaMock.board.findUnique.mockResolvedValue(mockBoard as any);
+        prismaMock.board.findFirst.mockResolvedValue(mockBoard as any);
         prismaMock.column.aggregate.mockResolvedValue({
           _max: { position: null },
         } as any);

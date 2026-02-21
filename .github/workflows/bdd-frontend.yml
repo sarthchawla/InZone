@@ -89,6 +89,7 @@ jobs:
           sleep 5
         env:
           PORT: 3000
+          VITE_AUTH_BYPASS: 'true'
 
       - name: Start frontend dev server
         run: |
@@ -96,6 +97,7 @@ jobs:
           sleep 10
         env:
           VITE_API_URL: http://localhost:3000
+          VITE_AUTH_BYPASS: 'true'
 
       - name: Wait for servers to be ready
         run: npx wait-on http://localhost:5173 http://localhost:3000/health --timeout 60000

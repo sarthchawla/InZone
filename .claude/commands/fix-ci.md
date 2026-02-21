@@ -1,6 +1,6 @@
-# Fix CI Failures
+# Fix CI Failures (Autonomous)
 
-Fetch failed GitHub Actions workflow logs, analyze the issues, propose fixes, and optionally apply them.
+Automatically fetch failed GitHub Actions workflow logs, analyze issues, fix them, validate, commit, push, and repeat until CI is green. **No user input required** — runs fully autonomously.
 
 ## Context
 
@@ -18,163 +18,109 @@ InZone/
 ├── packages/
 │   └── shared/        # Shared types/utilities
 └── .github/workflows/
-    ├── lint-build.yml # Linting and build checks
-    ├── unit-tests.yml # Vitest unit tests
-    ├── bdd-tests.yml  # Playwright-BDD E2E tests
-    └── devcontainer.yml
+    ├── ci-backend.yml    # Backend lint + build + unit tests
+    ├── ci-frontend.yml   # Frontend lint + build + unit tests
+    ├── bdd-backend.yml   # Cucumber BDD API tests
+    ├── bdd-frontend.yml  # Playwright-BDD E2E tests
+    ├── architecture-tests.yml
+    └── worktree-scripts.yml
 ```
 
-## Step 1: Get Workflow Status
+## Autonomous Loop
 
-1. Ask the user if they want to check:
-   - The latest failed workflow for the current branch
-   - A specific workflow run ID they provide
+**Repeat the following loop until all workflows pass or you've completed 5 iterations:**
 
-2. Use `gh` CLI to get workflow runs:
+### Step 1: Get Latest Workflow Runs
+
 ```bash
-gh run list --branch <branch> --limit 5
+gh run list --branch <current-branch> --limit 10
 ```
 
-## Step 2: Get Failed Jobs
+Find the most recent set of workflow runs (same timestamp group). If all are `success`, report success and stop.
 
-1. Get failed workflow details:
-```bash
-gh run view <run-id>
-```
+### Step 2: Get Failed Job Logs
 
-2. Get failed job logs:
+For each failed workflow run:
+
 ```bash
 gh run view <run-id> --log-failed
 ```
 
-3. If no failed jobs found, inform the user that all workflows passed and exit.
+If no failed jobs, all workflows passed — report success and stop.
 
-## Step 3: Analyze Each Failed Job
+### Step 3: Analyze Failures
 
-For each failed job, analyze the logs to identify issue type:
+For each failed job, identify the issue type:
 
-### Frontend Issues (apps/web)
-- **TypeScript/Build Errors**: `error TS`, `Cannot find module`, type mismatches
-- **Vitest Test Failures**: `FAIL`, `AssertionError`, `Expected`, `Received`
-- **ESLint Errors**: ESLint rule violations
-- **Playwright-BDD Failures**: `FAILED`, `Timeout`, `expect.toBeVisible`
+**Error Detection Patterns:**
 
-### Backend Issues (apps/api)
-- **TypeScript/Build Errors**: `error TS`, type errors
-- **Vitest Test Failures**: `FAIL`, assertion errors
-- **ESLint Errors**: Lint violations
+| Pattern | Type |
+|---------|------|
+| `error TS\d+:` | TypeScript compiler error |
+| `Type '.*' is not assignable` | Type mismatch |
+| `Cannot find module` | Missing import |
+| `Property '.*' does not exist` | Missing property |
+| `FAIL`, `AssertionError`, `Expected:`, `Received:` | Vitest test failure |
+| `FAILED`, `Timeout`, `expect.toBeVisible`, `locator.click` | Playwright-BDD failure |
+| `error  ` with rule name | ESLint error |
+| `PrismaClientKnownRequestError`, `P\d{4}` | Prisma/Database error |
+| `Connection refused` | Database connection issue |
 
-### Common Issues
-- **Dependency Errors**: `pnpm install` failures
-- **Database Errors**: PostgreSQL connection issues
-- **Timeout Errors**: Test or build timeouts
+### Step 4: Present Analysis Summary
 
-## Step 4: Present Analysis Summary
-
-Present findings in this format:
+Show a brief summary table:
 
 ```markdown
-## CI Failure Analysis
+## CI Failure Analysis (Iteration N)
 
-### Workflow Run #<id> | Branch: `<branch-name>`
-
-### Summary Table
 | Workflow | Job | Failure Type | Files Affected |
 |----------|-----|--------------|----------------|
-| lint-build | lint | ESLint | apps/web/src/... |
-| unit-tests | frontend | Vitest | apps/web/src/... |
-| bdd-tests | e2e | Playwright | tests/... |
-
-### Detailed Analysis
-
-#### Workflow: <workflow-name>
-**Job**: <job-name>
-**Type**: <TypeScript/Test/Lint/Runtime Error>
-**Root Cause**: <description>
-
-**Issues Found**:
-1. `apps/web/src/file.ts:42` - <issue description>
-2. `apps/api/src/file.ts:15` - <issue description>
-
-**Proposed Fix**:
-<description of what needs to change>
+| ... | ... | ... | ... |
 ```
 
-## Step 5: Ask User for Action
+### Step 5: Apply Fixes
 
-Ask the user what they want to do:
+**Do not ask the user** — automatically fix all issues:
 
-1. **Fix Selection**:
-   - Fix all issues
-   - Fix specific issues (provide numbered list)
-   - Just view analysis (no fixes)
-
-2. **After Fixing** (if fixing):
-   - Fix only (no commit)
-   - Fix and commit
-   - Fix, commit, and push
-
-## Step 6: Apply Fixes
-
-For each issue to fix:
-
-1. Read the affected file
+1. Read each affected file
 2. Apply the fix using the Edit tool
-3. Show what was changed
+3. Briefly describe what was changed
 
-## Step 7: Validate Fixes
+**Fix Priority:**
+- TypeScript/build errors first (they block everything)
+- ESLint errors second
+- Test assertion mismatches third (update test expectations or fix source code)
+- Workflow/config issues fourth
+
+### Step 6: Validate Fixes Locally
 
 Run appropriate validation based on failure type:
 
-**For TypeScript/Build errors:**
 ```bash
-pnpm build
+# TypeScript/Build errors
+pnpm --filter <package> build
+
+# Lint errors
+pnpm --filter <package> lint
+
+# Frontend Unit Test failures
+pnpm --filter web test run -- <test-file>
+
+# Backend Unit Test failures
+pnpm --filter api test run -- <test-file>
+
+# Type checking
+pnpm --filter <package> typecheck
 ```
 
-**For Lint errors:**
-```bash
-pnpm lint
-# Or fix automatically:
-pnpm lint:fix
-```
+If local validation fails, fix and re-validate before proceeding.
 
-**For Frontend Unit Test failures:**
-```bash
-pnpm --filter web test -- <test-file>
-```
+### Step 7: Commit and Push
 
-**For Backend Unit Test failures:**
-```bash
-pnpm --filter api test -- <test-file>
-```
+**Automatically** stage, commit, and push:
 
-**For BDD Test failures:**
-```bash
-pnpm --filter web test:bdd
-```
-
-**For type checking:**
-```bash
-pnpm typecheck
-```
-
-## Step 8: Post-Fix Verification with Agent-Browser CLI
-
-After fixing issues that affect the UI, use **agent-browser CLI** to verify:
-
-```
-browser_navigate → http://localhost:5173
-browser_snapshot → Capture current state
-browser_click → Test affected features
-browser_snapshot → Verify fix works
-```
-
-## Step 9: Commit and Push (if requested)
-
-If user chose to commit:
-
-1. Stage changes: `git add <files>`
-2. Commit with message:
+1. Stage only the changed files: `git add <specific-files>`
+2. Commit with descriptive message:
    ```
    fix: resolve CI failures from workflow run #<id>
 
@@ -183,66 +129,38 @@ If user chose to commit:
 
    Co-Authored-By: Claude <noreply@anthropic.com>
    ```
-3. If push requested: `git push`
+3. Push: `git push`
 
-## Error Detection Patterns
+### Step 8: Watch CI
 
-### TypeScript Errors
-- `error TS\d+:` - TypeScript compiler errors
-- `Type '.*' is not assignable` - Type mismatch
-- `Cannot find module` - Missing import
-- `Property '.*' does not exist` - Missing property
+Poll workflow runs until all complete:
 
-### Vitest Test Failures
-- `FAIL ` - Test failure
-- `✕` or `✗` - Failed test case
-- `AssertionError` - Assertion failure
-- `Expected:` and `Received:` - Assertion mismatch
-- `Timeout` - Test timeout
+```bash
+# Poll every 20 seconds until no in_progress runs remain
+gh run list --branch <branch> --limit 10 --json status,name,conclusion,databaseId
+```
 
-### Playwright-BDD Failures
-- `FAILED` - Scenario failure
-- `Timeout` - Step timeout
-- `expect.toBeVisible` - Element visibility
-- `locator.click` - Click failures
+### Step 9: Check Results
 
-### ESLint Errors
-- `error  ` with rule name - ESLint error
-- `warning  ` with rule name - ESLint warning
-- `@typescript-eslint/` - TypeScript-specific rules
-
-### Prisma/Database Errors
-- `PrismaClientKnownRequestError` - Database query error
-- `P\d{4}` - Prisma error codes
-- `Connection refused` - Database connection issue
+- If **all workflows pass**: Report success and stop
+- If **any workflow fails**: Go back to Step 2 (next iteration)
+- If **5 iterations reached**: Report remaining failures and stop
 
 ## Guidelines
 
 - Always read files before editing
-- Run validation after fixes
-- Never suppress lint errors - fix root cause
+- Run local validation after fixes before pushing
+- Never suppress lint errors — fix root cause
 - For test failures, determine if test or code needs fixing
 - Keep commit messages concise but descriptive
-- Use agent-browser CLI to verify UI-related fixes
-
-## Example Usage
-
-User says: "fix ci" or "check ci failures"
-
-The assistant will:
-1. Find the latest failed workflow
-2. Get failed job logs via `gh` CLI
-3. Analyze and present issues
-4. Ask what to fix
-5. Apply fixes and validate
-6. Optionally verify with agent-browser CLI
-7. Commit and push if requested
+- Each iteration should make a single focused commit
+- Do NOT ask the user any questions — make reasonable decisions autonomously
 
 ## Useful Commands
 
 ```bash
 # List recent workflow runs
-gh run list --branch $(git branch --show-current) --limit 5
+gh run list --branch $(git branch --show-current) --limit 10
 
 # View specific run
 gh run view <run-id>

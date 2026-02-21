@@ -195,6 +195,7 @@ describe("BoardService", () => {
         const result = await boardService.createBoard({
           name: "New Board",
           description: "Test description",
+          userId: "test-user-1",
         });
 
         expect(result.name).toBe("New Board");
@@ -205,6 +206,7 @@ describe("BoardService", () => {
             description: "Test description",
             templateId: undefined,
             position: 0,
+            userId: "test-user-1",
             columns: {
               create: [],
             },
@@ -245,6 +247,7 @@ describe("BoardService", () => {
         const result = await boardService.createBoard({
           name: "Sprint Board",
           templateId: "kanban-basic",
+          userId: "test-user-1",
         });
 
         expect(result.columns).toHaveLength(3);
@@ -275,7 +278,7 @@ describe("BoardService", () => {
         } as any);
         prismaMock.board.create.mockResolvedValue(mockBoard as any);
 
-        await boardService.createBoard({ name: "New Board" });
+        await boardService.createBoard({ name: "New Board", userId: "test-user-1" });
 
         expect(prismaMock.board.create).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -310,6 +313,7 @@ describe("BoardService", () => {
         await boardService.createBoard({
           name: "Dev Board",
           templateId: "dev-workflow",
+          userId: "test-user-1",
         });
 
         expect(prismaMock.board.create).toHaveBeenCalledWith(
@@ -337,6 +341,7 @@ describe("BoardService", () => {
           boardService.createBoard({
             name: "New Board",
             templateId: "non-existent",
+            userId: "test-user-1",
           })
         ).rejects.toThrow("Template not found");
       });
@@ -350,7 +355,7 @@ describe("BoardService", () => {
         );
 
         await expect(
-          boardService.createBoard({ name: "New Board" })
+          boardService.createBoard({ name: "New Board", userId: "test-user-1" })
         ).rejects.toThrow("Unique constraint violation");
       });
     });
@@ -557,7 +562,7 @@ describe("BoardService", () => {
         } as any);
         prismaMock.board.create.mockResolvedValue(mockDuplicatedBoard as any);
 
-        const result = await boardService.duplicateBoard("board-1");
+        const result = await boardService.duplicateBoard("board-1", "test-user-1");
 
         expect(result).not.toBeNull();
         expect(result?.name).toBe("Original (Copy)");
@@ -588,7 +593,7 @@ describe("BoardService", () => {
         } as any);
         prismaMock.board.create.mockResolvedValue(mockDuplicatedBoard as any);
 
-        const result = await boardService.duplicateBoard("board-1");
+        const result = await boardService.duplicateBoard("board-1", "test-user-1");
 
         expect(result?.name).toBe("Empty (Copy)");
       });
@@ -598,7 +603,7 @@ describe("BoardService", () => {
       it("returns null when source board not found", async () => {
         prismaMock.board.findFirst.mockResolvedValue(null);
 
-        const result = await boardService.duplicateBoard("non-existent");
+        const result = await boardService.duplicateBoard("non-existent", "test-user-1");
 
         expect(result).toBeNull();
         expect(prismaMock.board.create).not.toHaveBeenCalled();

@@ -4,7 +4,7 @@
   "private": true,
   "description": "A Trello-like todo board application",
   "scripts": {
-    "dev": "pnpm run db:start && turbo run dev",
+    "dev": "if [ -f .devcontainer/docker-compose.worktree.yml ]; then pnpm run worktree:db-start && pnpm run db:migrate:deploy && pnpm run db:generate && pnpm run db:seed; else pnpm run db:start; fi && turbo run dev",
     "dev:app": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
@@ -27,7 +27,8 @@
     "worktree": "node scripts/worktree/dist/index.js",
     "worktree:setup": "node scripts/worktree/dist/index.js setup",
     "worktree:list": "node scripts/worktree/dist/index.js list",
-    "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup"
+    "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup",
+    "worktree:db-start": "node scripts/worktree-db-start.js"
   },
   "devDependencies": {
     "archunit": "^2.1.63",

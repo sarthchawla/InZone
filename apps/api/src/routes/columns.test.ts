@@ -29,6 +29,10 @@ describe("Columns Routes", () => {
           todos: [],
         };
 
+        prismaMock.column.findUnique.mockResolvedValue({
+          ...mockColumn,
+          board: { userId: "test-user-1" },
+        } as any);
         prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         const response = await request(app)
@@ -45,6 +49,10 @@ describe("Columns Routes", () => {
           todos: [],
         };
 
+        prismaMock.column.findUnique.mockResolvedValue({
+          ...mockColumn,
+          board: { userId: "test-user-1" },
+        } as any);
         prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         const response = await request(app)
@@ -61,6 +69,10 @@ describe("Columns Routes", () => {
           todos: [],
         };
 
+        prismaMock.column.findUnique.mockResolvedValue({
+          ...mockColumn,
+          board: { userId: "test-user-1" },
+        } as any);
         prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         const response = await request(app)
@@ -81,6 +93,10 @@ describe("Columns Routes", () => {
           todos: [],
         };
 
+        prismaMock.column.findUnique.mockResolvedValue({
+          ...mockColumn,
+          board: { userId: "test-user-1" },
+        } as any);
         prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         const response = await request(app)
@@ -101,6 +117,10 @@ describe("Columns Routes", () => {
           ],
         };
 
+        prismaMock.column.findUnique.mockResolvedValue({
+          ...mockColumn,
+          board: { userId: "test-user-1" },
+        } as any);
         prismaMock.column.update.mockResolvedValue(mockColumn as any);
 
         const response = await request(app)
@@ -147,9 +167,7 @@ describe("Columns Routes", () => {
       });
 
       it("returns 404 when column not found", async () => {
-        const error: any = new Error("Record not found");
-        error.code = "P2025";
-        prismaMock.column.update.mockRejectedValue(error);
+        prismaMock.column.findUnique.mockResolvedValue(null);
 
         const response = await request(app)
           .put("/api/columns/non-existent")
@@ -160,6 +178,11 @@ describe("Columns Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        const mockColumn = {
+          ...createMockColumn({ id: "col-1" }),
+          board: { userId: "test-user-1" },
+        };
+        prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
         prismaMock.column.update.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)
@@ -180,6 +203,7 @@ describe("Columns Routes", () => {
         const mockColumn = {
           ...createMockColumn({ id: "col-1" }),
           todos: [],
+          board: { userId: "test-user-1" },
         };
 
         prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
@@ -197,6 +221,7 @@ describe("Columns Routes", () => {
             createMockTodo({ id: "todo-1" }),
             createMockTodo({ id: "todo-2" }),
           ],
+          board: { userId: "test-user-1" },
         };
 
         prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
@@ -214,6 +239,7 @@ describe("Columns Routes", () => {
             createMockTodo({ id: "todo-1", position: 0 }),
             createMockTodo({ id: "todo-2", position: 1 }),
           ],
+          board: { userId: "test-user-1" },
         };
 
         const mockTargetColumn = createMockColumn({
@@ -253,6 +279,7 @@ describe("Columns Routes", () => {
         const mockColumnToDelete = {
           ...createMockColumn({ id: "col-1", boardId: "board-1" }),
           todos: [createMockTodo({ id: "todo-1" })],
+          board: { userId: "test-user-1" },
         };
 
         const mockTargetColumn = createMockColumn({
@@ -276,6 +303,7 @@ describe("Columns Routes", () => {
         const mockColumnToDelete = {
           ...createMockColumn({ id: "col-1", boardId: "board-1" }),
           todos: [createMockTodo({ id: "todo-1" })],
+          board: { userId: "test-user-1" },
         };
 
         prismaMock.column.findUnique
@@ -294,6 +322,7 @@ describe("Columns Routes", () => {
         const mockColumn = {
           ...createMockColumn({ id: "col-1" }),
           todos: [],
+          board: { userId: "test-user-1" },
         };
 
         prismaMock.column.findUnique.mockResolvedValue(mockColumn as any);
@@ -318,6 +347,7 @@ describe("Columns Routes", () => {
           createMockColumn({ id: "col-3", boardId: "board-1" }),
         ];
 
+        prismaMock.board.findFirst.mockResolvedValue({ id: "board-1", userId: "test-user-1" } as any);
         prismaMock.column.findMany
           .mockResolvedValueOnce(columns as any) // Verification query
           .mockResolvedValueOnce(columns as any); // Final fetch
@@ -346,6 +376,7 @@ describe("Columns Routes", () => {
           },
         ];
 
+        prismaMock.board.findFirst.mockResolvedValue({ id: "board-1", userId: "test-user-1" } as any);
         prismaMock.column.findMany
           .mockResolvedValueOnce([
             createMockColumn({ id: "col-1", boardId: "board-1" }),
@@ -379,6 +410,7 @@ describe("Columns Routes", () => {
 
       it("handles empty columns array gracefully", async () => {
         // Empty array is valid - no columns to reorder
+        prismaMock.board.findFirst.mockResolvedValue({ id: "board-1", userId: "test-user-1" } as any);
         prismaMock.column.findMany
           .mockResolvedValueOnce([]) // Verification returns empty (matches)
           .mockResolvedValueOnce([]); // Final fetch returns empty
@@ -407,6 +439,7 @@ describe("Columns Routes", () => {
       });
 
       it("returns 400 when column ID is not in board", async () => {
+        prismaMock.board.findFirst.mockResolvedValue({ id: "board-1", userId: "test-user-1" } as any);
         prismaMock.column.findMany.mockResolvedValue([] as any);
 
         const response = await request(app)
@@ -426,6 +459,7 @@ describe("Columns Routes", () => {
       });
 
       it("returns 400 when some columns belong to different board", async () => {
+        prismaMock.board.findFirst.mockResolvedValue({ id: "board-1", userId: "test-user-1" } as any);
         prismaMock.column.findMany.mockResolvedValue([
           createMockColumn({ id: "col-1", boardId: "board-1" }),
         ] as any);
@@ -447,6 +481,7 @@ describe("Columns Routes", () => {
       });
 
       it("returns 500 on database error", async () => {
+        prismaMock.board.findFirst.mockResolvedValue({ id: "board-1", userId: "test-user-1" } as any);
         prismaMock.column.findMany.mockRejectedValue(new Error("DB Error"));
 
         const response = await request(app)

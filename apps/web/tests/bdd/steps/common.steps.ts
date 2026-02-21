@@ -6,6 +6,22 @@ const { Given, When, Then } = createBdd(test);
 // Helper to set up default API mocks before navigation
 // Only sets up mocks for routes that haven't been mocked by Given steps
 async function setupDefaultMocks(page: import('@playwright/test').Page, mockedRoutes: MockedRoutes) {
+  // Mock Better Auth session endpoint so AuthGuard allows access
+  await page.route('**/api/auth/**', async (route) => {
+    if (route.request().url().includes('get-session')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          session: { id: 'test-session', userId: 'test-user-1' },
+          user: { id: 'test-user-1', name: 'Test User', email: 'test@test.com', image: null },
+        }),
+      });
+    } else {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    }
+  });
+
   // Default empty boards list - only if not already mocked
   if (!mockedRoutes.has('boards')) {
     await page.route('**/api/boards', async (route) => {

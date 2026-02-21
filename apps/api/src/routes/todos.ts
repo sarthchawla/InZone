@@ -38,6 +38,10 @@ const reorderTodosSchema = z.object({
   ),
 });
 
+const archiveSchema = z.object({
+  archived: z.boolean(),
+});
+
 // GET /api/todos - List todos (with filters)
 todosRouter.get('/', async (req, res, next) => {
   try {
@@ -45,19 +49,22 @@ todosRouter.get('/', async (req, res, next) => {
 
     const where: {
       columnId?: string;
-      column?: { boardId: string };
+      column?: { boardId?: string; board?: { userId: string } };
       archived?: boolean;
       priority?: Priority;
       labels?: { some: { id: string } };
       title?: { contains: string; mode: 'insensitive' };
     } = {};
 
+    // Always scope to current user's boards
+    where.column = { board: { userId: req.user!.id } };
+
     if (columnId && typeof columnId === 'string') {
       where.columnId = columnId;
     }
 
     if (boardId && typeof boardId === 'string') {
-      where.column = { boardId };
+      where.column = { ...where.column, boardId };
     }
 
     if (archived !== undefined) {
@@ -100,13 +107,19 @@ todosRouter.post('/', async (req, res, next) => {
   try {
     const data = createTodoSchema.parse(req.body);
 
-    // Verify column exists
+    // Verify column exists and ownership through board
     const column = await prisma.column.findUnique({
       where: { id: data.columnId },
+      include: { board: { select: { userId: true } } },
     });
 
     if (!column) {
       res.status(404).json({ error: 'Column not found' });
+      return;
+    }
+
+    if (column.board.userId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
@@ -136,10 +149,6 @@ todosRouter.post('/', async (req, res, next) => {
 
     res.status(201).json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -152,12 +161,12 @@ todosRouter.get('/:id', async (req, res, next) => {
       include: {
         labels: true,
         column: {
-          select: { id: true, name: true, boardId: true },
+          select: { id: true, name: true, boardId: true, board: { select: { userId: true } } },
         },
       },
     });
 
-    if (!todo) {
+    if (!todo || todo.column.board.userId !== req.user!.id) {
       res.status(404).json({ error: 'Todo not found' });
       return;
     }
@@ -192,6 +201,17 @@ todosRouter.put('/:id', async (req, res, next) => {
       updateData.labels = { set: data.labelIds.map((id) => ({ id })) };
     }
 
+    // Verify ownership through chain
+    const existing = await prisma.todo.findUnique({
+      where: { id: req.params.id },
+      include: { column: { select: { board: { select: { userId: true } } } } },
+    });
+
+    if (!existing || existing.column.board.userId !== req.user!.id) {
+      res.status(404).json({ error: 'Todo not found' });
+      return;
+    }
+
     const todo = await prisma.todo.update({
       where: { id: req.params.id },
       data: updateData,
@@ -202,14 +222,6 @@ todosRouter.put('/:id', async (req, res, next) => {
 
     res.json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Todo not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -217,16 +229,23 @@ todosRouter.put('/:id', async (req, res, next) => {
 // DELETE /api/todos/:id - Delete todo
 todosRouter.delete('/:id', async (req, res, next) => {
   try {
+    // Verify ownership through chain
+    const existing = await prisma.todo.findUnique({
+      where: { id: req.params.id },
+      include: { column: { select: { board: { select: { userId: true } } } } },
+    });
+
+    if (!existing || existing.column.board.userId !== req.user!.id) {
+      res.status(404).json({ error: 'Todo not found' });
+      return;
+    }
+
     await prisma.todo.delete({
       where: { id: req.params.id },
     });
 
     res.status(204).send();
   } catch (error) {
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Todo not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -236,22 +255,24 @@ todosRouter.patch('/:id/move', async (req, res, next) => {
   try {
     const data = moveTodoSchema.parse(req.body);
 
-    // Verify target column exists
+    // Verify target column exists and ownership
     const targetColumn = await prisma.column.findUnique({
       where: { id: data.columnId },
+      include: { board: { select: { userId: true } } },
     });
 
-    if (!targetColumn) {
+    if (!targetColumn || targetColumn.board.userId !== req.user!.id) {
       res.status(404).json({ error: 'Target column not found' });
       return;
     }
 
-    // Get the todo
+    // Get the todo and verify ownership
     const existingTodo = await prisma.todo.findUnique({
       where: { id: req.params.id },
+      include: { column: { select: { board: { select: { userId: true } } } } },
     });
 
-    if (!existingTodo) {
+    if (!existingTodo || existingTodo.column.board.userId !== req.user!.id) {
       res.status(404).json({ error: 'Todo not found' });
       return;
     }
@@ -291,14 +312,6 @@ todosRouter.patch('/:id/move', async (req, res, next) => {
 
     res.json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Todo not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -307,6 +320,17 @@ todosRouter.patch('/:id/move', async (req, res, next) => {
 todosRouter.patch('/reorder', async (req, res, next) => {
   try {
     const data = reorderTodosSchema.parse(req.body);
+
+    // Verify column ownership through board
+    const column = await prisma.column.findUnique({
+      where: { id: data.columnId },
+      include: { board: { select: { userId: true } } },
+    });
+
+    if (!column || column.board.userId !== req.user!.id) {
+      res.status(404).json({ error: 'Column not found' });
+      return;
+    }
 
     // Verify all todos belong to the specified column
     const todos = await prisma.todo.findMany({
@@ -342,10 +366,6 @@ todosRouter.patch('/reorder', async (req, res, next) => {
 
     res.json(updatedTodos);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
     next(error);
   }
 });
@@ -353,11 +373,18 @@ todosRouter.patch('/reorder', async (req, res, next) => {
 // PATCH /api/todos/:id/archive - Archive/unarchive todo
 todosRouter.patch('/:id/archive', async (req, res, next) => {
   try {
-    const archiveSchema = z.object({
-      archived: z.boolean(),
+    const data = archiveSchema.parse(req.body);
+
+    // Verify ownership through chain
+    const existing = await prisma.todo.findUnique({
+      where: { id: req.params.id },
+      include: { column: { select: { board: { select: { userId: true } } } } },
     });
 
-    const data = archiveSchema.parse(req.body);
+    if (!existing || existing.column.board.userId !== req.user!.id) {
+      res.status(404).json({ error: 'Todo not found' });
+      return;
+    }
 
     const todo = await prisma.todo.update({
       where: { id: req.params.id },
@@ -369,14 +396,6 @@ todosRouter.patch('/:id/archive', async (req, res, next) => {
 
     res.json(todo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ errors: error.errors });
-      return;
-    }
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Todo not found' });
-      return;
-    }
     next(error);
   }
 });
