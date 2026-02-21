@@ -18,9 +18,10 @@ const updateBoardSchema = z.object({
 });
 
 // GET /api/boards - List all boards
-boardsRouter.get('/', async (_req, res, next) => {
+boardsRouter.get('/', async (req, res, next) => {
   try {
     const boards = await prisma.board.findMany({
+      where: { userId: req.user!.id },
       orderBy: { position: 'asc' },
       include: {
         columns: {
@@ -81,6 +82,7 @@ boardsRouter.post('/', async (req, res, next) => {
         description: data.description,
         templateId: data.templateId,
         position: newPosition,
+        userId: req.user!.id,
         columns: {
           create: columnsToCreate,
         },
@@ -105,8 +107,8 @@ boardsRouter.post('/', async (req, res, next) => {
 // GET /api/boards/:id - Get board with columns/todos
 boardsRouter.get('/:id', async (req, res, next) => {
   try {
-    const board = await prisma.board.findUnique({
-      where: { id: req.params.id },
+    const board = await prisma.board.findFirst({
+      where: { id: req.params.id, userId: req.user!.id },
       include: {
         columns: {
           orderBy: { position: 'asc' },
@@ -139,6 +141,15 @@ boardsRouter.put('/:id', async (req, res, next) => {
   try {
     const data = updateBoardSchema.parse(req.body);
 
+    // Verify ownership
+    const existing = await prisma.board.findFirst({
+      where: { id: req.params.id, userId: req.user!.id },
+    });
+    if (!existing) {
+      res.status(404).json({ error: 'Board not found' });
+      return;
+    }
+
     const board = await prisma.board.update({
       where: { id: req.params.id },
       data,
@@ -155,10 +166,6 @@ boardsRouter.put('/:id', async (req, res, next) => {
       res.status(400).json({ errors: error.errors });
       return;
     }
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Board not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -166,16 +173,21 @@ boardsRouter.put('/:id', async (req, res, next) => {
 // DELETE /api/boards/:id - Delete board
 boardsRouter.delete('/:id', async (req, res, next) => {
   try {
+    // Verify ownership
+    const existing = await prisma.board.findFirst({
+      where: { id: req.params.id, userId: req.user!.id },
+    });
+    if (!existing) {
+      res.status(404).json({ error: 'Board not found' });
+      return;
+    }
+
     await prisma.board.delete({
       where: { id: req.params.id },
     });
 
     res.status(204).send();
   } catch (error) {
-    if ((error as { code?: string }).code === 'P2025') {
-      res.status(404).json({ error: 'Board not found' });
-      return;
-    }
     next(error);
   }
 });
@@ -183,8 +195,8 @@ boardsRouter.delete('/:id', async (req, res, next) => {
 // POST /api/boards/:id/duplicate - Duplicate board
 boardsRouter.post('/:id/duplicate', async (req, res, next) => {
   try {
-    const sourceBoard = await prisma.board.findUnique({
-      where: { id: req.params.id },
+    const sourceBoard = await prisma.board.findFirst({
+      where: { id: req.params.id, userId: req.user!.id },
       include: {
         columns: {
           orderBy: { position: 'asc' },
@@ -219,6 +231,7 @@ boardsRouter.post('/:id/duplicate', async (req, res, next) => {
         description: sourceBoard.description,
         templateId: sourceBoard.templateId,
         position: newPosition,
+        userId: req.user!.id,
         columns: {
           create: sourceBoard.columns.map((column) => ({
             name: column.name,
@@ -270,9 +283,9 @@ boardsRouter.post('/:boardId/columns', async (req, res, next) => {
 
     const data = columnSchema.parse(req.body);
 
-    // Verify board exists
-    const board = await prisma.board.findUnique({
-      where: { id: req.params.boardId },
+    // Verify board exists and ownership
+    const board = await prisma.board.findFirst({
+      where: { id: req.params.boardId, userId: req.user!.id },
     });
 
     if (!board) {

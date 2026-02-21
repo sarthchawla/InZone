@@ -7,6 +7,7 @@ export const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   name: "Test Board",
   description: "A test board",
   position: 0,
+  userId: 'test-user-id',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   columns: [],

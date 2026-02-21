@@ -4,6 +4,7 @@ export interface Board {
   description?: string;
   position: number;
   templateId?: string;
+  userId: string;
   createdAt: string;
   updatedAt: string;
   columns: Column[];

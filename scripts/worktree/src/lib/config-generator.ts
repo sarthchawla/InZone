@@ -25,6 +25,9 @@ DATABASE_URL=postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@localhost:${po
 
 # Development settings
 NODE_ENV=development
+
+# Auth bypass for worktree development (skips OAuth, uses a dev user)
+VITE_AUTH_BYPASS=true
 `;
 
   fs.writeFileSync(envPath, content);
@@ -87,6 +90,7 @@ export function generateDevcontainerJson(
       HOME: '/home/node',
       VITE_DEV_PORT: String(ports.frontend),
       API_PORT: String(ports.backend),
+      VITE_AUTH_BYPASS: 'true',
     },
     postCreateCommand:
       'sudo /usr/local/bin/fix-permissions.sh && pnpm install && pnpm --filter api db:generate',
@@ -125,6 +129,7 @@ services:
       - VITE_DEV_PORT=${ports.frontend}
       - API_PORT=${ports.backend}
       - DATABASE_URL=postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@host.docker.internal:${ports.database}/${DB_CONFIG.database}?schema=public
+      - VITE_AUTH_BYPASS=true
     ports:
       - "${ports.frontend}:${ports.frontend}"
       - "${ports.backend}:${ports.backend}"

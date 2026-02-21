@@ -31,6 +31,7 @@ export function createMockBoard(overrides: Partial<Board> = {}): Board {
     description: "A test board description",
     position: 0,
     templateId: null,
+    userId: "test-user-1",
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
