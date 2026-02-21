@@ -288,8 +288,8 @@ Feature: Columns API
     Given a board "Test Board" exists
     And the board has columns "A, B" in that order
     When I PATCH /api/columns/reorder with invalid boardId
-    Then the response status should be 400
-    And the response should contain error "Invalid column IDs or board mismatch"
+    Then the response status should be 404
+    And the response should contain error "Board not found"
 
   @unhappy-path
   Scenario: Reorder columns with non-existent column IDs

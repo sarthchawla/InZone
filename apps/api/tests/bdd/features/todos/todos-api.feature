@@ -372,18 +372,15 @@ Feature: Todos API
     Then the response status should be 400
     And the response should contain validation errors
 
-  @unhappy-path @skip
+  @unhappy-path
   Scenario: Create todo with non-existent label
-    # Note: This scenario is skipped because the current API implementation
-    # returns a 500 error when Prisma fails to connect non-existent labels.
-    # A future improvement would be to validate label IDs before connecting.
     Given a board "Test Board" exists
     And the board has a column "Todo"
     When I POST to /api/todos with non-existent labels:
       | title    | Test Task        |
       | columnId | :columnId        |
       | labels   | non-existent-id  |
-    Then the response status should be 500
+    Then the response status should be 404
 
   @unhappy-path
   Scenario: Update non-existent todo
@@ -469,8 +466,8 @@ Feature: Todos API
     And the board has a column "Todo"
     And the column has todos "Task A, Task B" in order
     When I PATCH /api/todos/reorder with invalid columnId
-    Then the response status should be 400
-    And the response should contain error "Invalid todo IDs or column mismatch"
+    Then the response status should be 404
+    And the response should contain error "Column not found"
 
   @unhappy-path
   Scenario: Reorder todos with non-existent todo IDs
