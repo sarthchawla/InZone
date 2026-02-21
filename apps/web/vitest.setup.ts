@@ -1,7 +1,14 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach, beforeAll, afterAll } from "vitest";
+import { afterEach, beforeAll, afterAll, vi } from "vitest";
 import { server } from "./src/test/mocks/server";
+
+// Mock @vercel/analytics/react — script injection doesn't work in jsdom.
+// If you add imports of other exports (e.g. track), add them here too.
+vi.mock("@vercel/analytics/react", () => ({
+  Analytics: () => null,
+  track: vi.fn(),
+}));
 
 // Mock ResizeObserver which is not available in JSDOM
 global.ResizeObserver = class ResizeObserver {
