@@ -1,16 +1,27 @@
 import express, { Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { boardsRouter } from "../routes/boards.js";
 import { columnsRouter } from "../routes/columns.js";
 import { todosRouter } from "../routes/todos.js";
 import { templatesRouter } from "../routes/templates.js";
 import { labelsRouter } from "../routes/labels.js";
+import { invitesRouter } from "../routes/invites.js";
+import { accessRequestsRouter } from "../routes/access-requests.js";
+import { securityQuestionsRouter } from "../routes/security-questions.js";
 import { errorHandler } from "../middleware/errorHandler.js";
 
 export const TEST_USER = {
   id: "test-user-1",
   name: "Test User",
   email: "test@example.com",
+  image: null,
+};
+
+export const TEST_ADMIN = {
+  id: "admin-user-1",
+  name: "Admin User",
+  email: "admin@example.com",
   image: null,
 };
 
@@ -24,6 +35,7 @@ export function createTestApp(): Express {
   // Middleware
   app.use(cors());
   app.use(express.json());
+  app.use(cookieParser());
 
   // Mock auth — inject test user on all requests
   app.use((req, _res, next) => {
@@ -42,6 +54,9 @@ export function createTestApp(): Express {
   app.use("/api/todos", todosRouter);
   app.use("/api/templates", templatesRouter);
   app.use("/api/labels", labelsRouter);
+  app.use("/api/invites", invitesRouter);
+  app.use("/api/access-requests", accessRequestsRouter);
+  app.use("/api/security-questions", securityQuestionsRouter);
 
   // Error handling
   app.use(errorHandler);
