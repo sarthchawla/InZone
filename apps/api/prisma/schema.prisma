@@ -19,23 +19,35 @@ model User {
   image         String?
   createdAt     DateTime
   updatedAt     DateTime
+  // Added by admin plugin:
+  role            String?
+  banned          Boolean?
+  banReason       String?
+  banExpires      DateTime?
+  // Added by username plugin:
+  username        String?   @unique
+  displayUsername String?
 
-  sessions Session[]
-  accounts Account[]
-  boards   Board[]
+  sessions           Session[]
+  accounts           Account[]
+  boards             Board[]
+  invitesCreated     Invite[]           @relation("InviteCreator")
+  securityQuestions  SecurityQuestion[]
 
   @@map("user")
 }
 
 model Session {
-  id        String   @id
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime
-  updatedAt DateTime
+  id              String   @id
+  token           String   @unique
+  userId          String
+  expiresAt       DateTime
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime
+  updatedAt       DateTime
+  // Added by admin plugin:
+  impersonatedBy  String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -173,6 +185,55 @@ model BoardTemplate {
   updatedAt   DateTime @updatedAt
 
   @@map("board_templates")
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique
+  role        String    @default("user")
+  status      String    @default("pending")
+  usedAt      DateTime?
+  expiresAt   DateTime
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  creator     User      @relation("InviteCreator", fields: [createdBy], references: [id])
+
+  @@index([email])
+  @@index([status])
+  @@map("invite")
+}
+
+model AccessRequest {
+  id          String    @id @default(cuid())
+  email       String
+  name        String
+  reason      String?
+  status      String    @default("pending")
+  role        String    @default("user")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@index([status])
+  @@map("access_request")
+}
+
+model SecurityQuestion {
+  id         String   @id @default(cuid())
+  userId     String
+  question   String
+  answer     String
+  order      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, order])
+  @@map("security_question")
 }
 
 enum Priority {

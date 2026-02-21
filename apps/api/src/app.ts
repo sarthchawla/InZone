@@ -9,6 +9,9 @@ import { columnsRouter } from './routes/columns.js';
 import { todosRouter } from './routes/todos.js';
 import { templatesRouter } from './routes/templates.js';
 import { labelsRouter } from './routes/labels.js';
+import { invitesRouter } from './routes/invites.js';
+import { accessRequestsRouter } from './routes/access-requests.js';
+import { securityQuestionsRouter } from './routes/security-questions.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app: Express = express();
@@ -34,6 +37,11 @@ app.use(express.json());
 app.get(['/health', '/api/health'], (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Public API Routes (no auth required — auth handled per-route)
+app.use('/api/invites', invitesRouter);
+app.use('/api/access-requests', accessRequestsRouter);
+app.use('/api/security-questions', securityQuestionsRouter);
 
 // API Routes (protected)
 app.use('/api/boards', requireAuth, boardsRouter);
