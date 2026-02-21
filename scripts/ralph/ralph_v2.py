@@ -681,13 +681,8 @@ Examples:
     # Handle stop-on-complete logic
     stop_on_complete = args.stop_on_complete and not args.no_stop_on_complete
 
-    # Change to working directory
-    if args.workdir:
-        project_root = Path(args.workdir).resolve()
-    else:
-        # Default: project root (parent of scripts/ralph/)
-        script_dir = Path(__file__).parent
-        project_root = script_dir.parent.parent
+    # Change to working directory (defaults to current directory)
+    project_root = Path(args.workdir).resolve() if args.workdir else Path.cwd()
     os.chdir(project_root)
 
     # Validate prompt file
