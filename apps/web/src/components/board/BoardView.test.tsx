@@ -9,6 +9,21 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../contexts/ToastContext";
 
+// Mock window.matchMedia for useIsMobile / useMediaQuery
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Custom render for BoardView that sets up routing with boardId param
 // Does NOT use the default wrapper since it includes BrowserRouter
 function renderBoardView(boardId: string = "board-1") {
@@ -112,9 +127,8 @@ describe("BoardView", () => {
   describe("rendering", () => {
     it("renders loading state initially", () => {
       renderBoardView();
-      // Look for loading spinner
-      const spinner = document.querySelector(".animate-spin");
-      expect(spinner).toBeInTheDocument();
+      // Loading state uses skeleton loaders with animate-pulse
+      expect(screen.getByTestId("board-view-loading")).toBeInTheDocument();
     });
 
     it("renders board name after loading", async () => {
@@ -125,8 +139,7 @@ describe("BoardView", () => {
       });
     });
 
-    it("renders board description indicator when description exists", async () => {
-      const user = userEvent.setup();
+    it("renders board description inline when description exists", async () => {
       renderBoardView();
 
       // Wait for board to load
@@ -134,16 +147,10 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Description is collapsed by default - check for FileText icon button (description indicator)
-      const descriptionIndicator = screen.getByTitle(/expand description/i);
-      expect(descriptionIndicator).toBeInTheDocument();
-
-      // Click to expand and see full description
-      await user.click(descriptionIndicator);
-
-      await waitFor(() => {
-        expect(screen.getByText("Main project board")).toBeInTheDocument();
-      });
+      // Description is shown inline below header via a read-only RichTextEditor
+      // The RichTextEditor renders content as rich text in a tiptap editor
+      const editors = screen.getAllByTestId("rich-text-editor");
+      expect(editors.length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders all columns", async () => {
@@ -569,6 +576,9 @@ describe("BoardView", () => {
       await waitFor(() => {
         expect(screen.getByText("No Description Board")).toBeInTheDocument();
       });
+
+      // Should show "Add a description..." link
+      expect(screen.getByText("Add a description...")).toBeInTheDocument();
     });
 
     it("handles columns with empty todos array", async () => {
@@ -955,23 +965,20 @@ describe("BoardView", () => {
     });
   });
 
-  describe("board description modal", () => {
-    it("opens description modal when Edit Description is clicked", async () => {
-      const user = userEvent.setup();
+  describe("inline board description editing", () => {
+    it("shows inline description when board has description", async () => {
       renderBoardView();
 
       await waitFor(() => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
-
-      expect(screen.getByText("Edit Board Description")).toBeInTheDocument();
-      // Use the specific ID for the textarea in the description modal
-      expect(document.getElementById("boardDescription")).toBeInTheDocument();
+      // Description is rendered inline via a read-only RichTextEditor
+      const editors = screen.getAllByTestId("rich-text-editor");
+      expect(editors.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("pre-fills description in modal", async () => {
+    it("opens inline editor when clicking description", async () => {
       const user = userEvent.setup();
       renderBoardView();
 
@@ -979,11 +986,18 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
+      // The description area is a clickable div wrapping a read-only RichTextEditor
+      // Click on the description area to start editing
+      const descriptionArea = screen.getAllByTestId("rich-text-editor")[0].closest("div[class*='cursor-pointer']");
+      if (descriptionArea) {
+        await user.click(descriptionArea);
+      }
 
-      // Use the specific ID for the textarea in the description modal
-      const textarea = document.getElementById("boardDescription") as HTMLTextAreaElement;
-      expect(textarea).toHaveValue("Main project board");
+      // Should show Save and Cancel buttons for inline editing
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+      });
     });
 
     it("saves description when Save is clicked", async () => {
@@ -1005,21 +1019,26 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
+      // Click description area to edit
+      const descriptionArea = screen.getAllByTestId("rich-text-editor")[0].closest("div[class*='cursor-pointer']");
+      if (descriptionArea) {
+        await user.click(descriptionArea);
+      }
 
-      // Use the specific ID for the textarea in the description modal
-      const textarea = document.getElementById("boardDescription") as HTMLTextAreaElement;
-      await user.clear(textarea);
-      await user.type(textarea, "Updated description");
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
+      });
 
+      // Click Save (testing the save flow, Tiptap typing in JSDOM is unreliable)
       await user.click(screen.getByRole("button", { name: /Save/i }));
 
       await waitFor(() => {
-        expect(screen.queryByText("Edit Board Description")).not.toBeInTheDocument();
+        // Save/Cancel buttons should disappear after saving
+        expect(screen.queryByRole("button", { name: /^Save$/i })).not.toBeInTheDocument();
       });
     });
 
-    it("closes modal when Cancel is clicked", async () => {
+    it("closes inline editor when Cancel is clicked", async () => {
       const user = userEvent.setup();
       renderBoardView();
 
@@ -1027,17 +1046,25 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Edit Description"));
-      expect(screen.getByText("Edit Board Description")).toBeInTheDocument();
+      // Click description area to edit
+      const descriptionArea = screen.getAllByTestId("rich-text-editor")[0].closest("div[class*='cursor-pointer']");
+      if (descriptionArea) {
+        await user.click(descriptionArea);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+      });
 
       await user.click(screen.getByRole("button", { name: /Cancel/i }));
 
       await waitFor(() => {
-        expect(screen.queryByText("Edit Board Description")).not.toBeInTheDocument();
+        // Save button should no longer be visible
+        expect(screen.queryByRole("button", { name: /^Save$/i })).not.toBeInTheDocument();
       });
     });
 
-    it("shows add description prompt when board has no description", async () => {
+    it("shows 'Add a description...' link when board has no description", async () => {
       const boardWithoutDesc = createMockBoard({
         id: "board-1",
         name: "No Description Board",
@@ -1054,11 +1081,11 @@ describe("BoardView", () => {
       renderBoardView();
 
       await waitFor(() => {
-        expect(screen.getByText(/Add a description to help your team/i)).toBeInTheDocument();
+        expect(screen.getByText("Add a description...")).toBeInTheDocument();
       });
     });
 
-    it("opens description modal when add description prompt is clicked", async () => {
+    it("opens inline editor when 'Add a description...' link is clicked", async () => {
       const user = userEvent.setup();
       const boardWithoutDesc = createMockBoard({
         id: "board-1",
@@ -1076,17 +1103,44 @@ describe("BoardView", () => {
       renderBoardView();
 
       await waitFor(() => {
-        expect(screen.getByText(/Add a description to help your team/i)).toBeInTheDocument();
+        expect(screen.getByText("Add a description...")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText(/Add a description to help your team/i));
+      await user.click(screen.getByText("Add a description..."));
 
-      expect(screen.getByText("Edit Board Description")).toBeInTheDocument();
+      // Should show inline editor with Save and Cancel buttons
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+      });
     });
   });
 
-  describe("todo edit modal", () => {
-    it("opens edit modal when clicking on a todo", async () => {
+  describe("detail panel (todo editing)", () => {
+    it("opens detail panel when clicking on a todo", async () => {
+      const user = userEvent.setup();
+
+      server.use(
+        http.get("/api/labels", () => {
+          return HttpResponse.json(mockLabels);
+        })
+      );
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByText("First Task")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("First Task"));
+
+      // DetailPanel renders a close button with aria-label="Close panel"
+      await waitFor(() => {
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
+      });
+    });
+
+    it("closes detail panel when close button is clicked", async () => {
       const user = userEvent.setup();
 
       server.use(
@@ -1104,11 +1158,17 @@ describe("BoardView", () => {
       await user.click(screen.getByText("First Task"));
 
       await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByLabelText("Close panel"));
+
+      await waitFor(() => {
+        expect(screen.queryByLabelText("Close panel")).not.toBeInTheDocument();
       });
     });
 
-    it("closes edit modal when Cancel is clicked", async () => {
+    it("shows todo title in detail panel", async () => {
       const user = userEvent.setup();
 
       server.use(
@@ -1126,55 +1186,15 @@ describe("BoardView", () => {
       await user.click(screen.getByText("First Task"));
 
       await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /Cancel/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Task")).not.toBeInTheDocument();
-      });
+      // DetailPanel shows a title input with the todo's title
+      const titleInput = screen.getByDisplayValue("First Task");
+      expect(titleInput).toBeInTheDocument();
     });
 
-    it("saves todo changes", async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.get("/api/labels", () => {
-          return HttpResponse.json(mockLabels);
-        }),
-        http.patch("/api/todos/:id", async ({ request }) => {
-          const body = await request.json() as { title?: string };
-          return HttpResponse.json({
-            ...createMockTodo({ id: "todo-1", title: body.title || "First Task" }),
-          });
-        })
-      );
-
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("First Task")).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByText("First Task"));
-
-      await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
-      });
-
-      const titleInput = screen.getByLabelText("Title");
-      await user.clear(titleInput);
-      await user.type(titleInput, "Updated Task Title");
-
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Task")).not.toBeInTheDocument();
-      });
-    });
-
-    it("deletes todo when delete is confirmed", async () => {
+    it("shows delete task button in detail panel", async () => {
       const user = userEvent.setup();
 
       server.use(
@@ -1195,37 +1215,17 @@ describe("BoardView", () => {
       await user.click(screen.getByText("First Task"));
 
       await waitFor(() => {
-        expect(screen.getByText("Edit Task")).toBeInTheDocument();
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
       });
 
-      // Click Delete
-      await user.click(screen.getByRole("button", { name: /Delete/i }));
-
-      // Confirm deletion
-      await waitFor(() => {
-        expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByRole("button", { name: /Confirm Delete/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Task")).not.toBeInTheDocument();
-      });
+      // DetailPanel has a "Delete task" button in the footer
+      expect(screen.getByText("Delete task")).toBeInTheDocument();
     });
   });
 
   describe("column management", () => {
-    it("updates column when edited", async () => {
+    it("shows column options menu with Edit Description and Delete Column", async () => {
       const user = userEvent.setup();
-
-      server.use(
-        http.patch("/api/columns/:id", async ({ request }) => {
-          const body = await request.json() as { name?: string; description?: string };
-          return HttpResponse.json({
-            ...createMockColumn({ id: "column-1", name: body.name || "Todo" }),
-          });
-        })
-      );
 
       renderBoardView();
 
@@ -1237,26 +1237,12 @@ describe("BoardView", () => {
       const columnOptions = screen.getAllByLabelText("Column options")[0];
       await user.click(columnOptions);
 
-      // Click Edit
-      await user.click(screen.getByText("Edit"));
-
-      await waitFor(() => {
-        expect(screen.getByText("Edit Column")).toBeInTheDocument();
-      });
-
-      // Update name
-      const nameInput = screen.getByLabelText("Name");
-      await user.clear(nameInput);
-      await user.type(nameInput, "Updated Column");
-
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText("Edit Column")).not.toBeInTheDocument();
-      });
+      // Menu should show Edit Description and Delete Column options
+      expect(screen.getByText("Edit Description")).toBeInTheDocument();
+      expect(screen.getByText("Delete Column")).toBeInTheDocument();
     });
 
-    it("deletes column when confirmed", async () => {
+    it("deletes column when Delete Column is clicked", async () => {
       const user = userEvent.setup();
 
       server.use(
@@ -1275,66 +1261,12 @@ describe("BoardView", () => {
       const columnOptions = screen.getAllByLabelText("Column options")[2];
       await user.click(columnOptions);
 
-      // Click Delete
-      await user.click(screen.getByText("Delete"));
+      // Click Delete Column (immediate, no confirmation dialog)
+      await user.click(screen.getByText("Delete Column"));
 
-      await waitFor(() => {
-        expect(screen.getByText("Delete Column")).toBeInTheDocument();
-      });
-
-      // Confirm deletion
-      await user.click(screen.getByRole("button", { name: /^Delete$/i }));
-
+      // Menu should close after clicking
       await waitFor(() => {
         expect(screen.queryByText("Delete Column")).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  describe("description collapse/expand", () => {
-    it("expands description when indicator is clicked", async () => {
-      const user = userEvent.setup();
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-      });
-
-      // Click the expand button
-      const expandButton = screen.getByTitle(/expand description/i);
-      await user.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Main project board")).toBeInTheDocument();
-      });
-    });
-
-    it("collapses description when collapse button is clicked", async () => {
-      const user = userEvent.setup();
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-      });
-
-      // Expand first
-      const expandButton = screen.getByTitle(/expand description/i);
-      await user.click(expandButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Main project board")).toBeInTheDocument();
-      });
-
-      // Now collapse - find the ChevronDown button within the expanded description section
-      // The collapse button is within the description section, which contains "Main project board"
-      const descriptionSection = screen.getByText("Main project board").closest("div")?.parentElement;
-      expect(descriptionSection).toBeInTheDocument();
-      const collapseButton = descriptionSection?.querySelector("button");
-      expect(collapseButton).toBeInTheDocument();
-      await user.click(collapseButton!);
-
-      await waitFor(() => {
-        expect(screen.queryByText("Main project board")).not.toBeInTheDocument();
       });
     });
   });

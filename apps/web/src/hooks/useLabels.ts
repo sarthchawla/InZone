@@ -38,7 +38,7 @@ export function useLabel(labelId: string | undefined) {
   });
 }
 
-// Create label mutation
+// Create label mutation with optimistic update
 export function useCreateLabel() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -46,13 +46,35 @@ export function useCreateLabel() {
       const { data } = await apiClient.post<Label>('/labels', label);
       return data;
     },
-    onSuccess: () => {
+    onMutate: async (newLabel) => {
+      await queryClient.cancelQueries({ queryKey: labelKeys.all });
+      const previous = queryClient.getQueryData<LabelWithCount[]>(labelKeys.all);
+
+      const optimisticLabel: LabelWithCount = {
+        id: `temp-${Date.now()}`,
+        name: newLabel.name,
+        color: newLabel.color,
+        _count: { todos: 0 },
+      };
+
+      queryClient.setQueryData<LabelWithCount[]>(labelKeys.all, (old) =>
+        [...(old ?? []), optimisticLabel]
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(labelKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: labelKeys.all });
     },
   });
 }
 
-// Update label mutation
+// Update label mutation with optimistic update
 export function useUpdateLabel() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -60,14 +82,30 @@ export function useUpdateLabel() {
       const { data } = await apiClient.put<Label>(`/labels/${id}`, updates);
       return data;
     },
-    onSuccess: (data) => {
+    onMutate: async ({ id, ...updates }) => {
+      await queryClient.cancelQueries({ queryKey: labelKeys.all });
+      const previous = queryClient.getQueryData<LabelWithCount[]>(labelKeys.all);
+
+      queryClient.setQueryData<LabelWithCount[]>(labelKeys.all, (old) =>
+        (old ?? []).map((label) =>
+          label.id === id ? { ...label, ...updates } : label
+        )
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(labelKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: labelKeys.all });
-      queryClient.invalidateQueries({ queryKey: labelKeys.detail(data.id) });
     },
   });
 }
 
-// Delete label mutation
+// Delete label mutation with optimistic update
 export function useDeleteLabel() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -75,7 +113,22 @@ export function useDeleteLabel() {
       await apiClient.delete(`/labels/${id}`);
       return id;
     },
-    onSuccess: () => {
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: labelKeys.all });
+      const previous = queryClient.getQueryData<LabelWithCount[]>(labelKeys.all);
+
+      queryClient.setQueryData<LabelWithCount[]>(labelKeys.all, (old) =>
+        (old ?? []).filter((label) => label.id !== deletedId)
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(labelKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: labelKeys.all });
     },
   });

@@ -94,9 +94,9 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
     <Modal isOpen={isOpen} onClose={onClose} title="Manage Labels" className="max-w-lg">
       <div className="space-y-4">
         {isLoading ? (
-          <div className="text-center py-8 text-gray-500">Loading labels...</div>
+          <div className="text-center py-8 text-stone-500">Loading labels...</div>
         ) : labels.length === 0 && !showCreateForm ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-stone-500">
             <p className="mb-2">No labels yet</p>
             <p className="text-sm">Create labels to categorize your todos</p>
           </div>
@@ -107,7 +107,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                 key={label.id}
                 className={cn(
                   'group flex items-center gap-3 p-3 rounded-lg border',
-                  deleteConfirmId === label.id ? 'border-red-200 bg-red-50' : 'border-gray-200'
+                  deleteConfirmId === label.id ? 'border-red-200 bg-red-50' : 'border-stone-200'
                 )}
               >
                 {editingId === label.id ? (
@@ -131,7 +131,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                             onClick={() => setEditColor(color)}
                             className={cn(
                               'h-5 w-5 rounded-full',
-                              editColor === color && 'ring-2 ring-offset-1 ring-gray-400'
+                              editColor === color && 'ring-2 ring-offset-1 ring-stone-400'
                             )}
                             style={{ backgroundColor: color }}
                           />
@@ -148,7 +148,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         <Check className="h-4 w-4 text-green-600" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
-                        <X className="h-4 w-4 text-gray-500" />
+                        <X className="h-4 w-4 text-stone-500" />
                       </Button>
                     </div>
                   </>
@@ -189,9 +189,9 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                       style={{ backgroundColor: label.color }}
                     />
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-gray-900">{label.name}</span>
+                      <span className="text-sm font-medium text-stone-900">{label.name}</span>
                       {label._count?.todos !== undefined && (
-                        <span className="ml-2 text-xs text-gray-500">
+                        <span className="ml-2 text-xs text-stone-500">
                           ({label._count.todos} {label._count.todos === 1 ? 'todo' : 'todos'})
                         </span>
                       )}
@@ -205,7 +205,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         data-testid={`edit-label-${label.id}`}
                         aria-label={`Edit ${label.name}`}
                       >
-                        <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                        <Pencil className="h-3.5 w-3.5 text-stone-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -215,7 +215,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         data-testid={`delete-label-${label.id}`}
                         aria-label={`Delete ${label.name}`}
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-gray-500" />
+                        <Trash2 className="h-3.5 w-3.5 text-stone-500" />
                       </Button>
                     </div>
                   </>
@@ -226,7 +226,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
         )}
 
         {showCreateForm ? (
-          <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 space-y-2">
+          <div className="p-3 rounded-lg border border-accent-muted bg-accent-light space-y-2">
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -248,7 +248,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                   onClick={() => setNewColor(color)}
                   className={cn(
                     'h-6 w-6 rounded-full',
-                    newColor === color && 'ring-2 ring-offset-1 ring-gray-400'
+                    newColor === color && 'ring-2 ring-offset-1 ring-stone-400'
                   )}
                   style={{ backgroundColor: color }}
                 />

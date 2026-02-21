@@ -41,11 +41,11 @@ describe("Input", () => {
       render(<Input />);
       const input = screen.getByRole("textbox");
       expect(input).toHaveClass("flex");
-      expect(input).toHaveClass("h-10");
+      expect(input).toHaveClass("min-h-[44px]");
       expect(input).toHaveClass("w-full");
-      expect(input).toHaveClass("rounded-md");
+      expect(input).toHaveClass("rounded-lg");
       expect(input).toHaveClass("border");
-      expect(input).toHaveClass("border-gray-300");
+      expect(input).toHaveClass("border-stone-300");
       expect(input).toHaveClass("bg-white");
       expect(input).toHaveClass("px-3");
       expect(input).toHaveClass("py-2");
@@ -61,7 +61,7 @@ describe("Input", () => {
       render(<Input className="my-custom" />);
       const input = screen.getByRole("textbox");
       expect(input).toHaveClass("my-custom");
-      expect(input).toHaveClass("rounded-md");
+      expect(input).toHaveClass("rounded-lg");
     });
   });
 
@@ -144,8 +144,8 @@ describe("Input", () => {
       const input = screen.getByRole("textbox");
       expect(input).toHaveClass("focus-visible:outline-none");
       expect(input).toHaveClass("focus-visible:ring-2");
-      expect(input).toHaveClass("focus-visible:ring-blue-500");
-      expect(input).toHaveClass("focus-visible:border-transparent");
+      expect(input).toHaveClass("focus-visible:ring-accent/30");
+      expect(input).toHaveClass("focus-visible:border-accent");
     });
 
     it("can be focused", async () => {
@@ -161,7 +161,7 @@ describe("Input", () => {
     it("has placeholder text color style", () => {
       render(<Input placeholder="Test" />);
       const input = screen.getByRole("textbox");
-      expect(input).toHaveClass("placeholder:text-gray-400");
+      expect(input).toHaveClass("placeholder:text-stone-400");
     });
   });
 

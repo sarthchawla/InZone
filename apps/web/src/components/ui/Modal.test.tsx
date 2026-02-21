@@ -58,7 +58,7 @@ describe("Modal", () => {
 
     it("renders backdrop overlay", () => {
       render(<Modal {...defaultProps} />);
-      const backdrop = document.querySelector(".bg-black\\/50");
+      const backdrop = document.querySelector(".bg-black\\/40");
       expect(backdrop).toBeInTheDocument();
     });
 
@@ -78,11 +78,11 @@ describe("Modal", () => {
       render(<Modal {...defaultProps} />);
       const dialog = screen.getByRole("dialog");
       expect(dialog).toHaveClass("w-full");
-      expect(dialog).toHaveClass("max-w-md");
-      expect(dialog).toHaveClass("rounded-lg");
+      expect(dialog).toHaveClass("md:max-w-md");
+      expect(dialog).toHaveClass("rounded-t-2xl");
+      expect(dialog).toHaveClass("md:rounded-xl");
       expect(dialog).toHaveClass("bg-white");
-      expect(dialog).toHaveClass("p-6");
-      expect(dialog).toHaveClass("shadow-xl");
+      expect(dialog).toHaveClass("shadow-2xl");
     });
 
     it("applies custom className", () => {
@@ -102,7 +102,8 @@ describe("Modal", () => {
       render(<Modal {...defaultProps} />);
       const container = document.querySelector(".fixed.inset-0");
       expect(container).toHaveClass("flex");
-      expect(container).toHaveClass("items-center");
+      expect(container).toHaveClass("items-end");
+      expect(container).toHaveClass("md:items-center");
       expect(container).toHaveClass("justify-center");
     });
   });
@@ -122,7 +123,7 @@ describe("Modal", () => {
       const onClose = vi.fn();
       render(<Modal {...defaultProps} onClose={onClose} />);
 
-      const backdrop = document.querySelector(".bg-black\\/50");
+      const backdrop = document.querySelector(".bg-black\\/40");
       if (backdrop) {
         await user.click(backdrop);
       }

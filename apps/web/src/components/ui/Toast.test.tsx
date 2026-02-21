@@ -232,9 +232,10 @@ describe("ToastContainer", () => {
       expect(screen.getByText("Info message")).toBeInTheDocument();
     });
 
-    it("returns null when toasts array is empty", () => {
-      const { container } = render(<ToastContainer toasts={[]} onDismiss={vi.fn()} />);
-      expect(container).toBeEmptyDOMElement();
+    it("renders no toast alerts when toasts array is empty", () => {
+      render(<ToastContainer toasts={[]} onDismiss={vi.fn()} />);
+      // Container wrapper is always rendered (for AnimatePresence), but no toasts inside
+      expect(screen.queryAllByRole("alert")).toHaveLength(0);
     });
 
     it("is positioned at bottom right", () => {
@@ -324,7 +325,7 @@ describe("ToastContainer", () => {
       expect(screen.getByText("Error message")).toBeInTheDocument();
     });
 
-    it("handles toasts being removed dynamically", () => {
+    it("handles toasts being removed dynamically", async () => {
       const { rerender } = render(<ToastContainer {...defaultProps} />);
 
       expect(screen.getByText("Success message")).toBeInTheDocument();
@@ -337,7 +338,10 @@ describe("ToastContainer", () => {
         />
       );
 
-      expect(screen.queryByText("Success message")).not.toBeInTheDocument();
+      // AnimatePresence may keep the exiting element briefly during exit animation
+      await waitFor(() => {
+        expect(screen.queryByText("Success message")).not.toBeInTheDocument();
+      });
       expect(screen.getByText("Error message")).toBeInTheDocument();
     });
 

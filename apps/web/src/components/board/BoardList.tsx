@@ -1,101 +1,288 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2, Layout } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, MoreHorizontal, Clock, Pencil, Trash2 } from 'lucide-react';
 import { useBoards, useCreateBoard, useDeleteBoard, useTemplates } from '../../hooks/useBoards';
-import { Button, Input, Modal } from '../ui';
+import { Input, BoardCardSkeleton, Button } from '../ui';
 import { useToast } from '../../contexts/ToastContext';
 import { getErrorMessage } from '../../api/client';
+import { cn } from '../../lib/utils';
+
+function relativeTime(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const seconds = Math.floor((now - then) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Inline Creation Form                                               */
+/* ------------------------------------------------------------------ */
+
+function InlineCreateForm({
+  onCancel,
+  autoFocus = true,
+}: {
+  onCancel?: () => void;
+  autoFocus?: boolean;
+}) {
+  const { data: templates } = useTemplates();
+  const createBoard = useCreateBoard();
+  const toast = useToast();
+
+  const [name, setName] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [createError, setCreateError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
+
+  const handleCreate = () => {
+    if (!name.trim()) return;
+    setCreateError(null);
+    createBoard.mutate(
+      {
+        name: name.trim(),
+        templateId: selectedTemplate || undefined,
+      },
+      {
+        onSuccess: () => {
+          setName('');
+          setSelectedTemplate('');
+          toast.success('Board created successfully');
+          onCancel?.();
+        },
+        onError: (error) => {
+          setCreateError(getErrorMessage(error));
+        },
+      },
+    );
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCreate();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel?.();
+    }
+  };
+
+  return (
+    <div className="space-y-3" data-testid="inline-create-form">
+      {createError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+          {createError}
+        </div>
+      )}
+      <Input
+        ref={inputRef}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Board name..."
+        data-testid="board-name-input"
+      />
+
+      {/* Template chips */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setSelectedTemplate('')}
+          className={cn(
+            'px-3 py-1 text-xs rounded-full border transition-colors',
+            selectedTemplate === ''
+              ? 'bg-accent text-white border-accent'
+              : 'bg-white text-stone-600 border-stone-200 hover:border-accent-muted',
+          )}
+        >
+          Empty board
+        </button>
+        {templates?.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setSelectedTemplate(t.id)}
+            className={cn(
+              'px-3 py-1 text-xs rounded-full border transition-colors',
+              selectedTemplate === t.id
+                ? 'bg-accent text-white border-accent'
+                : 'bg-white text-stone-600 border-stone-200 hover:border-accent-muted',
+            )}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleCreate}
+          disabled={!name.trim() || createBoard.isPending}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+            'bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed',
+          )}
+        >
+          {createBoard.isPending ? 'Creating...' : 'Create'}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3 py-1.5 text-sm text-stone-500 hover:text-stone-700 transition-colors"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Board Card ⋯ Dropdown                                             */
+/* ------------------------------------------------------------------ */
+
+function CardDropdown({
+  boardId,
+  boardName,
+  onRename,
+  onDelete,
+}: {
+  boardId: string;
+  boardName: string;
+  onRename: (boardId: string) => void;
+  onDelete: (boardId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className={cn(
+          'p-1 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors',
+        )}
+        aria-label={`Actions for ${boardName}`}
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute right-0 top-full mt-1 z-20 w-36 rounded-lg border border-stone-200 bg-white shadow-lg py-1"
+          >
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen(false);
+                onRename(boardId);
+              }}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Rename
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen(false);
+                onDelete(boardId);
+              }}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  BoardList (main component)                                         */
+/* ------------------------------------------------------------------ */
 
 export function BoardList() {
   const { data: boards, isLoading, error: loadError } = useBoards();
-  const { data: templates } = useTemplates();
-  const createBoard = useCreateBoard();
   const deleteBoard = useDeleteBoard();
   const toast = useToast();
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newBoardName, setNewBoardName] = useState('');
-  const [newBoardDescription, setNewBoardDescription] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [createError, setCreateError] = useState<string | null>(null);
+  // Inline creation ghost-card state
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Delete confirmation modal state
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const handleCreateBoard = () => {
-    if (newBoardName.trim()) {
-      setCreateError(null);
-      createBoard.mutate(
-        {
-          name: newBoardName.trim(),
-          description: newBoardDescription.trim() || undefined,
-          templateId: selectedTemplate || undefined,
-        },
-        {
-          onSuccess: () => {
-            setIsCreateModalOpen(false);
-            setNewBoardName('');
-            setNewBoardDescription('');
-            setSelectedTemplate('');
-            toast.success('Board created successfully');
-          },
-          onError: (error) => {
-            const message = getErrorMessage(error);
-            setCreateError(message);
-          },
-        }
-      );
-    }
+  // Rename state (placeholder for future inline rename)
+  const handleRename = (_boardId: string) => {
+    // TODO: inline rename flow
+    toast.info('Rename coming soon');
   };
 
-  const handleCloseCreateModal = () => {
-    setIsCreateModalOpen(false);
-    setCreateError(null);
-    setNewBoardName('');
-    setNewBoardDescription('');
-    setSelectedTemplate('');
+  const handleDelete = (boardId: string) => {
+    deleteBoard.mutate(boardId, {
+      onSuccess: () => {
+        toast.info('Board deleted');
+      },
+      onError: (error) => {
+        toast.error(getErrorMessage(error));
+      },
+    });
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, boardId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setBoardToDelete(boardId);
-    setDeleteError(null);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (boardToDelete) {
-      deleteBoard.mutate(boardToDelete, {
-        onSuccess: () => {
-          setIsDeleteModalOpen(false);
-          setBoardToDelete(null);
-          toast.success('Board deleted');
-        },
-        onError: (error) => {
-          const message = getErrorMessage(error);
-          setDeleteError(message);
-        },
-      });
-    }
-  };
-
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setBoardToDelete(null);
-    setDeleteError(null);
-  };
-
+  /* ---- Loading skeleton ---- */
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64" data-testid="loading">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="p-6" data-testid="loading">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-8 w-40 bg-stone-200 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <BoardCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
 
+  /* ---- Error state ---- */
   if (loadError) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center p-6">
@@ -110,163 +297,165 @@ export function BoardList() {
     );
   }
 
+  /* ---- Empty state ---- */
+  if (!boards || boards.length === 0) {
+    return (
+      <div className="p-6" data-testid="board-list">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center justify-center py-20 text-center"
+        >
+          <h3 className="text-xl font-semibold text-stone-900 mb-2">
+            Start by creating your first board
+          </h3>
+          <p className="text-stone-500 mb-8 max-w-sm">
+            Boards help you organise tasks into columns. Give your board a name to get started.
+          </p>
+          <div className="w-full max-w-sm">
+            <InlineCreateForm />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  /* ---- Board grid ---- */
   return (
     <div className="p-6" data-testid="board-list">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Your Boards</h2>
-        <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Board
-        </Button>
+        <h2 className="text-2xl font-bold text-stone-900">Your Boards</h2>
       </div>
 
-      {boards && boards.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {boards.map((board) => (
-            <Link
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {boards.map((board, index) => {
+          const isOptimistic = board.id.startsWith('temp-');
+          const totalTodos =
+            board.columns?.reduce((sum, col) => sum + (col.todos?.length ?? 0), 0) ?? 0;
+          const sortedCols = [...(board.columns ?? [])].sort((a, b) => a.position - b.position);
+          const doneTodos =
+            sortedCols.length > 0
+              ? (sortedCols[sortedCols.length - 1].todos?.length ?? 0)
+              : 0;
+          const percentage = totalTodos > 0 ? Math.round((doneTodos / totalTodos) * 100) : 0;
+
+          return (
+            <motion.div
               key={board.id}
-              to={`/board/${board.id}`}
-              data-testid="board-card"
-              className="group relative block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05, duration: 0.3 }}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Layout className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{board.name}</h3>
+              <Link
+                to={`/board/${board.id}`}
+                data-testid="board-card"
+                className={cn(
+                  'group relative block p-4 rounded-xl border border-stone-200/60 bg-white shadow-sm',
+                  'hover:shadow-md hover:border-stone-300/80 transition-all',
+                  // Mobile compact: horizontal layout
+                  'sm:block',
+                  isOptimistic && 'animate-pulse opacity-80',
+                )}
+              >
+                {/* Top row: name + ⋯ */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-stone-900 truncate">{board.name}</h3>
                     {board.description && (
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                      <p className="text-sm text-stone-500 mt-1 line-clamp-2">
                         {board.description}
                       </p>
                     )}
                   </div>
+
+                  {!isOptimistic && (
+                    <CardDropdown
+                      boardId={board.id}
+                      boardName={board.name}
+                      onRename={handleRename}
+                      onDelete={handleDelete}
+                    />
+                  )}
                 </div>
-                <button
-                  onClick={(e) => handleDeleteClick(e, board.id)}
-                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Delete board"
+
+                {/* Progress bar */}
+                {totalTodos > 0 && (
+                  <div className="mt-3" data-testid="progress-bar">
+                    <div className="flex items-center justify-between text-xs text-stone-400 mb-1">
+                      <span>
+                        {doneTodos}/{totalTodos} done
+                      </span>
+                      <span>{percentage}%</span>
+                    </div>
+                    <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-accent rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer: meta */}
+                <div
+                  className="mt-4 flex items-center justify-between text-xs text-stone-400"
+                  data-testid="todo-count"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mt-4 text-xs text-gray-400" data-testid="todo-count">
-                {board.columns?.length ?? 0} {(board.columns?.length ?? 0) === 1 ? 'column' : 'columns'}
-                {' · '}
-                {board.todoCount ?? 0} {(board.todoCount ?? 0) === 1 ? 'task' : 'tasks'}
-              </div>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <Layout className="h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No boards yet</h3>
-          <p className="text-gray-500 mb-4">Create your first board to get started</p>
-          <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Board
-          </Button>
-        </div>
-      )}
+                  <span>
+                    {board.columns?.length ?? 0}{' '}
+                    {(board.columns?.length ?? 0) === 1 ? 'column' : 'columns'}
+                    {' \u00b7 '}
+                    {board.todoCount ?? 0} {(board.todoCount ?? 0) === 1 ? 'task' : 'tasks'}
+                  </span>
+                  {board.updatedAt && (
+                    <span
+                      className="inline-flex items-center gap-1"
+                      title={new Date(board.updatedAt).toLocaleString()}
+                    >
+                      <Clock className="h-3 w-3" />
+                      {relativeTime(board.updatedAt)}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
 
-      {/* Create Board Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={handleCloseCreateModal}
-        title="Create New Board"
-      >
-        <div className="space-y-4">
-          {createError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
-              {createError}
+        {/* Ghost card / inline creation */}
+        <motion.div
+          key="ghost-card"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: boards.length * 0.05, duration: 0.3 }}
+        >
+          {isCreating ? (
+            <div
+              className="p-4 rounded-xl border border-stone-200/60 bg-white shadow-sm"
+              data-testid="ghost-card-form"
+            >
+              <InlineCreateForm onCancel={() => setIsCreating(false)} />
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCreating(true)}
+              data-testid="ghost-card"
+              className={cn(
+                'w-full h-full min-h-[120px] p-4 rounded-xl',
+                'border-2 border-dashed border-stone-200 bg-transparent',
+                'flex flex-col items-center justify-center gap-2',
+                'text-stone-400 hover:text-accent hover:border-accent-muted',
+                'transition-colors cursor-pointer',
+              )}
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-sm font-medium">+ New Board</span>
+            </button>
           )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Board Name *
-            </label>
-            <Input
-              value={newBoardName}
-              onChange={(e) => setNewBoardName(e.target.value)}
-              placeholder="Enter board name..."
-              autoFocus
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <Input
-              value={newBoardDescription}
-              onChange={(e) => setNewBoardDescription(e.target.value)}
-              placeholder="Optional description..."
-            />
-          </div>
-          <div>
-            <label htmlFor="template-select" className="block text-sm font-medium text-gray-700 mb-1">
-              Template
-            </label>
-            <select
-              id="template-select"
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
-              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">No template (empty board)</option>
-              {templates?.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name} - {template.description}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="ghost" onClick={handleCloseCreateModal}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleCreateBoard}
-              disabled={!newBoardName.trim() || createBoard.isPending}
-            >
-              {createBoard.isPending ? 'Creating...' : 'Create Board'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={handleCloseDeleteModal}
-        title="Delete Board"
-      >
-        <div className="space-y-4">
-          {deleteError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
-              {deleteError}
-            </div>
-          )}
-          <p className="text-gray-600">
-            Are you sure you want to delete this board? This action cannot be undone
-            and all associated todos will be permanently removed.
-          </p>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="ghost" onClick={handleCloseDeleteModal}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleConfirmDelete}
-              disabled={deleteBoard.isPending}
-            >
-              {deleteBoard.isPending ? 'Deleting...' : 'Confirm Delete'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        </motion.div>
+      </div>
     </div>
   );
 }
