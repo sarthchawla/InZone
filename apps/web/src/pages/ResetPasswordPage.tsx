@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient, getErrorMessage } from '../api/client';
 import { authClient } from '../lib/auth-client';
 import { Button } from '../components/ui/Button';
@@ -17,6 +18,7 @@ type Step = 'identify' | 'questions' | 'reset' | 'done';
 
 export function ResetPasswordPage() {
   const [step, setStep] = useState<Step>('identify');
+  const direction = useRef(1);
   const [identifier, setIdentifier] = useState('');
   const [questions, setQuestions] = useState<string[]>([]);
   const [answers, setAnswers] = useState(['', '', '']);
@@ -35,6 +37,7 @@ export function ResetPasswordPage() {
     try {
       const { data } = await apiClient.post('/security-questions/questions', { identifier });
       setQuestions(data.questions);
+      direction.current = 1;
       setStep('questions');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -55,6 +58,7 @@ export function ResetPasswordPage() {
         answers,
       });
       setResetToken(data.resetToken);
+      direction.current = 1;
       setStep('reset');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -94,7 +98,12 @@ export function ResetPasswordPage() {
 
   if (step === 'done') {
     return (
-      <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
+      <motion.div
+        className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center" role="status">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,12 +119,23 @@ export function ResetPasswordPage() {
             Sign In
           </Link>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
+  const slideVariants = {
+    enter: { x: direction.current > 0 ? 40 : -40, opacity: 0 },
+    center: { x: 0, opacity: 1 },
+    exit: { x: direction.current > 0 ? -40 : 40, opacity: 0 },
+  };
+
   return (
-    <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
+    <motion.div
+      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
         <div className="mb-6" role="group" aria-label="Password reset progress">
           <div className="flex items-center justify-between mb-2">
@@ -155,116 +175,139 @@ export function ResetPasswordPage() {
           </div>
         )}
 
-        {step === 'identify' && (
-          <>
-            <h1 className="text-2xl font-bold text-stone-900 mb-6 text-center">Reset Your Password</h1>
-            <form onSubmit={handleIdentify} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  Email or Username
-                </label>
-                <Input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                />
-              </div>
-              <Button
-                variant="primary"
-                type="submit"
-                className="w-full"
-                disabled={!identifier || loading}
-              >
-                {loading ? 'Loading...' : 'Continue'}
-              </Button>
-            </form>
-          </>
-        )}
-
-        {step === 'questions' && (
-          <>
-            <h1 className="text-xl font-bold text-stone-900 mb-4 text-center">
-              Answer Your Security Questions
-            </h1>
-            <form onSubmit={handleVerify} className="space-y-4">
-              {questions.map((q, i) => (
-                <div key={i}>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">{q}</label>
+        <AnimatePresence mode="wait">
+          {step === 'identify' && (
+            <motion.div
+              key="identify"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <h1 className="text-2xl font-bold text-stone-900 mb-6 text-center">Reset Your Password</h1>
+              <form onSubmit={handleIdentify} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                    Email or Username
+                  </label>
                   <Input
                     type="text"
-                    value={answers[i]}
-                    onChange={(e) => {
-                      const updated = [...answers];
-                      updated[i] = e.target.value;
-                      setAnswers(updated);
-                    }}
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                   />
                 </div>
-              ))}
-              <Button
-                variant="primary"
-                type="submit"
-                className="w-full"
-                disabled={answers.some((a) => !a) || loading}
-              >
-                {loading ? 'Verifying...' : 'Verify'}
-              </Button>
-            </form>
-          </>
-        )}
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="w-full"
+                  disabled={!identifier || loading}
+                >
+                  {loading ? 'Loading...' : 'Continue'}
+                </Button>
+              </form>
+            </motion.div>
+          )}
 
-        {step === 'reset' && (
-          <>
-            <h1 className="text-xl font-bold text-stone-900 mb-4 text-center">Set New Password</h1>
-            <form onSubmit={handleReset} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">New Password</label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <div className="mt-1 space-y-0.5" aria-label="Password strength indicators">
-                  {passwordChecks.map((check) => (
-                    <div key={check.label} className="flex items-center gap-1.5 text-xs">
-                      <span className={check.passed ? 'text-green-500' : 'text-stone-400'}>
-                        {check.passed ? '\u2713' : '\u2717'}
-                      </span>
-                      <span className={check.passed ? 'text-green-700' : 'text-stone-500'}>
-                        {check.label}
-                      </span>
-                    </div>
-                  ))}
+          {step === 'questions' && (
+            <motion.div
+              key="questions"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <h1 className="text-xl font-bold text-stone-900 mb-4 text-center">
+                Answer Your Security Questions
+              </h1>
+              <form onSubmit={handleVerify} className="space-y-4">
+                {questions.map((q, i) => (
+                  <div key={i}>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">{q}</label>
+                    <Input
+                      type="text"
+                      value={answers[i]}
+                      onChange={(e) => {
+                        const updated = [...answers];
+                        updated[i] = e.target.value;
+                        setAnswers(updated);
+                      }}
+                    />
+                  </div>
+                ))}
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="w-full"
+                  disabled={answers.some((a) => !a) || loading}
+                >
+                  {loading ? 'Verifying...' : 'Verify'}
+                </Button>
+              </form>
+            </motion.div>
+          )}
+
+          {step === 'reset' && (
+            <motion.div
+              key="reset"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <h1 className="text-xl font-bold text-stone-900 mb-4 text-center">Set New Password</h1>
+              <form onSubmit={handleReset} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">New Password</label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <div className="mt-1 space-y-0.5" aria-label="Password strength indicators">
+                    {passwordChecks.map((check) => (
+                      <div key={check.label} className="flex items-center gap-1.5 text-xs">
+                        <span className={check.passed ? 'text-green-500' : 'text-stone-400'}>
+                          {check.passed ? '\u2713' : '\u2717'}
+                        </span>
+                        <span className={check.passed ? 'text-green-700' : 'text-stone-500'}>
+                          {check.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  Confirm Password
-                </label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                {confirmPassword && confirmPassword !== newPassword && (
-                  <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
-                )}
-              </div>
-              <Button
-                variant="primary"
-                type="submit"
-                className="w-full"
-                disabled={
-                  !passwordChecks.every((c) => c.passed) ||
-                  newPassword !== confirmPassword ||
-                  loading
-                }
-              >
-                {loading ? 'Resetting...' : 'Reset Password'}
-              </Button>
-            </form>
-          </>
-        )}
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                    Confirm Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                  {confirmPassword && confirmPassword !== newPassword && (
+                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                  )}
+                </div>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="w-full"
+                  disabled={
+                    !passwordChecks.every((c) => c.passed) ||
+                    newPassword !== confirmPassword ||
+                    loading
+                  }
+                >
+                  {loading ? 'Resetting...' : 'Reset Password'}
+                </Button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <p className="text-center text-sm text-stone-500 mt-4">
           <Link to="/login" className="text-accent hover:underline">
@@ -272,6 +315,6 @@ export function ResetPasswordPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

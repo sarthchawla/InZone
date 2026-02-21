@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { signIn } from '../lib/auth-client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
 import { Button } from '../components/ui/Button';
@@ -38,7 +39,12 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
+    <motion.div
+      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
         <h1 className="text-2xl font-bold text-accent mb-2 text-center">InZone</h1>
         <p className="text-stone-600 mb-6 text-center">Sign in to manage your boards</p>
@@ -120,6 +126,6 @@ export function LoginPage() {
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

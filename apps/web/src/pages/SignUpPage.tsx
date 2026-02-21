@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { signUp, signIn } from '../lib/auth-client';
 import { apiClient, getErrorMessage } from '../api/client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
@@ -140,19 +141,29 @@ export function SignUpPage() {
 
   if (token && tokenValid === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-0">
+      <motion.div
+        className="min-h-screen flex items-center justify-center bg-surface-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <div
           role="status"
           aria-label="Loading"
           className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"
         />
-      </div>
+      </motion.div>
     );
   }
 
   if (token && tokenValid === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-0 p-4">
+      <motion.div
+        className="min-h-screen flex items-center justify-center bg-surface-0 p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Invite</h1>
           <p className="text-stone-600 mb-6">
@@ -162,12 +173,17 @@ export function SignUpPage() {
             Back to Sign In
           </Link>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
+    <motion.div
+      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
         <h1 className="text-2xl font-bold text-accent mb-2 text-center">
           Create your InZone account
@@ -327,6 +343,6 @@ export function SignUpPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

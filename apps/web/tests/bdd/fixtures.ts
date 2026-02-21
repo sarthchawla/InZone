@@ -2,6 +2,8 @@ import { test as base } from 'playwright-bdd';
 import { BoardListPage } from './support/pages/board-list.page';
 import { BoardViewPage } from './support/pages/board-view.page';
 import { TodoModalPage } from './support/pages/todo-modal.page';
+import { LoginPage } from './support/pages/login.page';
+import { SignUpPage } from './support/pages/signup.page';
 
 /**
  * Tracks which API routes have been mocked by Given steps.
@@ -17,6 +19,8 @@ type Fixtures = {
   boardListPage: BoardListPage;
   boardViewPage: BoardViewPage;
   todoModalPage: TodoModalPage;
+  loginPage: LoginPage;
+  signUpPage: SignUpPage;
   baseUrl: string;
   apiUrl: string;
   mockedRoutes: MockedRoutes;
@@ -41,6 +45,14 @@ export const test = base.extend<Fixtures>({
 
   todoModalPage: async ({ page }, use) => {
     await use(new TodoModalPage(page));
+  },
+
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+
+  signUpPage: async ({ page }, use) => {
+    await use(new SignUpPage(page));
   },
 });
 

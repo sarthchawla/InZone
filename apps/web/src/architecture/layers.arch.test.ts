@@ -107,4 +107,37 @@ describe("Frontend Layer Architecture", () => {
       await expect(rule).toPassAsync();
     });
   });
+
+  describe("Auth Pages Layer", () => {
+    it("auth pages should not import admin pages", async () => {
+      const authPageNames = [
+        /^LoginPage\.tsx$/,
+        /^SignUpPage\.tsx$/,
+        /^RequestAccessPage\.tsx$/,
+        /^ResetPasswordPage\.tsx$/,
+        /^SettingsPage\.tsx$/,
+      ];
+
+      for (const name of authPageNames) {
+        const rule = projectFiles()
+          .inFolder("src/pages/**")
+          .withName(name)
+          .shouldNot()
+          .dependOnFiles()
+          .inFolder("src/pages/admin/**");
+
+        await expect(rule).toPassAsync();
+      }
+    });
+
+    it("admin pages should not import auth pages", async () => {
+      const rule = projectFiles()
+        .inFolder("src/pages/admin/**")
+        .shouldNot()
+        .dependOnFiles()
+        .inPath(/pages\/(LoginPage|SignUpPage|RequestAccessPage|ResetPasswordPage)/);
+
+      await expect(rule).toPassAsync();
+    });
+  });
 });

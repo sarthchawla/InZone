@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { apiClient, getErrorMessage } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -30,7 +31,12 @@ export function RequestAccessPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
+      <motion.div
+        className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+      >
         <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,12 +55,17 @@ export function RequestAccessPage() {
             Back to Sign In
           </Link>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface-0 flex items-center justify-center p-4">
+    <motion.div
+      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
         <h1 className="text-2xl font-bold text-accent mb-2 text-center">Request Access to InZone</h1>
 
@@ -115,6 +126,6 @@ export function RequestAccessPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
