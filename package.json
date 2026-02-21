@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "if [ -f .devcontainer/docker-compose.worktree.yml ]; then pnpm run worktree:db-start && pnpm run db:migrate:deploy && pnpm run db:generate && pnpm run db:seed; else pnpm run db:start; fi && turbo run dev",
     "dev:app": "turbo run dev",
-    "build": "turbo run build",
+    "build": "pnpm run db:generate && turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:arch": "turbo run test:arch",
@@ -31,6 +31,7 @@
     "worktree:db-start": "node scripts/worktree-db-start.js"
   },
   "devDependencies": {
+    "@vercel/node": "^5.6.6",
     "archunit": "^2.1.63",
     "prettier": "^3.2.5",
     "turbo": "^2.3.4",

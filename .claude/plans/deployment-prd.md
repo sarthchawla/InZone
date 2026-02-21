@@ -6,30 +6,45 @@ Deploy InZone to production using **Vercel** (frontend + backend) and **Neon** (
 
 **Goal**: Zero-cost production deployment with no sleep mode, accessible globally.
 
+**Auth Stack**: Better Auth v1.4.18 with Google OAuth, cookie-based sessions, user-scoped data access.
+
 ---
 
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         VERCEL                                   │
-│  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
-│  │   Static Frontend   │    │    Serverless API Functions     │ │
-│  │   (React + Vite)    │    │    (Express via @vercel/node)   │ │
-│  │                     │    │                                 │ │
-│  │   /                 │───▶│   /api/boards                   │ │
-│  │   /boards/:id       │    │   /api/columns                  │ │
-│  │   Global CDN        │    │   /api/todos                    │ │
-│  └─────────────────────┘    │   /api/templates                │ │
-│                             │   /api/labels                   │ │
-│                             └───────────────┬─────────────────┘ │
-└─────────────────────────────────────────────┼───────────────────┘
-                                              │
-                                              ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                              VERCEL                                    │
+│  ┌─────────────────────┐    ┌──────────────────────────────────────┐ │
+│  │   Static Frontend   │    │      Serverless API Functions        │ │
+│  │   (React + Vite)    │    │      (Express via @vercel/node)      │ │
+│  │                     │    │                                      │ │
+│  │   /                 │───▶│   /api/auth/* (Better Auth)          │ │
+│  │   /login            │    │   /api/boards  (requireAuth)         │ │
+│  │   /boards/:id       │    │   /api/columns (requireAuth)         │ │
+│  │   Global CDN        │    │   /api/todos   (requireAuth)         │ │
+│  └─────────────────────┘    │   /api/templates (requireAuth)       │ │
+│          │                  │   /api/labels  (requireAuth)         │ │
+│          │                  │   /api/health  (public)              │ │
+│          │                  └──────────────┬───────────────────────┘ │
+│          │                                 │                         │
+│          ▼                                 │                         │
+│  ┌─────────────────────┐                   │                         │
+│  │   Google OAuth      │                   │                         │
+│  │   (callback to      │                   │                         │
+│  │    /api/auth/        │                   │                         │
+│  │    callback/google)  │                   │                         │
+│  └─────────────────────┘                   │                         │
+└────────────────────────────────────────────┼─────────────────────────┘
+                                             │
+                                             ▼
                               ┌───────────────────────────────┐
                               │           NEON                │
                               │   Serverless PostgreSQL       │
                               │   (0.5GB free tier)           │
+                              │   Tables: user, session,      │
+                              │   account, verification,      │
+                              │   board, column, todo, etc.   │
                               │   Auto-scales to zero         │
                               └───────────────────────────────┘
 ```
@@ -120,7 +135,16 @@ Deploy frontend and API as separate Vercel projects.
   - Select "Free" tier
   - Verify email
 
-- [ ] **1.3 Connect GitHub Repository**
+- [ ] **1.3 Set Up Google OAuth for Production**
+  - Go to [Google Cloud Console](https://console.cloud.google.com)
+  - Create or select a project
+  - Enable "Google+ API" or "Google Identity" API
+  - Go to Credentials → Create OAuth 2.0 Client ID
+  - Add authorized redirect URI: `https://<your-vercel-domain>/api/auth/callback/google`
+  - Note the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Vercel env vars
+  - **Important**: You can add the exact Vercel URL after first deployment, then redeploy
+
+- [ ] **1.4 Connect GitHub Repository**
   - Ensure InZone repo is pushed to GitHub
   - Note the repository URL for later
 
@@ -165,29 +189,52 @@ Deploy frontend and API as separate Vercel projects.
 
 ### Claude Tasks
 
-All code changes required to make the Express API work as Vercel Serverless Functions.
+All code changes required to make the Express API work as Vercel Serverless Functions, including Better Auth integration.
 
 - [ ] **3.1 Create Vercel API Handler**
   - Create `/api/index.ts` as serverless entry point
   - Wrap Express app for Vercel serverless runtime
-  - File: `apps/api/api/index.ts`
+  - **Must mount Better Auth handler BEFORE `express.json()` middleware** (Better Auth needs raw body)
+  - Mount auth routes: `app.all('/api/auth/*', toNodeHandler(auth))`
+  - Apply `requireAuth` middleware to protected routes (boards, columns, todos, templates, labels)
+  - Keep health endpoint public
+  - Configure CORS with `credentials: true` and explicit `origin` (no wildcard with credentials)
+  - File: `api/index.ts` (at repo root)
 
 - [ ] **3.2 Update Prisma Client for Serverless**
   - Implement connection pooling
   - Add PrismaClient singleton pattern for serverless
   - Prevent connection exhaustion
 
-- [ ] **3.3 Update Frontend API Client**
+- [ ] **3.3 Update Better Auth Configuration for Production**
+  - Update `BETTER_AUTH_URL` to use production Vercel domain
+  - Update `trustedOrigins` to include production domain
+  - Ensure `secureCookies: true` in production (already conditional on NODE_ENV)
+  - Verify session cookie settings work cross-origin on Vercel (same-origin, so should be fine)
+  - Rate limiting config carries over as-is
+  - File: `apps/api/src/lib/auth.ts`
+
+- [ ] **3.4 Update Frontend API Client**
   - Update base URL configuration for production
   - Handle environment-based URL switching
+  - Ensure `withCredentials: true` is set (already done)
+  - Update auth-client base URL to use production domain
   - File: `apps/web/src/api/client.ts`
+  - File: `apps/web/src/lib/auth-client.ts`
 
-- [ ] **3.4 Add Environment Variable Handling**
-  - Create `.env.example` files
-  - Document required variables
+- [ ] **3.5 Update Frontend Auth Client for Production**
+  - Auth client base URL must point to production API
+  - In production on Vercel (same origin), use relative URL or `window.location.origin`
+  - In development, continue using `VITE_API_URL` (localhost:3001)
+  - File: `apps/web/src/lib/auth-client.ts`
+
+- [ ] **3.6 Add Environment Variable Handling**
+  - Create `.env.example` files with all auth-related variables
+  - Document required variables including auth secrets
   - Add runtime validation
+  - **Disable auth bypass in production** (`VITE_AUTH_BYPASS` must NOT be set)
 
-- [ ] **3.5 Update Build Scripts**
+- [ ] **3.7 Update Build Scripts**
   - Ensure Prisma client generates during build
   - Update `package.json` scripts for Vercel
 
@@ -209,6 +256,7 @@ All code changes required to make the Express API work as Vercel Serverless Func
     "outputDirectory": "apps/web/dist",
     "framework": "vite",
     "rewrites": [
+      { "source": "/api/auth/:path*", "destination": "/api" },
       { "source": "/api/:path*", "destination": "/api" }
     ],
     "functions": {
@@ -220,15 +268,24 @@ All code changes required to make the Express API work as Vercel Serverless Func
   }
   ```
 
+  **Note**: The `/api/auth/:path*` rewrite must be listed to ensure Better Auth
+  callback URLs (e.g., `/api/auth/callback/google`) are routed to the serverless
+  function correctly.
+
 - [ ] **4.2 Create Environment Variables Template**
   - Document all required env vars
   - Create secure variable list for Vercel
 
   | Variable | Description | Where to Set |
   |----------|-------------|--------------|
-  | `DATABASE_URL` | Neon connection string | Vercel Dashboard |
-  | `DIRECT_URL` | Neon direct connection | Vercel Dashboard |
+  | `DATABASE_URL` | Neon pooled connection string | Vercel Dashboard |
+  | `DIRECT_URL` | Neon direct connection string | Vercel Dashboard |
   | `NODE_ENV` | `production` | Vercel Dashboard |
+  | `BETTER_AUTH_SECRET` | Secret key for signing sessions/tokens (generate with `openssl rand -hex 32`) | Vercel Dashboard |
+  | `BETTER_AUTH_URL` | Production URL, e.g. `https://your-app.vercel.app` | Vercel Dashboard |
+  | `GOOGLE_CLIENT_ID` | Google OAuth client ID (from Google Cloud Console) | Vercel Dashboard |
+  | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Vercel Dashboard |
+  | `CORS_ORIGIN` | Frontend origin, e.g. `https://your-app.vercel.app` (same as BETTER_AUTH_URL for monorepo) | Vercel Dashboard |
 
 - [ ] **4.3 Update `.gitignore`**
   - Ensure `.env` files are ignored
@@ -335,17 +392,27 @@ Update unit tests and BDD tests to work with the new Vercel serverless API struc
 
     Scenario: Application loads successfully
       Given I navigate to the application
-      Then I should see the homepage
+      Then I should see the login page
       And the page should load within 3 seconds
-
-    Scenario: Can create and view a board
-      Given I am on the homepage
-      When I create a new board named "Smoke Test Board"
-      Then I should see "Smoke Test Board" in the board list
 
     Scenario: API health check passes
       When I check the API health endpoint
       Then I should receive a successful response
+
+    Scenario: Protected routes require authentication
+      When I try to access /api/boards without authentication
+      Then I should receive a 401 response
+
+    Scenario: Google OAuth login flow initiates
+      Given I am on the login page
+      When I click the "Sign in with Google" button
+      Then I should be redirected to Google's OAuth consent page
+
+    @authenticated
+    Scenario: Authenticated user can create and view a board
+      Given I am logged in
+      When I create a new board named "Smoke Test Board"
+      Then I should see "Smoke Test Board" in the board list
   ```
 
 - [ ] **6.3.4 Update BDD CI Workflow**
@@ -394,6 +461,11 @@ Update unit tests and BDD tests to work with the new Vercel serverless API struc
   | `DATABASE_URL` | (from Neon - pooled connection) |
   | `DIRECT_URL` | (from Neon - direct connection) |
   | `NODE_ENV` | `production` |
+  | `BETTER_AUTH_SECRET` | (generate: `openssl rand -hex 32`) |
+  | `BETTER_AUTH_URL` | `https://<your-vercel-domain>` |
+  | `GOOGLE_CLIENT_ID` | (from Google Cloud Console) |
+  | `GOOGLE_CLIENT_SECRET` | (from Google Cloud Console) |
+  | `CORS_ORIGIN` | `https://<your-vercel-domain>` |
 
 - [ ] **7.3 Install Neon Integration** (Optional - easier env var management)
   - Go to Vercel Marketplace
@@ -430,10 +502,15 @@ Update unit tests and BDD tests to work with the new Vercel serverless API struc
 
 - [ ] **7.8 Verify Deployment**
   - Visit deployment URL
-  - Check homepage loads
+  - Verify login page loads (should redirect unauthenticated users)
+  - Sign in with Google OAuth
+  - Verify redirect back to app after authentication
+  - Check session persists (refresh page, should stay logged in)
   - Create a test board
   - Add a todo
   - Verify drag-and-drop works
+  - Sign out and verify redirect to login page
+  - Verify data isolation (different Google account should see empty board list)
 
 - [ ] **7.9 Verify CI Pipeline**
   - Create a test PR
@@ -452,7 +529,7 @@ Update unit tests and BDD tests to work with the new Vercel serverless API struc
 
 ### 3.1 Vercel API Handler
 
-Create a new file that wraps Express for serverless:
+Create a new file that wraps Express for serverless, including Better Auth:
 
 **File: `api/index.ts`** (at repo root)
 
@@ -460,6 +537,9 @@ Create a new file that wraps Express for serverless:
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 import cors from 'cors';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from '../apps/api/src/lib/auth.js';
+import { requireAuth } from '../apps/api/src/middleware/auth.js';
 import { boardsRouter } from '../apps/api/src/routes/boards.js';
 import { columnsRouter } from '../apps/api/src/routes/columns.js';
 import { todosRouter } from '../apps/api/src/routes/todos.js';
@@ -469,21 +549,29 @@ import { errorHandler } from '../apps/api/src/middleware/errorHandler.js';
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS - must allow credentials for session cookies
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+}));
+
+// Better Auth handler - MUST be before express.json() (needs raw body)
+app.all('/api/auth/*', toNodeHandler(auth));
+
+// Body parsing - after auth handler
 app.use(express.json());
 
-// Health check
+// Health check (public)
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
-app.use('/api/boards', boardsRouter);
-app.use('/api/columns', columnsRouter);
-app.use('/api/todos', todosRouter);
-app.use('/api/templates', templatesRouter);
-app.use('/api/labels', labelsRouter);
+// Protected API Routes
+app.use('/api/boards', requireAuth, boardsRouter);
+app.use('/api/columns', requireAuth, columnsRouter);
+app.use('/api/todos', requireAuth, todosRouter);
+app.use('/api/templates', requireAuth, templatesRouter);
+app.use('/api/labels', requireAuth, labelsRouter);
 
 // Error handling
 app.use(errorHandler);
@@ -533,16 +621,46 @@ if (process.env.NODE_ENV !== 'production') {
 import axios from 'axios';
 
 // In production on Vercel, API is at same origin
-// In development, API is at localhost:3000
+// In development, API is at localhost:3001
 const baseURL = import.meta.env.PROD
   ? '/api'
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3000/api');
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
 export const apiClient = axios.create({
   baseURL,
+  withCredentials: true, // Required for session cookies
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// Redirect to login on 401
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+### 3.5 Frontend Auth Client Configuration
+
+**File: `apps/web/src/lib/auth-client.ts`** (update)
+
+```typescript
+import { createAuthClient } from 'better-auth/react';
+
+// In production, auth API is at same origin
+// In development, auth API is at localhost:3001
+const baseURL = import.meta.env.PROD
+  ? window.location.origin
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+
+export const { useSession, signIn, signOut, signUp } = createAuthClient({
+  baseURL,
 });
 ```
 
@@ -888,8 +1006,13 @@ If issues arise:
 | "Cannot find module" | Missing dependency | Run `pnpm install` before deploy |
 | "Database connection failed" | Wrong DATABASE_URL | Verify Neon connection string |
 | "Function timeout" | Query too slow | Add database indexes |
-| "CORS error" | Missing cors config | Check cors middleware |
+| "CORS error" | Missing cors config | Check CORS origin and `credentials: true` |
 | Prisma Client not found | Build order issue | Add `prisma generate` to build |
+| Google OAuth callback fails | Wrong redirect URI | Update Google Cloud Console with Vercel production URL |
+| Session cookie not set | Wrong BETTER_AUTH_URL | Must match the production domain exactly |
+| "401 Unauthorized" on all routes | Missing/expired session | Check cookie settings, verify BETTER_AUTH_SECRET is set |
+| OAuth redirect mismatch | URL mismatch | Ensure Google OAuth redirect URI matches `BETTER_AUTH_URL/api/auth/callback/google` |
+| Auth bypass active in prod | VITE_AUTH_BYPASS=true | Remove VITE_AUTH_BYPASS from production env vars |
 
 ### Debug Commands
 
@@ -908,11 +1031,16 @@ psql $DATABASE_URL -c "SELECT 1"
 
 ## Security Considerations
 
-- [ ] Never commit `.env` files
-- [ ] Use Vercel's encrypted environment variables
+- [ ] Never commit `.env` files (contains `BETTER_AUTH_SECRET`, OAuth secrets)
+- [ ] Use Vercel's encrypted environment variables for all secrets
 - [ ] Enable Neon's IP allowlist (optional)
-- [ ] Review CORS origins for production
-- [ ] Consider adding rate limiting (future)
+- [ ] Review CORS origins for production - must match `BETTER_AUTH_URL`
+- [ ] Rate limiting is already configured (5 sign-in/60s, 3 sign-up/60s, 10 callback/60s)
+- [ ] Ensure `secureCookies: true` in production (already conditional on `NODE_ENV`)
+- [ ] Generate a strong `BETTER_AUTH_SECRET` (min 32 bytes: `openssl rand -hex 32`)
+- [ ] **Do NOT set `VITE_AUTH_BYPASS` in production** - this disables all authentication
+- [ ] Restrict Google OAuth redirect URIs to production domain only
+- [ ] All API data is user-scoped (boards, columns, todos) - verified via session ownership checks
 
 ---
 
@@ -934,13 +1062,15 @@ To exceed free tier, you'd need:
 
 ## Next Steps After Deployment
 
-1. **Custom Domain** - Add your own domain in Vercel settings
+1. **Custom Domain** - Add your own domain in Vercel settings (update `BETTER_AUTH_URL`, `CORS_ORIGIN`, and Google OAuth redirect URI)
 2. **Analytics** - Enable Vercel Analytics (free tier available)
-3. **Authentication** - Add user auth when ready (future PRD)
-4. **Monitoring** - Set up alerts in Neon dashboard
+3. **Additional OAuth Providers** - Add GitHub, Apple, etc. via Better Auth social plugins
+4. **Email/Password Auth** - Currently disabled, enable in Better Auth config if needed
+5. **Monitoring** - Set up alerts in Neon dashboard
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 2.0*
 *Created: 2026-01-26*
+*Updated: 2026-02-21 - Added Better Auth (Google OAuth), session management, auth-aware deployment config*
 *Status: Ready for Implementation*
