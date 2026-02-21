@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
 import { errorHandler, createError, AppError } from "./errorHandler.js";
 
 describe("errorHandler middleware", () => {
@@ -75,6 +76,66 @@ describe("errorHandler middleware", () => {
       errorHandler(error, mockReq, res, mockNext);
 
       expect(consoleSpy).toHaveBeenCalledWith("Error:", error);
+    });
+  });
+
+  describe("Zod validation errors", () => {
+    it("handles ZodError with 400 status and errors array", () => {
+      const res = createMockRes();
+      const schema = z.object({ name: z.string().min(1) });
+      let zodError: z.ZodError;
+      try {
+        schema.parse({ name: "" });
+      } catch (e) {
+        zodError = e as z.ZodError;
+      }
+
+      errorHandler(zodError! as unknown as AppError, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ errors: zodError!.errors });
+    });
+
+    it("does not log Zod errors to console", () => {
+      const res = createMockRes();
+      const consoleSpy = vi.spyOn(console, "error");
+      const schema = z.object({ email: z.string().email() });
+      let zodError: z.ZodError;
+      try {
+        schema.parse({ email: "invalid" });
+      } catch (e) {
+        zodError = e as z.ZodError;
+      }
+
+      errorHandler(zodError! as unknown as AppError, mockReq, res, mockNext);
+
+      // console.error is called in beforeEach mock, but errorHandler should not call it for Zod errors
+      // The Zod branch returns before reaching console.error
+      expect(consoleSpy).not.toHaveBeenCalledWith("Error:", expect.anything());
+    });
+  });
+
+  describe("Prisma not-found errors", () => {
+    it("handles Prisma P2025 error with 404 status", () => {
+      const res = createMockRes();
+      const error = new Error("Record not found") as AppError;
+      (error as { code?: string }).code = "P2025";
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: "Resource not found" });
+    });
+
+    it("does not log Prisma P2025 errors to console", () => {
+      const res = createMockRes();
+      const consoleSpy = vi.spyOn(console, "error");
+      const error = new Error("Record not found") as AppError;
+      (error as { code?: string }).code = "P2025";
+
+      errorHandler(error, mockReq, res, mockNext);
+
+      expect(consoleSpy).not.toHaveBeenCalledWith("Error:", expect.anything());
     });
   });
 

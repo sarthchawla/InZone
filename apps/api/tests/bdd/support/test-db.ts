@@ -56,6 +56,12 @@ export async function disconnectTestDatabase(): Promise<void> {
   }
 }
 
+/** Well-known test user ID used by all BDD board-creation helpers.
+ *  Matches the DEV_USER id in src/middleware/auth.ts so that boards
+ *  created via the API (with auth bypass) and boards created directly
+ *  in the database share the same owner. */
+export const BDD_TEST_USER_ID = 'dev-user-000';
+
 /**
  * Clean all data from the test database
  * Deletes in correct order to respect foreign key constraints
@@ -79,6 +85,11 @@ export async function cleanTestDatabase(): Promise<void> {
   // 5. Delete board templates (no dependencies)
   await prisma.boardTemplate.deleteMany({});
 
+  // 6. Delete auth-related tables
+  await prisma.session.deleteMany({});
+  await prisma.account.deleteMany({});
+  await prisma.user.deleteMany({});
+
   console.log('Test database cleaned');
 }
 
@@ -95,6 +106,21 @@ export async function resetTestDatabase(): Promise<void> {
  */
 export async function seedTestDatabase(): Promise<void> {
   const prisma = getTestPrisma();
+
+  // Ensure the dev/test user exists for board ownership
+  // This user matches the DEV_USER in src/middleware/auth.ts
+  await prisma.user.upsert({
+    where: { id: BDD_TEST_USER_ID },
+    update: {},
+    create: {
+      id: BDD_TEST_USER_ID,
+      name: 'Dev User',
+      email: 'dev@localhost',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
 
   // Seed built-in templates (same as prisma/seed.ts)
   await prisma.boardTemplate.createMany({
@@ -140,7 +166,7 @@ export const testDataFactory = {
   /**
    * Create a test board
    */
-  async createBoard(data: { name: string; description?: string; templateId?: string; position?: number }) {
+  async createBoard(data: { name: string; description?: string; templateId?: string; position?: number; userId?: string }) {
     const prisma = getTestPrisma();
     return prisma.board.create({
       data: {
@@ -148,6 +174,7 @@ export const testDataFactory = {
         description: data.description,
         templateId: data.templateId,
         position: data.position,
+        userId: data.userId ?? BDD_TEST_USER_ID,
       },
       include: {
         columns: {
@@ -219,12 +246,14 @@ export const testDataFactory = {
   async createBoardWithTodos(data: {
     name: string;
     columns: Array<{ name: string; todos: Array<{ title: string }> }>;
+    userId?: string;
   }) {
     const prisma = getTestPrisma();
 
     const board = await prisma.board.create({
       data: {
         name: data.name,
+        userId: data.userId ?? BDD_TEST_USER_ID,
         columns: {
           create: data.columns.map((col, colIndex) => ({
             name: col.name,

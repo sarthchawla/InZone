@@ -13,6 +13,10 @@ describe('apiClient', () => {
       expect(apiClient.defaults.headers['Content-Type']).toBe('application/json');
     });
 
+    it('has withCredentials enabled', () => {
+      expect(apiClient.defaults.withCredentials).toBe(true);
+    });
+
     it('has response interceptors configured', () => {
       // Axios interceptors are stored as handlers
       expect(apiClient.interceptors.response).toBeDefined();
