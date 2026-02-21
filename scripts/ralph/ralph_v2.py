@@ -122,6 +122,32 @@ class ActivityLog:
             "timestamp": datetime.now().isoformat(),
         })
 
+    def add_iteration_summary(self, iteration: int, accumulated_text: str) -> None:
+        """Log the assistant's accumulated text output as an iteration summary."""
+        # Extract a meaningful summary from the accumulated text
+        # Take the last significant chunk (usually the wrap-up text)
+        summary = self._extract_summary(accumulated_text)
+        if summary:
+            self.entries.append({
+                "type": "iteration_summary",
+                "iteration": iteration,
+                "summary": summary,
+                "timestamp": datetime.now().isoformat(),
+            })
+
+    @staticmethod
+    def _extract_summary(text: str) -> str:
+        """Extract a concise summary from accumulated assistant text."""
+        if not text:
+            return ""
+        # Split into lines and filter out empty/whitespace-only lines
+        lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+        if not lines:
+            return ""
+        # Take up to the last 30 meaningful lines as summary context
+        summary_lines = lines[-30:]
+        return "\n".join(summary_lines)
+
     def write(self, completed: int, failed: int, early_complete: bool, global_state: dict) -> None:
         """Write the activity log to activity.md."""
         lines = []
@@ -155,7 +181,7 @@ class ActivityLog:
             if entry["type"] == "iteration_start":
                 iter_num = entry["iteration"]
                 if iter_num not in iterations_data:
-                    iterations_data[iter_num] = {"tools": [], "errors": [], "stats": None, "success": None, "complete": False}
+                    iterations_data[iter_num] = {"tools": [], "errors": [], "stats": None, "success": None, "complete": False, "summary": None}
             elif entry["type"] == "iteration_end":
                 iter_num = entry["iteration"]
                 if iter_num in iterations_data:
@@ -173,6 +199,10 @@ class ActivityLog:
                 iter_num = entry["iteration"]
                 if iter_num in iterations_data:
                     iterations_data[iter_num]["errors"].append(entry)
+            elif entry["type"] == "iteration_summary":
+                iter_num = entry["iteration"]
+                if iter_num in iterations_data:
+                    iterations_data[iter_num]["summary"] = entry["summary"]
 
         # Iteration details
         lines.append("## Iteration Details")
@@ -206,6 +236,14 @@ class ActivityLog:
                 lines.append("**Errors:**")
                 for error in data["errors"]:
                     lines.append(f"- {error['error']}")
+                lines.append("")
+
+            # Iteration summary (what was accomplished)
+            if data["summary"]:
+                lines.append("**Summary of Work Done:**")
+                lines.append("")
+                for summary_line in data["summary"].split("\n"):
+                    lines.append(f"> {summary_line}")
                 lines.append("")
 
         # Write to file
@@ -501,8 +539,11 @@ def run_iteration(
         success = return_code == 0
         complete = state.get("complete", False)
 
-        # Log iteration end
+        # Log iteration summary (assistant's text output) and end
         if activity_log:
+            accumulated = state.get("accumulated_text", "")
+            if accumulated:
+                activity_log.add_iteration_summary(iteration, accumulated)
             activity_log.add_iteration_end(iteration, success, complete)
 
         print_footer(iteration, success)
