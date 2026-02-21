@@ -9,7 +9,7 @@ export class BoardListPage {
 
   // Locators
   readonly pageContainer: Locator;
-  readonly newBoardButton: Locator;
+  readonly ghostCard: Locator;
   readonly createBoardButton: Locator;
   readonly boardCards: Locator;
   readonly emptyStateMessage: Locator;
@@ -17,14 +17,12 @@ export class BoardListPage {
   readonly errorMessage: Locator;
   readonly retryButton: Locator;
 
-  // Modal locators
-  readonly createModal: Locator;
+  // Inline create form locators
+  readonly inlineCreateForm: Locator;
   readonly boardNameInput: Locator;
-  readonly boardDescriptionInput: Locator;
-  readonly templateSelect: Locator;
   readonly createButton: Locator;
   readonly cancelButton: Locator;
-  readonly modalErrorMessage: Locator;
+  readonly formErrorMessage: Locator;
 
   // Confirmation dialog locators
   readonly confirmDialog: Locator;
@@ -36,7 +34,7 @@ export class BoardListPage {
 
     // Main page locators
     this.pageContainer = page.locator('[data-testid="board-list"]');
-    this.newBoardButton = page.getByRole('button', { name: /new board/i });
+    this.ghostCard = page.locator('[data-testid="ghost-card"]');
     this.createBoardButton = page.getByRole('button', { name: /create board/i });
     this.boardCards = page.locator('[data-testid="board-card"]');
     this.emptyStateMessage = page.getByText(/no boards/i);
@@ -44,14 +42,12 @@ export class BoardListPage {
     this.errorMessage = page.getByText(/failed to load boards/i);
     this.retryButton = page.getByRole('button', { name: /retry/i });
 
-    // Create modal locators
-    this.createModal = page.getByRole('dialog');
-    this.boardNameInput = page.getByLabel(/board name/i);
-    this.boardDescriptionInput = page.getByLabel(/description/i);
-    this.templateSelect = page.locator('select');
-    this.createButton = page.getByRole('button', { name: /create board|create$/i });
+    // Inline create form locators
+    this.inlineCreateForm = page.locator('[data-testid="inline-create-form"]');
+    this.boardNameInput = page.getByPlaceholder(/board name/i);
+    this.createButton = page.getByRole('button', { name: /^create$/i });
     this.cancelButton = page.getByRole('button', { name: /cancel/i });
-    this.modalErrorMessage = page.locator('.bg-red-50');
+    this.formErrorMessage = page.locator('.bg-red-50');
 
     // Confirmation dialog locators
     this.confirmDialog = page.getByRole('alertdialog');
@@ -92,9 +88,14 @@ export class BoardListPage {
   }
 
   // Board creation
-  async openCreateModal() {
-    await this.newBoardButton.click();
-    await this.createModal.waitFor({ state: 'visible' });
+  async openCreateForm() {
+    // In empty state, inline form is already visible
+    if (await this.inlineCreateForm.isVisible({ timeout: 1000 }).catch(() => false)) {
+      return;
+    }
+    // Otherwise click ghost card to reveal the inline form
+    await this.ghostCard.click();
+    await this.inlineCreateForm.waitFor({ state: 'visible' });
   }
 
   async fillBoardName(name: string) {
@@ -105,12 +106,8 @@ export class BoardListPage {
     await this.boardNameInput.clear();
   }
 
-  async fillBoardDescription(description: string) {
-    await this.boardDescriptionInput.fill(description);
-  }
-
   async selectTemplate(templateName: string) {
-    await this.templateSelect.selectOption({ label: new RegExp(templateName, 'i') });
+    await this.page.getByRole('button', { name: templateName, exact: true }).click();
   }
 
   async submitCreateForm() {
@@ -119,20 +116,17 @@ export class BoardListPage {
 
   async cancelCreate() {
     await this.cancelButton.click();
-    await this.createModal.waitFor({ state: 'hidden' });
+    await this.inlineCreateForm.waitFor({ state: 'hidden' });
   }
 
-  async createBoard(name: string, options?: { description?: string; template?: string }) {
-    await this.openCreateModal();
+  async createBoard(name: string, options?: { template?: string }) {
+    await this.openCreateForm();
     await this.fillBoardName(name);
-    if (options?.description) {
-      await this.fillBoardDescription(options.description);
-    }
     if (options?.template) {
       await this.selectTemplate(options.template);
     }
     await this.submitCreateForm();
-    await this.createModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    await this.inlineCreateForm.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
   // Board deletion
@@ -188,10 +182,10 @@ export class BoardListPage {
     }
   }
 
-  async expectModalErrorMessage(message?: string | RegExp) {
-    await expect(this.modalErrorMessage).toBeVisible();
+  async expectFormErrorMessage(message?: string | RegExp) {
+    await expect(this.formErrorMessage).toBeVisible();
     if (message) {
-      await expect(this.modalErrorMessage).toContainText(message);
+      await expect(this.formErrorMessage).toContainText(message);
     }
   }
 
@@ -199,12 +193,12 @@ export class BoardListPage {
     await expect(this.retryButton).toBeVisible();
   }
 
-  async expectCreateModalOpen() {
-    await expect(this.createModal).toBeVisible();
+  async expectCreateFormVisible() {
+    await expect(this.inlineCreateForm).toBeVisible();
   }
 
-  async expectCreateModalClosed() {
-    await expect(this.createModal).not.toBeVisible();
+  async expectCreateFormHidden() {
+    await expect(this.inlineCreateForm).not.toBeVisible();
   }
 
   // API Mocking helpers

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { MenuItemRow } from './ContextMenuItemRow';
-import type { ContextMenuItem } from './ContextMenuItemRow';
+import type { ContextMenuItem } from '../../types';
 
-export type { ContextMenuItem } from './ContextMenuItemRow';
+export type { ContextMenuItem } from '../../types';
 
 export interface ContextMenuProps {
   items: ContextMenuItem[];

@@ -1,16 +1,7 @@
 import { useState, useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
-
-export interface ContextMenuItem {
-  label: string;
-  icon?: React.ReactNode;
-  shortcut?: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-  submenu?: ContextMenuItem[];
-}
+import type { ContextMenuItem } from '../../types';
 
 export function MenuItemRow({
   item,

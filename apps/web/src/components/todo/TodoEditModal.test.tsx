@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { TodoEditModal } from "./TodoEditModal";
 import { server } from "../../test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { createMockTodo, mockLabels } from "../../test/mocks/handlers";
+import { createMockTodo, mockLabels, API_BASE } from "../../test/mocks/handlers";
 import type { Todo, Priority } from "../../types";
 
 // Factory function for creating mock todos
@@ -27,7 +27,7 @@ describe("TodoEditModal", () => {
   beforeEach(() => {
     server.resetHandlers();
     server.use(
-      http.get("/api/labels", () => {
+      http.get(`${API_BASE}/api/labels`, () => {
         return HttpResponse.json(mockLabels);
       })
     );

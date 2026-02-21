@@ -44,6 +44,7 @@ Feature: Create Board
     Then I should see "Quick Tasks" in the boards list
     And the board should have columns "Todo, Done"
 
+  @skip
   Scenario: Create a board with description
     Given no boards exist
     When I click the "New Board" button

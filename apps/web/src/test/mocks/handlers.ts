@@ -1,6 +1,8 @@
 import { http, HttpResponse } from "msw";
 import type { Board, Column, Todo, Label, BoardTemplate } from "../../types";
 
+export const API_BASE = "http://localhost:3001";
+
 // Mock data factory functions
 export const createMockBoard = (overrides: Partial<Board> = {}): Board => ({
   id: `board-${Date.now()}`,
@@ -132,11 +134,11 @@ export const mockTemplates: BoardTemplate[] = [
 // API handlers
 export const handlers = [
   // Boards
-  http.get("/api/boards", () => {
+  http.get(`${API_BASE}/api/boards`, () => {
     return HttpResponse.json(mockBoards);
   }),
 
-  http.get("/api/boards/:id", ({ params }) => {
+  http.get(`${API_BASE}/api/boards/:id`, ({ params }) => {
     const board = mockBoards.find((b) => b.id === params.id);
     if (!board) {
       return HttpResponse.json({ error: "Board not found" }, { status: 404 });
@@ -144,7 +146,7 @@ export const handlers = [
     return HttpResponse.json(board);
   }),
 
-  http.post("/api/boards", async ({ request }) => {
+  http.post(`${API_BASE}/api/boards`, async ({ request }) => {
     const body = (await request.json()) as { name: string; description?: string; templateId?: string };
     if (!body.name) {
       return HttpResponse.json(
@@ -160,7 +162,7 @@ export const handlers = [
     return HttpResponse.json(newBoard, { status: 201 });
   }),
 
-  http.put("/api/boards/:id", async ({ params, request }) => {
+  http.put(`${API_BASE}/api/boards/:id`, async ({ params, request }) => {
     const board = mockBoards.find((b) => b.id === params.id);
     if (!board) {
       return HttpResponse.json({ error: "Board not found" }, { status: 404 });
@@ -169,7 +171,7 @@ export const handlers = [
     return HttpResponse.json({ ...board, ...body });
   }),
 
-  http.delete("/api/boards/:id", ({ params }) => {
+  http.delete(`${API_BASE}/api/boards/:id`, ({ params }) => {
     const board = mockBoards.find((b) => b.id === params.id);
     if (!board) {
       return HttpResponse.json({ error: "Board not found" }, { status: 404 });
@@ -178,7 +180,7 @@ export const handlers = [
   }),
 
   // Columns
-  http.post("/api/boards/:boardId/columns", async ({ params, request }) => {
+  http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ params, request }) => {
     const board = mockBoards.find((b) => b.id === params.boardId);
     if (!board) {
       return HttpResponse.json({ error: "Board not found" }, { status: 404 });
@@ -198,7 +200,7 @@ export const handlers = [
     return HttpResponse.json(newColumn, { status: 201 });
   }),
 
-  http.put("/api/columns/:id", async ({ params, request }) => {
+  http.put(`${API_BASE}/api/columns/:id`, async ({ params, request }) => {
     const body = (await request.json()) as { name?: string; wipLimit?: number };
     const column = createMockColumn({
       id: params.id as string,
@@ -207,20 +209,20 @@ export const handlers = [
     return HttpResponse.json(column);
   }),
 
-  http.delete("/api/columns/:id", () => {
+  http.delete(`${API_BASE}/api/columns/:id`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.patch("/api/columns/reorder", () => {
+  http.patch(`${API_BASE}/api/columns/reorder`, () => {
     return HttpResponse.json({ success: true });
   }),
 
   // Todos
-  http.get("/api/todos", () => {
+  http.get(`${API_BASE}/api/todos`, () => {
     return HttpResponse.json([]);
   }),
 
-  http.post("/api/todos", async ({ request }) => {
+  http.post(`${API_BASE}/api/todos`, async ({ request }) => {
     const body = (await request.json()) as {
       title: string;
       columnId: string;
@@ -254,12 +256,12 @@ export const handlers = [
     return HttpResponse.json(newTodo, { status: 201 });
   }),
 
-  http.get("/api/todos/:id", ({ params }) => {
+  http.get(`${API_BASE}/api/todos/:id`, ({ params }) => {
     const todo = createMockTodo({ id: params.id as string });
     return HttpResponse.json(todo);
   }),
 
-  http.put("/api/todos/:id", async ({ params, request }) => {
+  http.put(`${API_BASE}/api/todos/:id`, async ({ params, request }) => {
     const body = (await request.json()) as Partial<Todo>;
     const todo = createMockTodo({
       id: params.id as string,
@@ -268,11 +270,11 @@ export const handlers = [
     return HttpResponse.json(todo);
   }),
 
-  http.delete("/api/todos/:id", () => {
+  http.delete(`${API_BASE}/api/todos/:id`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.patch("/api/todos/:id/move", async ({ params, request }) => {
+  http.patch(`${API_BASE}/api/todos/:id/move`, async ({ params, request }) => {
     const body = (await request.json()) as { columnId: string; position: number };
     const todo = createMockTodo({
       id: params.id as string,
@@ -282,11 +284,11 @@ export const handlers = [
     return HttpResponse.json(todo);
   }),
 
-  http.patch("/api/todos/reorder", () => {
+  http.patch(`${API_BASE}/api/todos/reorder`, () => {
     return HttpResponse.json({ success: true });
   }),
 
-  http.patch("/api/todos/:id/archive", async ({ params, request }) => {
+  http.patch(`${API_BASE}/api/todos/:id/archive`, async ({ params, request }) => {
     const body = (await request.json()) as { archived: boolean };
     const todo = createMockTodo({
       id: params.id as string,
@@ -296,11 +298,11 @@ export const handlers = [
   }),
 
   // Labels
-  http.get("/api/labels", () => {
+  http.get(`${API_BASE}/api/labels`, () => {
     return HttpResponse.json(mockLabels);
   }),
 
-  http.get("/api/labels/:id", ({ params }) => {
+  http.get(`${API_BASE}/api/labels/:id`, ({ params }) => {
     const label = mockLabels.find((l) => l.id === params.id);
     if (!label) {
       return HttpResponse.json({ error: "Label not found" }, { status: 404 });
@@ -308,7 +310,7 @@ export const handlers = [
     return HttpResponse.json(label);
   }),
 
-  http.post("/api/labels", async ({ request }) => {
+  http.post(`${API_BASE}/api/labels`, async ({ request }) => {
     const body = (await request.json()) as { name: string; color: string };
     if (!body.name) {
       return HttpResponse.json(
@@ -326,7 +328,7 @@ export const handlers = [
     return HttpResponse.json(newLabel, { status: 201 });
   }),
 
-  http.put("/api/labels/:id", async ({ params, request }) => {
+  http.put(`${API_BASE}/api/labels/:id`, async ({ params, request }) => {
     const label = mockLabels.find((l) => l.id === params.id);
     if (!label) {
       return HttpResponse.json({ error: "Label not found" }, { status: 404 });
@@ -335,7 +337,7 @@ export const handlers = [
     return HttpResponse.json({ ...label, ...body });
   }),
 
-  http.delete("/api/labels/:id", ({ params }) => {
+  http.delete(`${API_BASE}/api/labels/:id`, ({ params }) => {
     const label = mockLabels.find((l) => l.id === params.id);
     if (!label) {
       return HttpResponse.json({ error: "Label not found" }, { status: 404 });
@@ -344,12 +346,12 @@ export const handlers = [
   }),
 
   // Templates
-  http.get("/api/templates", () => {
+  http.get(`${API_BASE}/api/templates`, () => {
     return HttpResponse.json(mockTemplates);
   }),
 
   // Search
-  http.get("/api/search", ({ request }) => {
+  http.get(`${API_BASE}/api/search`, ({ request }) => {
     const url = new URL(request.url);
     const query = url.searchParams.get("q");
     if (!query) {

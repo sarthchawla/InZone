@@ -215,6 +215,20 @@ When('I click {string}', async ({ page }, buttonText: string) => {
 });
 
 When('I click the {string} button', async ({ page }, buttonText: string) => {
+  // Special handling for "New Board" — uses ghost card or inline form
+  if (/new board/i.test(buttonText)) {
+    const ghostCard = page.locator('[data-testid="ghost-card"]');
+    if (await ghostCard.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await ghostCard.click();
+      return;
+    }
+    // In empty state, the inline form is already visible — nothing to click
+    const form = page.locator('[data-testid="inline-create-form"]');
+    if (await form.isVisible({ timeout: 2000 }).catch(() => false)) {
+      return;
+    }
+  }
+
   // Try to click within a dialog first (modal context), then fallback to page
   const dialog = page.getByRole('dialog');
   const dialogButton = dialog.getByRole('button', { name: buttonText });

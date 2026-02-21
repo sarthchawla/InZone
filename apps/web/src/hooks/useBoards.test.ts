@@ -16,6 +16,7 @@ import {
   mockBoards,
   mockTemplates,
   createMockBoard,
+  API_BASE,
 } from "../test/mocks/handlers";
 
 describe("useBoards hook", () => {
@@ -45,7 +46,7 @@ describe("useBoards hook", () => {
 
     it("returns empty array when no boards exist", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -63,7 +64,7 @@ describe("useBoards hook", () => {
   describe("error handling", () => {
     it("handles network error", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -81,7 +82,7 @@ describe("useBoards hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`${API_BASE}/api/boards`, () => {
           return HttpResponse.error();
         })
       );
@@ -95,7 +96,7 @@ describe("useBoards hook", () => {
 
     it("handles service unavailable", async () => {
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json(
             { error: "Service Unavailable" },
             { status: 503 }
@@ -160,7 +161,7 @@ describe("useBoard hook", () => {
 
     it("handles server error when fetching board", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -210,7 +211,7 @@ describe("useTemplates hook", () => {
   describe("error handling", () => {
     it("handles server error when fetching templates", async () => {
       server.use(
-        http.get("/api/templates", () => {
+        http.get(`${API_BASE}/api/templates`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -291,7 +292,7 @@ describe("useCreateBoard hook", () => {
 
     it("handles server error during creation", async () => {
       server.use(
-        http.post("/api/boards", () => {
+        http.post(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -310,7 +311,7 @@ describe("useCreateBoard hook", () => {
 
     it("handles network failure during creation", async () => {
       server.use(
-        http.post("/api/boards", () => {
+        http.post(`${API_BASE}/api/boards`, () => {
           return HttpResponse.error();
         })
       );
@@ -326,7 +327,7 @@ describe("useCreateBoard hook", () => {
 
     it("handles invalid template ID", async () => {
       server.use(
-        http.post("/api/boards", () => {
+        http.post(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json(
             { error: "Template not found" },
             { status: 400 }
@@ -405,7 +406,7 @@ describe("useUpdateBoard hook", () => {
 
     it("handles server error during update", async () => {
       server.use(
-        http.put("/api/boards/:id", () => {
+        http.put(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -424,7 +425,7 @@ describe("useUpdateBoard hook", () => {
 
     it("handles network failure during update", async () => {
       server.use(
-        http.put("/api/boards/:id", () => {
+        http.put(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -469,7 +470,7 @@ describe("useDeleteBoard hook", () => {
 
     it("handles server error during deletion", async () => {
       server.use(
-        http.delete("/api/boards/:id", () => {
+        http.delete(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -488,7 +489,7 @@ describe("useDeleteBoard hook", () => {
 
     it("handles network failure during deletion", async () => {
       server.use(
-        http.delete("/api/boards/:id", () => {
+        http.delete(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.error();
         })
       );

@@ -12,6 +12,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    env: {
+      VITE_AUTH_BYPASS: "true",
+    },
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}", "tests/bdd/component-tests/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", "dist", "tests/bdd/features/**", "tests/bdd/steps/**", "tests/bdd/support/**", "src/architecture/**"],

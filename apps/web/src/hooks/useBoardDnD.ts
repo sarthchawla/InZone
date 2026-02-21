@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { Board, Todo, Column } from '../types';
+import { computeColumnReorder, computeTodoDrop } from '../lib/board-dnd-utils';
 
 interface UseBoardDnDParams {
   board: Board | undefined;
@@ -143,81 +144,19 @@ export function useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderT
     const activeIdStr = active.id as string;
     const overIdStr = over.id as string;
 
-    // Handle column reordering
     if (activeIdStr.startsWith('column-')) {
-      let targetColumnId: string | null = null;
-      if (overIdStr.startsWith('column-')) {
-        targetColumnId = overIdStr.replace('column-', '');
-      } else {
-        const overResult = findTodo(overIdStr);
-        if (overResult) {
-          targetColumnId = overResult.column.id;
-        }
-      }
-
-      if (!targetColumnId) return;
-
-      const activeColumnId = activeIdStr.replace('column-', '');
-      if (activeColumnId !== targetColumnId) {
-        const sortedColumns = [...board.columns].sort((a, b) => a.position - b.position);
-        const activeIndex = sortedColumns.findIndex((c) => c.id === activeColumnId);
-        const overIndex = sortedColumns.findIndex((c) => c.id === targetColumnId);
-
-        if (activeIndex !== -1 && overIndex !== -1) {
-          const newOrder = [...sortedColumns];
-          const [moved] = newOrder.splice(activeIndex, 1);
-          newOrder.splice(overIndex, 0, moved);
-          reorderColumns.mutate({ boardId, columnIds: newOrder.map((c) => c.id) });
-        }
-      }
+      const result = computeColumnReorder(board, boardId, activeIdStr, overIdStr, findTodo);
+      if (result) reorderColumns.mutate(result);
       return;
     }
 
-    // Handle todo drag-and-drop
-    const activeResult = findTodo(activeIdStr);
-    if (!activeResult) return;
-
-    const { todo: activeTodoItem, column: sourceColumn } = activeResult;
-
-    let targetColumn: Column | undefined;
-    let newPosition = 0;
-
-    targetColumn = board.columns.find((c) => c.id === overIdStr);
-
-    if (!targetColumn) {
-      const overResult = findTodo(overIdStr);
-      if (overResult) {
-        targetColumn = overResult.column;
-        const overTodo = overResult.todo;
-        newPosition = overTodo.position;
+    const result = computeTodoDrop(board, boardId, activeIdStr, overIdStr, findTodo);
+    if (result) {
+      if (result.type === 'move') {
+        moveTodo.mutate({ id: result.id, boardId: result.boardId, columnId: result.columnId, position: result.position });
+      } else {
+        reorderTodos.mutate({ boardId: result.boardId, columnId: result.columnId, todoIds: result.todoIds });
       }
-    } else {
-      newPosition = (targetColumn.todos ?? []).length;
-    }
-
-    if (!targetColumn) return;
-
-    if (sourceColumn.id === targetColumn.id) {
-      const sortedTodos = [...(sourceColumn.todos ?? [])].sort((a, b) => a.position - b.position);
-      const oldIndex = sortedTodos.findIndex((t) => t.id === activeTodoItem.id);
-      const overTodoResult = findTodo(overIdStr);
-
-      if (overTodoResult && overTodoResult.column.id === sourceColumn.id) {
-        const newIndex = sortedTodos.findIndex((t) => t.id === overIdStr);
-        if (oldIndex !== newIndex && oldIndex !== -1 && newIndex !== -1) {
-          const newOrder = [...sortedTodos];
-          const [moved] = newOrder.splice(oldIndex, 1);
-          newOrder.splice(newIndex, 0, moved);
-          reorderTodos.mutate({ boardId, columnId: sourceColumn.id, todoIds: newOrder.map((t) => t.id) });
-        }
-      }
-    } else {
-      moveTodo.mutate({
-        id: activeTodoItem.id,
-        boardId,
-        columnId: targetColumn.id,
-        position: newPosition,
-      });
     }
   };
 

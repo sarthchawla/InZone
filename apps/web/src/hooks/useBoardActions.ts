@@ -1,5 +1,4 @@
-import type { Todo, Column, Priority } from '../types';
-import type { ContextMenuItem } from '../components/ui';
+import type { Todo, Column, Priority, ContextMenuItem } from '../types';
 
 interface UndoState {
   message: string;

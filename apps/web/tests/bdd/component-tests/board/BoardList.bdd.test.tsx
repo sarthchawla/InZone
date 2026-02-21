@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "../../../../src/test/utils";
 import { BoardList } from "../../../../src/components/board/BoardList";
 import { server } from "../../../../src/test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { createMockBoard, createMockColumn, createMockTodo } from "../../../../src/test/mocks/handlers";
+import { createMockBoard, createMockColumn, createMockTodo, API_BASE } from "../../../../src/test/mocks/handlers";
 
 describe("Feature: Board Navigation", () => {
   describe("Scenario: User sees skeleton loaders during fetch", () => {
@@ -11,7 +11,7 @@ describe("Feature: Board Navigation", () => {
       // Given: boards are loading (default MSW handler has network latency,
       // so the component starts in loading state on initial render)
       server.use(
-        http.get("/api/boards", async () => {
+        http.get(`${API_BASE}/api/boards`, async () => {
           // Delay response to keep the loading state visible
           await new Promise((resolve) => setTimeout(resolve, 5000));
           return HttpResponse.json([]);
@@ -32,7 +32,7 @@ describe("Feature: Board Navigation", () => {
     it("Given the API returns empty boards array, When the board list renders, Then empty state message and inline create form appear", async () => {
       // Given: the API returns empty boards array
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -60,7 +60,7 @@ describe("Feature: Board Navigation", () => {
     it("Given boards exist with columns and todos, When the board list renders, Then task count and column count are displayed", async () => {
       // Given: boards exist with columns and todos
       server.use(
-        http.get("/api/boards", () => {
+        http.get(`${API_BASE}/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-bdd-1",

@@ -4,10 +4,22 @@ import userEvent from "@testing-library/user-event";
 import { BoardView } from "./BoardView";
 import { server } from "../../test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { createMockBoard, createMockColumn, createMockTodo, mockLabels } from "../../test/mocks/handlers";
+import { createMockBoard, createMockColumn, createMockTodo, mockLabels, API_BASE } from "../../test/mocks/handlers";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../contexts/ToastContext";
+
+// Mock RichTextEditor since tiptap's useEditor does not work in jsdom
+vi.mock("../ui/RichTextEditor", () => ({
+  RichTextEditor: ({ content, onChange, placeholder }: { content: string; onChange: (v: string) => void; placeholder?: string }) => (
+    <textarea
+      data-testid="rich-text-editor"
+      value={content}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
 
 // Mock window.matchMedia for useIsMobile / useMediaQuery
 Object.defineProperty(window, "matchMedia", {
@@ -114,7 +126,7 @@ describe("BoardView", () => {
     server.resetHandlers();
     // Set up default handler for board-1
     server.use(
-      http.get("/api/boards/:id", ({ params }) => {
+      http.get(`${API_BASE}/api/boards/:id`, ({ params }) => {
         if (params.id === "board-1") {
           return HttpResponse.json(mockBoardWithTodos);
         }
@@ -147,10 +159,8 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Description is shown inline below header via a read-only RichTextEditor
-      // The RichTextEditor renders content as rich text in a tiptap editor
-      const editors = screen.getAllByTestId("rich-text-editor");
-      expect(editors.length).toBeGreaterThanOrEqual(1);
+      // Description is shown inline as plain text (click to edit)
+      expect(screen.getByText("Main project board")).toBeInTheDocument();
     });
 
     it("renders all columns", async () => {
@@ -207,7 +217,7 @@ describe("BoardView", () => {
   describe("label manager", () => {
     beforeEach(() => {
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`${API_BASE}/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -275,7 +285,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           return HttpResponse.json(
             createMockColumn({ name: body.name, boardId: "board-1" }),
@@ -342,7 +352,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           return HttpResponse.json(
             createMockColumn({ name: body.name, boardId: "board-1" }),
@@ -386,7 +396,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post("/api/todos", async ({ request }) => {
+        http.post(`${API_BASE}/api/todos`, async ({ request }) => {
           const body = await request.json() as { title: string; columnId: string };
           return HttpResponse.json(
             createMockTodo({ title: body.title, columnId: body.columnId }),
@@ -419,7 +429,7 @@ describe("BoardView", () => {
   describe("error handling", () => {
     it("shows board not found when board does not exist", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json({ error: "Board not found" }, { status: 404 });
         })
       );
@@ -433,7 +443,7 @@ describe("BoardView", () => {
 
     it("shows back to boards button on error", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json({ error: "Board not found" }, { status: 404 });
         })
       );
@@ -447,7 +457,7 @@ describe("BoardView", () => {
 
     it("shows error state when API fails", async () => {
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -467,7 +477,7 @@ describe("BoardView", () => {
       const columnCreateHandler = vi.fn();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           columnCreateHandler(body);
           if (!body.name || !body.name.trim()) {
@@ -504,7 +514,7 @@ describe("BoardView", () => {
       const columnCreateHandler = vi.fn();
 
       server.use(
-        http.post("/api/boards/:boardId/columns", async ({ request }) => {
+        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           columnCreateHandler(body);
           return HttpResponse.json(
@@ -541,7 +551,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(emptyBoard);
         })
       );
@@ -566,7 +576,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -597,7 +607,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithEmptyColumns);
         })
       );
@@ -628,7 +638,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithUndefinedTodos);
         })
       );
@@ -667,7 +677,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithUnorderedColumns);
         })
       );
@@ -694,7 +704,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithLongName);
         })
       );
@@ -714,7 +724,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithSpecialChars);
         })
       );
@@ -744,7 +754,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithManyColumns);
         })
       );
@@ -786,7 +796,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithManyTodos);
         })
       );
@@ -857,7 +867,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
+        http.patch(`${API_BASE}/api/boards/:id`, async ({ request }) => {
           const body = await request.json() as { name?: string };
           return HttpResponse.json({
             ...mockBoardWithTodos,
@@ -893,7 +903,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
+        http.patch(`${API_BASE}/api/boards/:id`, async ({ request }) => {
           const body = await request.json() as { name?: string };
           return HttpResponse.json({
             ...mockBoardWithTodos,
@@ -943,7 +953,7 @@ describe("BoardView", () => {
       const patchHandler = vi.fn();
 
       server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
+        http.patch(`${API_BASE}/api/boards/:id`, async ({ request }) => {
           patchHandler(await request.json());
           return HttpResponse.json(mockBoardWithTodos);
         })
@@ -973,9 +983,8 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Description is rendered inline via a read-only RichTextEditor
-      const editors = screen.getAllByTestId("rich-text-editor");
-      expect(editors.length).toBeGreaterThanOrEqual(1);
+      // Description is rendered as plain text (click to edit)
+      expect(screen.getByText("Main project board")).toBeInTheDocument();
     });
 
     it("opens inline editor when clicking description", async () => {
@@ -986,59 +995,16 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // The description area is a clickable div wrapping a read-only RichTextEditor
-      // Click on the description area to start editing
-      const descriptionArea = screen.getAllByTestId("rich-text-editor")[0].closest("div[class*='cursor-pointer']");
-      if (descriptionArea) {
-        await user.click(descriptionArea);
-      }
+      // Click on the description text to start editing
+      await user.click(screen.getByText("Main project board"));
 
-      // Should show Save and Cancel buttons for inline editing
+      // Should show the RichTextEditor textarea (mocked) for inline editing
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+        expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
       });
     });
 
-    it("saves description when Save is clicked", async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.patch("/api/boards/:id", async ({ request }) => {
-          const body = await request.json() as { description?: string };
-          return HttpResponse.json({
-            ...mockBoardWithTodos,
-            description: body.description || mockBoardWithTodos.description,
-          });
-        })
-      );
-
-      renderBoardView();
-
-      await waitFor(() => {
-        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
-      });
-
-      // Click description area to edit
-      const descriptionArea = screen.getAllByTestId("rich-text-editor")[0].closest("div[class*='cursor-pointer']");
-      if (descriptionArea) {
-        await user.click(descriptionArea);
-      }
-
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
-      });
-
-      // Click Save (testing the save flow, Tiptap typing in JSDOM is unreliable)
-      await user.click(screen.getByRole("button", { name: /Save/i }));
-
-      await waitFor(() => {
-        // Save/Cancel buttons should disappear after saving
-        expect(screen.queryByRole("button", { name: /^Save$/i })).not.toBeInTheDocument();
-      });
-    });
-
-    it("closes inline editor when Cancel is clicked", async () => {
+    it("shows editor with current description when entering edit mode", async () => {
       const user = userEvent.setup();
       renderBoardView();
 
@@ -1046,21 +1012,37 @@ describe("BoardView", () => {
         expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      // Click description area to edit
-      const descriptionArea = screen.getAllByTestId("rich-text-editor")[0].closest("div[class*='cursor-pointer']");
-      if (descriptionArea) {
-        await user.click(descriptionArea);
-      }
+      // Click description text to edit
+      await user.click(screen.getByText("Main project board"));
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+        const editor = screen.getByTestId("rich-text-editor") as HTMLTextAreaElement;
+        expect(editor).toBeInTheDocument();
+        expect(editor.value).toBe("Main project board");
+      });
+    });
+
+    it("reverts to read-only mode after blur", async () => {
+      const user = userEvent.setup();
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByText("Project Alpha")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole("button", { name: /Cancel/i }));
+      // Click description text to edit
+      await user.click(screen.getByText("Main project board"));
 
       await waitFor(() => {
-        // Save button should no longer be visible
-        expect(screen.queryByRole("button", { name: /^Save$/i })).not.toBeInTheDocument();
+        expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
+      });
+
+      // Click elsewhere to blur
+      await user.click(screen.getByText("Project Alpha"));
+
+      // Should revert to read-only description text
+      await waitFor(() => {
+        expect(screen.getByText("Main project board")).toBeInTheDocument();
       });
     });
 
@@ -1073,7 +1055,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -1095,7 +1077,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get("/api/boards/:id", () => {
+        http.get(`${API_BASE}/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -1108,10 +1090,9 @@ describe("BoardView", () => {
 
       await user.click(screen.getByText("Add a description..."));
 
-      // Should show inline editor with Save and Cancel buttons
+      // Should show inline editor (RichTextEditor)
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+        expect(screen.getByTestId("rich-text-editor")).toBeInTheDocument();
       });
     });
   });
@@ -1121,7 +1102,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`${API_BASE}/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1144,7 +1125,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`${API_BASE}/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1172,7 +1153,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`${API_BASE}/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1198,10 +1179,10 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get("/api/labels", () => {
+        http.get(`${API_BASE}/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         }),
-        http.delete("/api/todos/:id", () => {
+        http.delete(`${API_BASE}/api/todos/:id`, () => {
           return new HttpResponse(null, { status: 204 });
         })
       );
@@ -1246,7 +1227,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.delete("/api/columns/:id", () => {
+        http.delete(`${API_BASE}/api/columns/:id`, () => {
           return new HttpResponse(null, { status: 204 });
         })
       );
