@@ -11,7 +11,7 @@ import {
 } from "./useLabels";
 import { createQueryClientWrapper } from "../test/utils";
 import { server } from "../test/mocks/server";
-import { mockLabels, createMockLabel, API_BASE } from "../test/mocks/handlers";
+import { mockLabels, createMockLabel } from "../test/mocks/handlers";
 
 describe("useLabels hook", () => {
   // Happy Path Tests
@@ -40,7 +40,7 @@ describe("useLabels hook", () => {
 
     it("returns empty array when no labels exist", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -55,7 +55,7 @@ describe("useLabels hook", () => {
 
     it("returns labels with todo counts", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json([
             { id: "label-1", name: "Bug", color: "#FF0000", _count: { todos: 5 } },
             { id: "label-2", name: "Feature", color: "#00FF00", _count: { todos: 3 } },
@@ -76,7 +76,7 @@ describe("useLabels hook", () => {
   describe("error handling", () => {
     it("handles network error", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -93,7 +93,7 @@ describe("useLabels hook", () => {
 
     it("handles network failure", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.error();
         })
       );
@@ -107,7 +107,7 @@ describe("useLabels hook", () => {
 
     it("handles service unavailable", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(
             { error: "Service Unavailable" },
             { status: 503 }
@@ -171,7 +171,7 @@ describe("useLabel hook", () => {
 
     it("handles server error when fetching label", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels/:id`, () => {
+        http.get(`/api/labels/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -258,7 +258,7 @@ describe("useCreateLabel hook", () => {
 
     it("handles validation error for invalid color format", async () => {
       server.use(
-        http.post(`${API_BASE}/api/labels`, () => {
+        http.post(`/api/labels`, () => {
           return HttpResponse.json(
             { error: "Invalid color format" },
             { status: 400 }
@@ -277,7 +277,7 @@ describe("useCreateLabel hook", () => {
 
     it("handles server error during creation", async () => {
       server.use(
-        http.post(`${API_BASE}/api/labels`, () => {
+        http.post(`/api/labels`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -296,7 +296,7 @@ describe("useCreateLabel hook", () => {
 
     it("handles network failure during creation", async () => {
       server.use(
-        http.post(`${API_BASE}/api/labels`, () => {
+        http.post(`/api/labels`, () => {
           return HttpResponse.error();
         })
       );
@@ -312,7 +312,7 @@ describe("useCreateLabel hook", () => {
 
     it("handles duplicate label name", async () => {
       server.use(
-        http.post(`${API_BASE}/api/labels`, () => {
+        http.post(`/api/labels`, () => {
           return HttpResponse.json(
             { error: "Label name already exists" },
             { status: 409 }
@@ -396,7 +396,7 @@ describe("useUpdateLabel hook", () => {
 
     it("handles server error during update", async () => {
       server.use(
-        http.put(`${API_BASE}/api/labels/:id`, () => {
+        http.put(`/api/labels/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -415,7 +415,7 @@ describe("useUpdateLabel hook", () => {
 
     it("handles network failure during update", async () => {
       server.use(
-        http.put(`${API_BASE}/api/labels/:id`, () => {
+        http.put(`/api/labels/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -431,7 +431,7 @@ describe("useUpdateLabel hook", () => {
 
     it("handles validation error for invalid color", async () => {
       server.use(
-        http.put(`${API_BASE}/api/labels/:id`, () => {
+        http.put(`/api/labels/:id`, () => {
           return HttpResponse.json(
             { error: "Invalid color format" },
             { status: 400 }
@@ -450,7 +450,7 @@ describe("useUpdateLabel hook", () => {
 
     it("handles duplicate name when updating", async () => {
       server.use(
-        http.put(`${API_BASE}/api/labels/:id`, () => {
+        http.put(`/api/labels/:id`, () => {
           return HttpResponse.json(
             { error: "Label name already exists" },
             { status: 409 }
@@ -498,7 +498,7 @@ describe("useDeleteLabel hook", () => {
 
     it("handles server error during deletion", async () => {
       server.use(
-        http.delete(`${API_BASE}/api/labels/:id`, () => {
+        http.delete(`/api/labels/:id`, () => {
           return HttpResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }
@@ -517,7 +517,7 @@ describe("useDeleteLabel hook", () => {
 
     it("handles network failure during deletion", async () => {
       server.use(
-        http.delete(`${API_BASE}/api/labels/:id`, () => {
+        http.delete(`/api/labels/:id`, () => {
           return HttpResponse.error();
         })
       );
@@ -533,7 +533,7 @@ describe("useDeleteLabel hook", () => {
 
     it("handles deletion of label in use", async () => {
       server.use(
-        http.delete(`${API_BASE}/api/labels/:id`, () => {
+        http.delete(`/api/labels/:id`, () => {
           return HttpResponse.json(
             { error: "Label is assigned to todos" },
             { status: 400 }

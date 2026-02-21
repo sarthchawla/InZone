@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BoardList } from "./BoardList";
 import { server } from "../../test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { mockBoards, mockTemplates, createMockBoard, createMockColumn, API_BASE } from "../../test/mocks/handlers";
+import { mockBoards, mockTemplates, createMockBoard, createMockColumn } from "../../test/mocks/handlers";
 
 describe("BoardList", () => {
   // Happy Path Tests
@@ -54,7 +54,7 @@ describe("BoardList", () => {
 
     it("uses singular grammar for 1 column", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards`, () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-1",
@@ -75,7 +75,7 @@ describe("BoardList", () => {
 
     it("uses singular grammar for 1 task", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards`, () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-1",
@@ -98,7 +98,7 @@ describe("BoardList", () => {
   describe("empty state", () => {
     beforeEach(() => {
       server.use(
-        http.get(`${API_BASE}/api/boards`, () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -249,7 +249,7 @@ describe("BoardList", () => {
 
       let deleteWasCalled = false;
       server.use(
-        http.delete(`${API_BASE}/api/boards/:id`, () => {
+        http.delete(`/api/boards/:id`, () => {
           deleteWasCalled = true;
           return new HttpResponse(null, { status: 204 });
         })
@@ -281,7 +281,7 @@ describe("BoardList", () => {
   describe("error handling", () => {
     it("shows error state when API fails", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards`, () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -298,7 +298,7 @@ describe("BoardList", () => {
 
     it("shows error message on create failure", async () => {
       server.use(
-        http.post(`${API_BASE}/api/boards`, () => {
+        http.post(`/api/boards`, () => {
           return HttpResponse.json(
             { error: "Board name already exists" },
             { status: 400 }
@@ -327,7 +327,7 @@ describe("BoardList", () => {
 
     it("clears error when form is closed and reopened", async () => {
       server.use(
-        http.post(`${API_BASE}/api/boards`, () => {
+        http.post(`/api/boards`, () => {
           return HttpResponse.json(
             { error: "Board name already exists" },
             { status: 400 }
@@ -382,7 +382,7 @@ describe("BoardList", () => {
   describe("edge cases", () => {
     it("handles boards without columns", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards`, () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-no-columns",
@@ -403,7 +403,7 @@ describe("BoardList", () => {
 
     it("handles boards without description", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards`, () => {
+        http.get(`/api/boards`, () => {
           return HttpResponse.json([
             createMockBoard({
               id: "board-no-desc",

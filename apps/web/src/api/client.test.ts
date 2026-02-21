@@ -6,7 +6,7 @@ describe('apiClient', () => {
   // Happy Path Tests
   describe('configuration', () => {
     it('has correct baseURL', () => {
-      expect(apiClient.defaults.baseURL).toBe('http://localhost:3001/api');
+      expect(apiClient.defaults.baseURL).toBe('/api');
     });
 
     it('has correct Content-Type header', () => {

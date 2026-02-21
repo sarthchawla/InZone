@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { LabelManager } from "./LabelManager";
 import { server } from "../../test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { mockLabels, createMockLabel, API_BASE } from "../../test/mocks/handlers";
+import { mockLabels, createMockLabel } from "../../test/mocks/handlers";
 
 describe("LabelManager", () => {
   const defaultProps = {
@@ -66,7 +66,7 @@ describe("LabelManager", () => {
     it("shows loading state", () => {
       // Delay the API response
       server.use(
-        http.get(`${API_BASE}/api/labels`, async () => {
+        http.get(`/api/labels`, async () => {
           await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json(mockLabels);
         })
@@ -377,7 +377,7 @@ describe("LabelManager", () => {
   describe("edge cases", () => {
     it("handles empty labels list", async () => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json([]);
         })
       );
@@ -423,7 +423,7 @@ describe("LabelManager", () => {
 
     it("handles API error on create", async () => {
       server.use(
-        http.post(`${API_BASE}/api/labels`, () => {
+        http.post(`/api/labels`, () => {
           return HttpResponse.json({ error: "Server error" }, { status: 500 });
         })
       );
@@ -450,7 +450,7 @@ describe("LabelManager", () => {
 
     it("handles API error on update", async () => {
       server.use(
-        http.put(`${API_BASE}/api/labels/:id`, () => {
+        http.put(`/api/labels/:id`, () => {
           return HttpResponse.json({ error: "Server error" }, { status: 500 });
         })
       );
@@ -489,7 +489,7 @@ describe("LabelManager", () => {
 
     it("handles API error on delete", async () => {
       server.use(
-        http.delete(`${API_BASE}/api/labels/:id`, () => {
+        http.delete(`/api/labels/:id`, () => {
           return HttpResponse.json({ error: "Server error" }, { status: 500 });
         })
       );

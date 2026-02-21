@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BoardView } from "./BoardView";
 import { server } from "../../test/mocks/server";
 import { http, HttpResponse } from "msw";
-import { createMockBoard, createMockColumn, createMockTodo, mockLabels, API_BASE } from "../../test/mocks/handlers";
+import { createMockBoard, createMockColumn, createMockTodo, mockLabels } from "../../test/mocks/handlers";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../contexts/ToastContext";
@@ -126,7 +126,7 @@ describe("BoardView", () => {
     server.resetHandlers();
     // Set up default handler for board-1
     server.use(
-      http.get(`${API_BASE}/api/boards/:id`, ({ params }) => {
+      http.get(`/api/boards/:id`, ({ params }) => {
         if (params.id === "board-1") {
           return HttpResponse.json(mockBoardWithTodos);
         }
@@ -217,7 +217,7 @@ describe("BoardView", () => {
   describe("label manager", () => {
     beforeEach(() => {
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -285,7 +285,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           return HttpResponse.json(
             createMockColumn({ name: body.name, boardId: "board-1" }),
@@ -352,7 +352,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           return HttpResponse.json(
             createMockColumn({ name: body.name, boardId: "board-1" }),
@@ -396,7 +396,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.post(`${API_BASE}/api/todos`, async ({ request }) => {
+        http.post(`/api/todos`, async ({ request }) => {
           const body = await request.json() as { title: string; columnId: string };
           return HttpResponse.json(
             createMockTodo({ title: body.title, columnId: body.columnId }),
@@ -429,7 +429,7 @@ describe("BoardView", () => {
   describe("error handling", () => {
     it("shows board not found when board does not exist", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json({ error: "Board not found" }, { status: 404 });
         })
       );
@@ -443,7 +443,7 @@ describe("BoardView", () => {
 
     it("shows back to boards button on error", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json({ error: "Board not found" }, { status: 404 });
         })
       );
@@ -457,7 +457,7 @@ describe("BoardView", () => {
 
     it("shows error state when API fails", async () => {
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -477,7 +477,7 @@ describe("BoardView", () => {
       const columnCreateHandler = vi.fn();
 
       server.use(
-        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           columnCreateHandler(body);
           if (!body.name || !body.name.trim()) {
@@ -514,7 +514,7 @@ describe("BoardView", () => {
       const columnCreateHandler = vi.fn();
 
       server.use(
-        http.post(`${API_BASE}/api/boards/:boardId/columns`, async ({ request }) => {
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
           const body = await request.json() as { name: string };
           columnCreateHandler(body);
           return HttpResponse.json(
@@ -551,7 +551,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(emptyBoard);
         })
       );
@@ -576,7 +576,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -607,7 +607,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithEmptyColumns);
         })
       );
@@ -638,7 +638,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithUndefinedTodos);
         })
       );
@@ -677,7 +677,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithUnorderedColumns);
         })
       );
@@ -704,7 +704,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithLongName);
         })
       );
@@ -724,7 +724,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithSpecialChars);
         })
       );
@@ -754,7 +754,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithManyColumns);
         })
       );
@@ -796,7 +796,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithManyTodos);
         })
       );
@@ -867,7 +867,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.patch(`${API_BASE}/api/boards/:id`, async ({ request }) => {
+        http.patch(`/api/boards/:id`, async ({ request }) => {
           const body = await request.json() as { name?: string };
           return HttpResponse.json({
             ...mockBoardWithTodos,
@@ -903,7 +903,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.patch(`${API_BASE}/api/boards/:id`, async ({ request }) => {
+        http.patch(`/api/boards/:id`, async ({ request }) => {
           const body = await request.json() as { name?: string };
           return HttpResponse.json({
             ...mockBoardWithTodos,
@@ -953,7 +953,7 @@ describe("BoardView", () => {
       const patchHandler = vi.fn();
 
       server.use(
-        http.patch(`${API_BASE}/api/boards/:id`, async ({ request }) => {
+        http.patch(`/api/boards/:id`, async ({ request }) => {
           patchHandler(await request.json());
           return HttpResponse.json(mockBoardWithTodos);
         })
@@ -1055,7 +1055,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -1077,7 +1077,7 @@ describe("BoardView", () => {
       });
 
       server.use(
-        http.get(`${API_BASE}/api/boards/:id`, () => {
+        http.get(`/api/boards/:id`, () => {
           return HttpResponse.json(boardWithoutDesc);
         })
       );
@@ -1102,7 +1102,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1125,7 +1125,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1153,7 +1153,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         })
       );
@@ -1179,10 +1179,10 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get(`${API_BASE}/api/labels`, () => {
+        http.get(`/api/labels`, () => {
           return HttpResponse.json(mockLabels);
         }),
-        http.delete(`${API_BASE}/api/todos/:id`, () => {
+        http.delete(`/api/todos/:id`, () => {
           return new HttpResponse(null, { status: 204 });
         })
       );
@@ -1227,7 +1227,7 @@ describe("BoardView", () => {
       const user = userEvent.setup();
 
       server.use(
-        http.delete(`${API_BASE}/api/columns/:id`, () => {
+        http.delete(`/api/columns/:id`, () => {
           return new HttpResponse(null, { status: 204 });
         })
       );
