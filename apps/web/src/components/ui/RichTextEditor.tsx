@@ -32,6 +32,8 @@ interface RichTextEditorProps {
   placeholder?: string;
   editable?: boolean;
   className?: string;
+  /** Compact mode: no border, no min-height, fits content size */
+  compact?: boolean;
 }
 
 function markdownToHtml(markdown: string): string {
@@ -63,9 +65,15 @@ function markdownToHtml(markdown: string): string {
   // Highlight
   html = html.replace(/==(.+?)==/g, '<mark>$1</mark>');
 
-  // Task lists (allow empty task items)
-  html = html.replace(/^- \[x\] (.*)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>$1</p></li></ul>');
-  html = html.replace(/^- \[ \] (.*)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>$1</p></li></ul>');
+  // Task lists — handle both empty and non-empty task items
+  // Empty checked: - [x]  (with optional trailing whitespace)
+  html = html.replace(/^- \[x\]\s*$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p></p></li></ul>');
+  // Non-empty checked: - [x] some text
+  html = html.replace(/^- \[x\] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>$1</p></li></ul>');
+  // Empty unchecked: - [ ]  (with optional trailing whitespace)
+  html = html.replace(/^- \[ \]\s*$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p></p></li></ul>');
+  // Non-empty unchecked: - [ ] some text
+  html = html.replace(/^- \[ \] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>$1</p></li></ul>');
 
   // Unordered lists
   html = html.replace(/^- (.+)$/gm, '<ul><li><p>$1</p></li></ul>');
@@ -136,6 +144,16 @@ function htmlToMarkdown(html: string): string {
         const lines = children.trim().split('\n');
         return lines.map(line => `> ${line}`).join('\n') + '\n\n';
       }
+      case 'label': {
+        // Skip checkbox labels rendered by tiptap's TaskItem
+        if (el.closest('[data-type="taskItem"]')) return '';
+        return children;
+      }
+      case 'input': return '';
+      case 'div': {
+        // Tiptap wraps task item content in a <div>; just pass through children
+        return children;
+      }
       case 'ul': {
         if (el.getAttribute('data-type') === 'taskList') {
           return Array.from(el.children).map(li => {
@@ -196,6 +214,7 @@ export function RichTextEditor({
   placeholder = 'Write something...',
   editable = true,
   className,
+  compact = false,
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -221,7 +240,9 @@ export function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[120px] px-3 py-2',
+        class: compact
+          ? 'prose prose-sm max-w-none focus:outline-none px-1 py-0.5 text-xs'
+          : 'prose prose-sm max-w-none focus:outline-none min-h-[120px] px-3 py-2',
       },
     },
   });
@@ -255,9 +276,14 @@ export function RichTextEditor({
   if (!editor) return null;
 
   return (
-    <div className={cn('border border-stone-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent/30 focus-within:border-accent transition-colors', className)}>
-      {/* Toolbar — horizontally scrollable on mobile */}
-      {editable && (
+    <div className={cn(
+      compact
+        ? 'rounded-lg overflow-hidden'
+        : 'border border-stone-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent/30 focus-within:border-accent transition-colors',
+      className
+    )}>
+      {/* Toolbar — hidden in compact mode */}
+      {editable && !compact && (
         <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-stone-200 bg-stone-50 overflow-x-auto">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}

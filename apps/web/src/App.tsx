@@ -8,6 +8,7 @@ import { AuthGuard } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { signOut } from './lib/auth-client';
 import { useState } from 'react';
+import { Agentation } from 'agentation';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +118,7 @@ function App() {
       <ToastProvider>
         <AppContent />
       </ToastProvider>
+      <Agentation />
     </QueryClientProvider>
   );
 }

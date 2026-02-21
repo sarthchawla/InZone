@@ -11,7 +11,7 @@ import {
   SortableContext,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Tags, Columns, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Tags, Columns } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
@@ -26,7 +26,6 @@ import { LabelManager } from '../label';
 import {
   Button,
   Input,
-  Modal,
   RichTextEditor,
   ColumnSkeleton,
   KeyboardShortcutsHelp,
@@ -319,7 +318,7 @@ export function BoardView() {
       {/* Header */}
       <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-stone-200 bg-white">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Link
               to="/"
               data-testid="back-to-boards"
@@ -328,42 +327,60 @@ export function BoardView() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-              {isEditingBoardName ? (
-                <input
-                  ref={boardNameInputRef}
-                  type="text"
-                  value={editedBoardName}
-                  onChange={(e) => setEditedBoardName(e.target.value)}
-                  onBlur={handleBoardNameSave}
-                  onKeyDown={handleBoardNameKeyDown}
-                  className="text-lg sm:text-xl font-bold text-stone-900 bg-white border border-accent rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-accent/30 min-w-[120px] sm:min-w-[200px] max-w-full"
-                />
-              ) : (
-                <h1
-                  className="text-lg sm:text-xl font-bold text-stone-900 cursor-pointer hover:text-accent truncate transition-colors"
-                  onClick={handleBoardNameClick}
-                  title="Click to edit"
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                {isEditingBoardName ? (
+                  <input
+                    ref={boardNameInputRef}
+                    type="text"
+                    value={editedBoardName}
+                    onChange={(e) => setEditedBoardName(e.target.value)}
+                    onBlur={handleBoardNameSave}
+                    onKeyDown={handleBoardNameKeyDown}
+                    className="text-lg sm:text-xl font-bold text-stone-900 bg-white border border-accent rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-accent/30 min-w-[120px] sm:min-w-[200px] max-w-full"
+                  />
+                ) : (
+                  <h1
+                    className="text-lg sm:text-xl font-bold text-stone-900 cursor-pointer hover:text-accent truncate transition-colors"
+                    onClick={handleBoardNameClick}
+                    title="Click to edit"
+                  >
+                    {board.name}
+                  </h1>
+                )}
+              </div>
+              {/* Inline description — click to edit, auto-save on blur */}
+              {isEditingDescription ? (
+                <div
+                  className="max-w-xl"
+                  onBlur={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                      handleDescriptionBlur();
+                    }
+                  }}
                 >
-                  {board.name}
-                </h1>
+                  <RichTextEditor
+                    content={editedDescription}
+                    onChange={setEditedDescription}
+                    placeholder="Add a description..."
+                    compact
+                  />
+                </div>
+              ) : (
+                <p
+                  className="text-xs text-stone-400 truncate cursor-pointer hover:text-stone-600 transition-colors max-w-xl"
+                  onClick={() => {
+                    setEditedDescription(board.description || '');
+                    setIsEditingDescription(true);
+                  }}
+                  title={board.description || 'Click to add description'}
+                >
+                  {board.description || 'Add a description...'}
+                </p>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setEditedDescription(board.description || '');
-                setIsEditingDescription(true);
-              }}
-              aria-label="Description"
-              title={board.description ? 'Edit board description' : 'Add board description'}
-            >
-              <FileText className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Description</span>
-            </Button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <Button
               variant="ghost"
               size="sm"
@@ -376,50 +393,17 @@ export function BoardView() {
             </Button>
           </div>
         </div>
-
-        {/* Board description modal */}
-        <Modal
-          isOpen={isEditingDescription}
-          onClose={() => {
-            setEditedDescription(board.description || '');
-            setIsEditingDescription(false);
-          }}
-          title="Board Description"
-          className="md:max-w-lg"
-        >
-          <RichTextEditor
-            content={editedDescription}
-            onChange={setEditedDescription}
-            placeholder="Add a description for this board..."
-            className="min-h-[120px]"
-          />
-          <div className="flex gap-2 mt-3">
-            <Button size="sm" variant="primary" onClick={handleDescriptionBlur}>
-              Save
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setEditedDescription(board.description || '');
-                setIsEditingDescription(false);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Modal>
       </div>
 
       <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
 
       {/* Board content + Detail panel row */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Board content */}
+      {/* Board content — shrinks when detail panel is open */}
       <div
         ref={scrollContainerRef}
         className={cn(
-          'flex-1 overflow-x-auto p-4 md:p-6 min-w-0',
+          'flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6 min-w-0',
           isMobile && 'column-scroll-container'
         )}
         data-testid="columns-container"
