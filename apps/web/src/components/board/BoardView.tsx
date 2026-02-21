@@ -14,6 +14,8 @@ import {
 import { ArrowLeft, Plus, Tags, Columns } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { useSyncStatus } from '../../hooks/useSyncStatus';
+import { useDebouncedMutation } from '../../hooks/useDebouncedMutation';
 import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
 import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';
@@ -31,6 +33,7 @@ import {
   KeyboardShortcutsHelp,
   ContextMenu,
   UndoToast,
+  SyncStatusIndicator,
 } from '../ui';
 import { DetailPanel } from './DetailPanel';
 import type { Todo } from '../../types';
@@ -54,6 +57,27 @@ export function BoardView() {
   const deleteColumn = useDeleteColumn();
   const reorderColumns = useReorderColumns();
   const updateBoard = useUpdateBoard();
+  const { state: syncState, pendingCount } = useSyncStatus();
+
+  const debouncedReorderTodos = useDebouncedMutation({
+    mutate: reorderTodos.mutate,
+    getKey: (args: { boardId: string; columnId: string; todoIds: string[] }) => args.columnId,
+  });
+
+  const debouncedReorderColumns = useDebouncedMutation({
+    mutate: reorderColumns.mutate,
+    getKey: (args: { boardId: string; columnIds: string[] }) => args.boardId,
+  });
+
+  // Flush pending debounced mutations before page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      debouncedReorderTodos.flush();
+      debouncedReorderColumns.flush();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [debouncedReorderTodos, debouncedReorderColumns]);
 
   const {
     activeId,
@@ -65,7 +89,13 @@ export function BoardView() {
     handleDragStart,
     handleDragOver,
     handleDragEnd,
-  } = useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderTodos });
+  } = useBoardDnD({
+    board,
+    boardId,
+    reorderColumns: { mutate: debouncedReorderColumns.mutate },
+    moveTodo,
+    reorderTodos: { mutate: debouncedReorderTodos.mutate },
+  });
 
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -381,6 +411,7 @@ export function BoardView() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            <SyncStatusIndicator state={syncState} pendingCount={pendingCount} />
             <Button
               variant="ghost"
               size="sm"

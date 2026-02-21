@@ -12,6 +12,7 @@ export { DetailPanel } from '../board/DetailPanel';
 export type { DetailPanelProps } from '../board/DetailPanel';
 export { UndoToast } from './UndoToast';
 export type { UndoToastProps } from './UndoToast';
+export { SyncStatusIndicator } from './SyncStatusIndicator';
 export { BottomSheet } from './BottomSheet';
 export type { BottomSheetProps } from './BottomSheet';
 export { ProgressBar } from './ProgressBar';
