@@ -7,6 +7,17 @@ export async function requireAdmin(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
+  if (process.env.VITE_AUTH_BYPASS === 'true') {
+    req.user = {
+      id: 'dev-admin-000',
+      name: 'Dev Admin',
+      email: 'admin@localhost',
+      image: null,
+    };
+    next();
+    return;
+  }
+
   try {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
