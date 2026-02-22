@@ -43,7 +43,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
           />
           <motion.div
             className={cn(
-              'relative z-10 w-full bg-white shadow-2xl max-h-[90vh] overflow-y-auto',
+              'relative z-10 w-full bg-card shadow-2xl max-h-[90vh] overflow-y-auto',
               'rounded-t-2xl md:rounded-xl md:max-w-md p-5 md:p-6',
               'safe-bottom',
               className
@@ -58,14 +58,14 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
           >
             {/* Mobile drag handle */}
             <div className="flex justify-center mb-3 md:hidden">
-              <div className="w-10 h-1 bg-stone-300 rounded-full" />
+              <div className="w-10 h-1 bg-border rounded-full" />
             </div>
             {title && (
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
+                <h2 className="text-lg font-semibold text-foreground">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-secondary-foreground transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>

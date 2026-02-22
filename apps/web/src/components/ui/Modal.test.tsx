@@ -81,7 +81,7 @@ describe("Modal", () => {
       expect(dialog).toHaveClass("md:max-w-md");
       expect(dialog).toHaveClass("rounded-t-2xl");
       expect(dialog).toHaveClass("md:rounded-xl");
-      expect(dialog).toHaveClass("bg-white");
+      expect(dialog).toHaveClass("bg-card");
       expect(dialog).toHaveClass("shadow-2xl");
     });
 
@@ -95,7 +95,7 @@ describe("Modal", () => {
       render(<Modal {...defaultProps} className="max-w-lg" />);
       const dialog = screen.getByRole("dialog");
       expect(dialog).toHaveClass("max-w-lg");
-      expect(dialog).toHaveClass("bg-white");
+      expect(dialog).toHaveClass("bg-card");
     });
 
     it("is centered on screen", () => {

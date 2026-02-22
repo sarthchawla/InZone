@@ -184,7 +184,7 @@ export function BoardColumn({
       style={style}
       data-testid="column"
       className={cn(
-        'flex flex-col rounded-xl bg-stone-100 transition-all duration-200 column-snap-item',
+        'flex flex-col rounded-xl bg-muted transition-all duration-200 column-snap-item',
         'w-full min-w-full md:w-72 md:min-w-72',
         (isOver || isDropTarget) && !isDragging && 'ring-2 ring-accent/40 bg-accent-light/30 shadow-lg',
         isDragging && 'opacity-30 scale-[0.98] border-2 border-dashed border-accent-muted bg-accent-light/20'
@@ -210,11 +210,11 @@ export function BoardColumn({
                 onKeyDown={handleTitleKeyDown}
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="uppercase tracking-wide text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-accent flex-1 min-w-0"
+                className="uppercase tracking-wide text-xs font-semibold text-secondary-foreground bg-card border border-border rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring flex-1 min-w-0"
               />
             ) : (
               <h3
-                className="uppercase tracking-wide text-xs font-semibold text-stone-500 truncate cursor-text hover:text-stone-700"
+                className="uppercase tracking-wide text-xs font-semibold text-foreground truncate cursor-text hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleTitleClick();
@@ -234,7 +234,7 @@ export function BoardColumn({
                   ? 'bg-red-50 text-red-700 font-semibold animate-pulse'
                   : column.wipLimit && todos.length === column.wipLimit
                     ? 'bg-amber-50 text-amber-600 font-medium'
-                    : 'bg-stone-200 text-stone-500'
+                    : 'bg-muted text-muted-foreground'
               )}
             >
               {todos.length}{column.wipLimit ? `/${column.wipLimit}` : ''}
@@ -261,21 +261,21 @@ export function BoardColumn({
                 setShowMenu(!showMenu);
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="p-2.5 md:p-1.5 text-stone-400 hover:bg-stone-200 rounded hover:text-stone-600 transition-colors"
+              className="p-2.5 md:p-1.5 text-muted-foreground hover:bg-muted rounded hover:text-muted-foreground transition-colors"
               aria-label="Column options"
             >
               <ChevronDown className="h-4 w-4" />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-stone-200 z-50 py-1">
+              <div className="absolute right-0 top-full mt-1 w-44 bg-card rounded-xl shadow-lg border border-border z-50 py-1">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEditDescriptionClick();
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 md:py-2 text-sm text-stone-700 hover:bg-stone-100 text-left"
+                  className="flex items-center gap-2 w-full px-3 py-2.5 md:py-2 text-sm text-secondary-foreground hover:bg-muted text-left"
                 >
                   <Pencil className="h-4 w-4" />
                   Edit Description
@@ -286,7 +286,7 @@ export function BoardColumn({
                     handleSetWipLimitClick();
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 md:py-2 text-sm text-stone-700 hover:bg-stone-100 text-left"
+                  className="flex items-center gap-2 w-full px-3 py-2.5 md:py-2 text-sm text-secondary-foreground hover:bg-muted text-left"
                 >
                   <Gauge className="h-4 w-4" />
                   Set WIP Limit
@@ -310,7 +310,7 @@ export function BoardColumn({
         {/* Description — shown inline below title, truncated to 1 line */}
         {column.description && !isEditingDescription && (
           <p
-            className="line-clamp-1 text-xs text-stone-400 mt-1 cursor-pointer hover:text-stone-500"
+            className="line-clamp-1 text-xs text-muted-foreground mt-1 cursor-pointer hover:text-muted-foreground"
             onClick={(e) => {
               e.stopPropagation();
               handleEditDescriptionClick();
@@ -352,7 +352,7 @@ export function BoardColumn({
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <label className="block text-xs font-medium text-stone-500">
+          <label className="block text-xs font-medium text-muted-foreground">
             WIP Limit (0 = no limit)
           </label>
           <Input
@@ -411,10 +411,10 @@ export function BoardColumn({
         {/* Empty column state (when not dragging) */}
         {sortedTodos.length === 0 && !activeTodoId && (
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="text-stone-300 mb-2">
+            <div className="text-muted-foreground mb-2">
               <Plus className="h-8 w-8 mx-auto" />
             </div>
-            <p className="text-xs text-stone-400">No cards yet</p>
+            <p className="text-xs text-muted-foreground">No cards yet</p>
           </div>
         )}
       </div>
@@ -449,7 +449,7 @@ export function BoardColumn({
         ) : (
           <button
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-1 w-full p-2.5 md:p-2 text-sm text-stone-500 hover:bg-stone-200 rounded-lg transition-colors"
+            className="flex items-center gap-1 w-full p-2.5 md:p-2 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors"
             title="Add a new card"
           >
             <Plus className="h-4 w-4" />

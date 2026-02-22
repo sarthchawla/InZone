@@ -47,17 +47,17 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
                 onClose();
               }
             }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col safe-bottom"
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col safe-bottom"
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-              <div className="w-10 h-1 bg-stone-300 rounded-full" />
+              <div className="w-10 h-1 bg-border rounded-full" />
             </div>
 
             {/* Title */}
             {title && (
-              <div className="px-4 pb-3 border-b border-stone-200 flex-shrink-0">
-                <h3 className="text-lg font-semibold text-stone-900">{title}</h3>
+              <div className="px-4 pb-3 border-b border-border flex-shrink-0">
+                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
               </div>
             )}
 

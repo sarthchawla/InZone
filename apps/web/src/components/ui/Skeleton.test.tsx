@@ -9,12 +9,12 @@ import {
 
 describe("Skeleton", () => {
   describe("rendering", () => {
-    it("renders with default classes (animate-pulse, bg-stone-200)", () => {
+    it("renders with default classes (animate-pulse, bg-muted)", () => {
       render(<Skeleton />);
       const skeleton = screen.getByTestId("skeleton");
       expect(skeleton).toBeInTheDocument();
       expect(skeleton).toHaveClass("animate-pulse");
-      expect(skeleton).toHaveClass("bg-stone-200");
+      expect(skeleton).toHaveClass("bg-muted");
       expect(skeleton).toHaveClass("rounded-lg");
     });
 
@@ -25,7 +25,7 @@ describe("Skeleton", () => {
       expect(skeleton).toHaveClass("w-full");
       // Should still have default classes
       expect(skeleton).toHaveClass("animate-pulse");
-      expect(skeleton).toHaveClass("bg-stone-200");
+      expect(skeleton).toHaveClass("bg-muted");
     });
   });
 });

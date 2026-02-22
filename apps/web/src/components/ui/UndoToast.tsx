@@ -68,7 +68,7 @@ export function UndoToast({
               <button
                 type="button"
                 onClick={handleUndo}
-                className="flex items-center gap-1.5 px-3 py-1 text-sm font-medium text-accent bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1 text-sm font-medium text-primary bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
               >
                 <Undo2 className="w-3.5 h-3.5" />
                 Undo
@@ -76,7 +76,7 @@ export function UndoToast({
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="p-1 text-stone-400 hover:text-white transition-colors flex-shrink-0"
+                className="p-1 text-muted-foreground hover:text-white transition-colors flex-shrink-0"
                 aria-label="Dismiss"
               >
                 <X className="w-4 h-4" />
@@ -85,7 +85,7 @@ export function UndoToast({
             {/* Countdown bar */}
             <div className="mt-2 h-0.5 bg-white/10 rounded-full overflow-hidden">
               <motion.div
-                className="bg-accent h-0.5 rounded-full"
+                className="bg-primary h-0.5 rounded-full"
                 initial={{ width: '100%' }}
                 animate={{ width: '0%' }}
                 transition={{ duration: duration / 1000, ease: 'linear' }}

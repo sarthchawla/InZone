@@ -99,22 +99,22 @@ export function ResetPasswordPage() {
   if (step === 'done') {
     return (
       <motion.div
-        className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+        className="min-h-screen bg-background flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center" role="status">
+        <div className="bg-card shadow rounded-lg p-8 w-full max-w-sm text-center" role="status">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-stone-900 mb-2">Password Reset!</h2>
-          <p className="text-stone-600 text-sm mb-4">Your password has been updated. Please sign in.</p>
+          <h2 className="text-xl font-bold font-display text-foreground mb-2">Password Reset!</h2>
+          <p className="text-muted-foreground text-sm mb-4">Your password has been updated. Please sign in.</p>
           <Link
             to="/login"
-            className="inline-block bg-accent text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-accent-hover transition-colors"
+            className="inline-block bg-primary text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Sign In
           </Link>
@@ -131,12 +131,12 @@ export function ResetPasswordPage() {
 
   return (
     <motion.div
-      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      className="min-h-screen bg-background flex items-center justify-center p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
+      <div className="bg-card shadow rounded-lg p-8 w-full max-w-sm">
         <div className="mb-6" role="group" aria-label="Password reset progress">
           <div className="flex items-center justify-between mb-2">
             {['Identify', 'Verify', 'Reset'].map((label, i) => {
@@ -147,11 +147,11 @@ export function ResetPasswordPage() {
               return (
                 <div key={label} className="flex items-center gap-2" aria-current={isCurrent ? 'step' : undefined}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                    isComplete || isCurrent ? 'bg-accent text-white' : 'bg-stone-200 text-stone-500'
+                    isComplete || isCurrent ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
                   }`}>
                     {isComplete ? '\u2713' : i + 1}
                   </div>
-                  <span className={`text-xs font-medium ${isCurrent ? 'text-accent' : 'text-stone-500'}`}>
+                  <span className={`text-xs font-medium ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
                     {label}
                   </span>
                 </div>
@@ -163,7 +163,7 @@ export function ResetPasswordPage() {
               const stepKey = ['identify', 'questions', 'reset'];
               const currentIdx = stepKey.indexOf(step);
               return (
-                <div key={i} className={`h-1 flex-1 rounded ${i <= currentIdx ? 'bg-accent' : 'bg-stone-200'}`} />
+                <div key={i} className={`h-1 flex-1 rounded ${i <= currentIdx ? 'bg-primary' : 'bg-muted'}`} />
               );
             })}
           </div>
@@ -185,10 +185,10 @@ export function ResetPasswordPage() {
               exit="exit"
               transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <h1 className="text-2xl font-bold text-stone-900 mb-6 text-center">Reset Your Password</h1>
+              <h1 className="text-2xl font-bold font-display text-foreground mb-6 text-center">Reset Your Password</h1>
               <form onSubmit={handleIdentify} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                  <label className="block text-sm font-medium text-secondary-foreground mb-1">
                     Email or Username
                   </label>
                   <Input
@@ -218,13 +218,13 @@ export function ResetPasswordPage() {
               exit="exit"
               transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <h1 className="text-xl font-bold text-stone-900 mb-4 text-center">
+              <h1 className="text-xl font-bold font-display text-foreground mb-4 text-center">
                 Answer Your Security Questions
               </h1>
               <form onSubmit={handleVerify} className="space-y-4">
                 {questions.map((q, i) => (
                   <div key={i}>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">{q}</label>
+                    <label className="block text-sm font-medium text-secondary-foreground mb-1">{q}</label>
                     <Input
                       type="text"
                       value={answers[i]}
@@ -257,10 +257,10 @@ export function ResetPasswordPage() {
               exit="exit"
               transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <h1 className="text-xl font-bold text-stone-900 mb-4 text-center">Set New Password</h1>
+              <h1 className="text-xl font-bold font-display text-foreground mb-4 text-center">Set New Password</h1>
               <form onSubmit={handleReset} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-secondary-foreground mb-1">New Password</label>
                   <Input
                     type="password"
                     value={newPassword}
@@ -269,10 +269,10 @@ export function ResetPasswordPage() {
                   <div className="mt-1 space-y-0.5" aria-label="Password strength indicators">
                     {passwordChecks.map((check) => (
                       <div key={check.label} className="flex items-center gap-1.5 text-xs">
-                        <span className={check.passed ? 'text-green-500' : 'text-stone-400'}>
+                        <span className={check.passed ? 'text-green-500' : 'text-muted-foreground'}>
                           {check.passed ? '\u2713' : '\u2717'}
                         </span>
-                        <span className={check.passed ? 'text-green-700' : 'text-stone-500'}>
+                        <span className={check.passed ? 'text-green-700' : 'text-muted-foreground'}>
                           {check.label}
                         </span>
                       </div>
@@ -280,7 +280,7 @@ export function ResetPasswordPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                  <label className="block text-sm font-medium text-secondary-foreground mb-1">
                     Confirm Password
                   </label>
                   <Input
@@ -309,8 +309,8 @@ export function ResetPasswordPage() {
           )}
         </AnimatePresence>
 
-        <p className="text-center text-sm text-stone-500 mt-4">
-          <Link to="/login" className="text-accent hover:underline">
+        <p className="text-center text-sm text-muted-foreground mt-4">
+          <Link to="/login" className="text-primary hover:underline">
             Back to Sign In
           </Link>
         </p>

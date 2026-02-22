@@ -103,8 +103,8 @@ function InlineCreateForm({
           className={cn(
             'px-3 py-1 text-xs rounded-full border transition-colors',
             selectedTemplate === ''
-              ? 'bg-accent text-white border-accent'
-              : 'bg-white text-stone-600 border-stone-200 hover:border-accent-muted',
+              ? 'bg-primary text-white border-primary'
+              : 'bg-card text-muted-foreground border-border hover:border-accent-muted',
           )}
         >
           Empty board
@@ -117,8 +117,8 @@ function InlineCreateForm({
             className={cn(
               'px-3 py-1 text-xs rounded-full border transition-colors',
               selectedTemplate === t.id
-                ? 'bg-accent text-white border-accent'
-                : 'bg-white text-stone-600 border-stone-200 hover:border-accent-muted',
+                ? 'bg-primary text-white border-primary'
+                : 'bg-card text-muted-foreground border-border hover:border-accent-muted',
             )}
           >
             {t.name}
@@ -133,7 +133,7 @@ function InlineCreateForm({
           disabled={!name.trim() || createBoard.isPending}
           className={cn(
             'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
-            'bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed',
+            'bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed',
           )}
         >
           {createBoard.isPending ? 'Creating...' : 'Create'}
@@ -142,7 +142,7 @@ function InlineCreateForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-stone-500 hover:text-stone-700 transition-colors"
+            className="px-3 py-1.5 text-sm text-muted-foreground hover:text-secondary-foreground transition-colors"
           >
             Cancel
           </button>
@@ -190,7 +190,7 @@ function CardDropdown({
           setOpen((v) => !v);
         }}
         className={cn(
-          'p-1 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors',
+          'p-1 rounded-md text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors',
         )}
         aria-label={`Actions for ${boardName}`}
       >
@@ -204,7 +204,7 @@ function CardDropdown({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.12 }}
-            className="absolute right-0 top-full mt-1 z-20 w-36 rounded-lg border border-stone-200 bg-white shadow-lg py-1"
+            className="absolute right-0 top-full mt-1 z-20 w-36 rounded-lg border border-border bg-card shadow-lg py-1"
           >
             <button
               onClick={(e) => {
@@ -213,7 +213,7 @@ function CardDropdown({
                 setOpen(false);
                 onRename(boardId);
               }}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-secondary-foreground hover:bg-muted transition-colors"
             >
               <Pencil className="h-3.5 w-3.5" />
               Rename
@@ -271,7 +271,7 @@ export function BoardList() {
     return (
       <div className="p-6" data-testid="loading">
         <div className="flex items-center justify-between mb-6">
-          <div className="h-8 w-40 bg-stone-200 rounded animate-pulse" />
+          <div className="h-8 w-40 bg-muted rounded animate-pulse" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -307,10 +307,10 @@ export function BoardList() {
           transition={{ duration: 0.3 }}
           className="flex flex-col items-center justify-center py-20 text-center"
         >
-          <h3 className="text-xl font-semibold text-stone-900 mb-2">
+          <h3 className="text-xl font-semibold text-foreground mb-2">
             Start by creating your first board
           </h3>
-          <p className="text-stone-500 mb-8 max-w-sm">
+          <p className="text-muted-foreground mb-8 max-w-sm">
             Boards help you organise tasks into columns. Give your board a name to get started.
           </p>
           <div className="w-full max-w-sm">
@@ -325,7 +325,7 @@ export function BoardList() {
   return (
     <div className="p-6 flex-1 overflow-y-auto" data-testid="board-list">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-stone-900">Your Boards</h2>
+        <h2 className="text-2xl font-bold text-foreground">Your Boards</h2>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -351,8 +351,8 @@ export function BoardList() {
                 to={`/board/${board.id}`}
                 data-testid="board-card"
                 className={cn(
-                  'group relative block p-4 rounded-xl border border-stone-200/60 bg-white shadow-sm',
-                  'hover:shadow-md hover:border-stone-300/80 transition-all',
+                  'group relative block p-4 rounded-xl border border-border bg-card shadow-sm',
+                  'hover:shadow-md hover:border-border transition-all',
                   // Mobile compact: horizontal layout
                   'sm:block',
                   isOptimistic && 'animate-pulse opacity-80',
@@ -361,9 +361,9 @@ export function BoardList() {
                 {/* Top row: name + ⋯ */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-stone-900 truncate">{board.name}</h3>
+                    <h3 className="font-semibold text-foreground truncate">{board.name}</h3>
                     {board.description && (
-                      <p className="text-sm text-stone-500 mt-1 line-clamp-2">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {board.description}
                       </p>
                     )}
@@ -382,15 +382,15 @@ export function BoardList() {
                 {/* Progress bar */}
                 {totalTodos > 0 && (
                   <div className="mt-3" data-testid="progress-bar">
-                    <div className="flex items-center justify-between text-xs text-stone-400 mb-1">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                       <span>
                         {doneTodos}/{totalTodos} done
                       </span>
                       <span>{percentage}%</span>
                     </div>
-                    <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-accent rounded-full transition-all duration-500"
+                        className="h-full bg-primary rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -399,7 +399,7 @@ export function BoardList() {
 
                 {/* Footer: meta */}
                 <div
-                  className="mt-4 flex items-center justify-between text-xs text-stone-400"
+                  className="mt-4 flex items-center justify-between text-xs text-muted-foreground"
                   data-testid="todo-count"
                 >
                   <span>
@@ -432,7 +432,7 @@ export function BoardList() {
         >
           {isCreating ? (
             <div
-              className="p-4 rounded-xl border border-stone-200/60 bg-white shadow-sm"
+              className="p-4 rounded-xl border border-border bg-card shadow-sm"
               data-testid="ghost-card-form"
             >
               <InlineCreateForm onCancel={() => setIsCreating(false)} />
@@ -444,9 +444,9 @@ export function BoardList() {
               data-testid="ghost-card"
               className={cn(
                 'w-full h-full min-h-[120px] p-4 rounded-xl',
-                'border-2 border-dashed border-stone-200 bg-transparent',
+                'border-2 border-dashed border-border bg-transparent',
                 'flex flex-col items-center justify-center gap-2',
-                'text-stone-400 hover:text-accent hover:border-accent-muted',
+                'text-muted-foreground hover:text-primary hover:border-primary',
                 'transition-colors cursor-pointer',
               )}
             >

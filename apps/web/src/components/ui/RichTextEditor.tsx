@@ -37,7 +37,7 @@ export function RichTextEditor({
       Placeholder.configure({ placeholder }),
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: 'text-accent underline cursor-pointer' },
+        HTMLAttributes: { class: 'text-primary underline cursor-pointer' },
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -92,7 +92,7 @@ export function RichTextEditor({
     <div className={cn(
       compact
         ? 'rounded-lg overflow-hidden'
-        : 'border border-stone-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent/30 focus-within:border-accent transition-colors',
+        : 'border border-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-ring/30 focus-within:border-primary transition-colors',
       className
     )}>
       {/* Toolbar — hidden in compact mode */}

@@ -34,9 +34,9 @@ function ToolbarButton({ onClick, isActive, disabled, title, children }: Toolbar
       disabled={disabled}
       title={title}
       className={cn(
-        'p-2 md:p-1.5 rounded-lg text-stone-600 hover:bg-stone-200 hover:text-stone-900 transition-colors flex-shrink-0',
+        'p-2 md:p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors flex-shrink-0',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        isActive && 'bg-accent-light text-accent hover:bg-accent-light'
+        isActive && 'bg-accent-light text-primary hover:bg-accent-light'
       )}
     >
       {children}
@@ -51,7 +51,7 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ editor, setLink }: EditorToolbarProps) {
   return (
-    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-stone-200 bg-stone-50 overflow-x-auto">
+    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-secondary overflow-x-auto">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
@@ -95,7 +95,7 @@ export function EditorToolbar({ editor, setLink }: EditorToolbarProps) {
         <LinkIcon className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-5 bg-stone-300 mx-1 flex-shrink-0" />
+      <div className="w-px h-5 bg-border mx-1 flex-shrink-0" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -112,7 +112,7 @@ export function EditorToolbar({ editor, setLink }: EditorToolbarProps) {
         <Heading3 className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-5 bg-stone-300 mx-1 flex-shrink-0" />
+      <div className="w-px h-5 bg-border mx-1 flex-shrink-0" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -136,7 +136,7 @@ export function EditorToolbar({ editor, setLink }: EditorToolbarProps) {
         <CheckSquare className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-5 bg-stone-300 mx-1 flex-shrink-0" />
+      <div className="w-px h-5 bg-border mx-1 flex-shrink-0" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}

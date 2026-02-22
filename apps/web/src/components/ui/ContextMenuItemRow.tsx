@@ -19,7 +19,7 @@ export function MenuItemRow({
   const isSeparator = item.label === '---';
 
   if (isSeparator) {
-    return <div className="h-px bg-stone-200 my-1" />;
+    return <div className="h-px bg-border my-1" />;
   }
 
   const hasSubmenu = item.submenu && item.submenu.length > 0;
@@ -61,24 +61,24 @@ export function MenuItemRow({
         className={cn(
           'flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg transition-colors text-left',
           item.disabled && 'opacity-40 cursor-not-allowed',
-          !item.disabled && !item.danger && 'hover:bg-accent-light text-stone-700 hover:text-accent',
+          !item.disabled && !item.danger && 'hover:bg-accent-light text-secondary-foreground hover:text-primary',
           !item.disabled && item.danger && 'hover:bg-red-50 text-red-600'
         )}
       >
         {item.icon && <span className="flex-shrink-0 w-4 h-4">{item.icon}</span>}
         <span className="flex-1">{item.label}</span>
         {item.shortcut && (
-          <span className="text-xs text-stone-400 ml-4">{item.shortcut}</span>
+          <span className="text-xs text-muted-foreground ml-4">{item.shortcut}</span>
         )}
-        {hasSubmenu && <ChevronRight className="w-3.5 h-3.5 text-stone-400 ml-2" />}
+        {hasSubmenu && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-2" />}
       </button>
 
       {hasSubmenu && submenuOpen && (
         <div
           className={cn(
             isMobile
-              ? 'pl-4 border-l border-stone-200 ml-3 mt-1'
-              : 'absolute left-full top-0 ml-1 min-w-[180px] bg-white rounded-xl shadow-2xl border border-stone-200 p-1.5 animate-fade-in'
+              ? 'pl-4 border-l border-border ml-3 mt-1'
+              : 'absolute left-full top-0 ml-1 min-w-[180px] bg-card rounded-xl shadow-2xl border border-border p-1.5 animate-fade-in'
           )}
         >
           {item.submenu!.map((sub, i) => (

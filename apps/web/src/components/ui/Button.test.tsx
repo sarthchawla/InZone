@@ -14,19 +14,19 @@ describe("Button", () => {
     it("renders with default variant styling", () => {
       render(<Button>Default</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("bg-stone-100");
+      expect(button).toHaveClass("bg-secondary");
     });
 
     it("renders with primary variant styling", () => {
       render(<Button variant="primary">Primary</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("bg-accent");
+      expect(button).toHaveClass("bg-primary");
     });
 
     it("renders with ghost variant styling", () => {
       render(<Button variant="ghost">Ghost</Button>);
       const button = screen.getByRole("button");
-      expect(button).toHaveClass("hover:bg-stone-100");
+      expect(button).toHaveClass("hover:bg-muted");
     });
 
     it("renders with danger variant styling", () => {

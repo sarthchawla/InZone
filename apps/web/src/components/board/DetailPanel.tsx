@@ -152,7 +152,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
   const panelContent = (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 flex-shrink-0">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           {/* Save status indicator */}
           <AnimatePresence mode="wait">
@@ -162,7 +162,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-1.5 text-xs text-stone-500"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
               >
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Saving...
@@ -185,7 +185,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors"
           aria-label="Close panel"
         >
           <X className="w-5 h-5" />
@@ -196,7 +196,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {/* Column indicator */}
         {currentColumn && (
-          <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">
+          <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             {currentColumn.name}
           </div>
         )}
@@ -211,13 +211,13 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
               saveField({ title: title.trim() });
             }
           }}
-          className="w-full text-lg font-semibold text-stone-900 border-0 border-b border-transparent focus:border-accent outline-none bg-transparent pb-1 transition-colors placeholder:text-stone-400"
+          className="w-full text-lg font-semibold text-foreground border-0 border-b border-transparent focus:border-accent outline-none bg-transparent pb-1 transition-colors placeholder:text-muted-foreground"
           placeholder="Task title"
         />
 
         {/* Priority */}
         <div>
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-2 block">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
             Priority
           </label>
           <div className="flex gap-2">
@@ -239,7 +239,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
 
         {/* Due date */}
         <div>
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-2 block">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
             <Calendar className="w-3.5 h-3.5 inline mr-1" />
             Due Date
           </label>
@@ -251,13 +251,13 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
               setDueDate(val);
               saveField({ dueDate: val ? new Date(val + 'T00:00:00.000Z').toISOString() : null });
             }}
-            className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none transition-colors bg-white"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-ring/30 focus:border-accent outline-none transition-colors bg-card"
           />
         </div>
 
         {/* Labels */}
         <div>
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-2 block">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
             <Tag className="w-3.5 h-3.5 inline mr-1" />
             Labels
           </label>
@@ -285,7 +285,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
             <button
               type="button"
               onClick={() => setShowLabelPicker((prev) => !prev)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-stone-500 bg-stone-100 hover:bg-stone-200 rounded-full transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-muted-foreground bg-muted hover:bg-muted/80 rounded-full transition-colors"
             >
               <Plus className="w-3 h-3" />
               Add
@@ -300,9 +300,9 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-2 overflow-hidden"
               >
-                <div className="border border-stone-200 rounded-lg p-2 bg-white shadow-sm max-h-40 overflow-y-auto">
+                <div className="border border-border rounded-lg p-2 bg-card shadow-sm max-h-40 overflow-y-auto">
                   {allLabels.length === 0 && (
-                    <p className="text-xs text-stone-400 py-1 px-2">No labels available</p>
+                    <p className="text-xs text-muted-foreground py-1 px-2">No labels available</p>
                   )}
                   {allLabels.map((label) => {
                     const isSelected = selectedLabelIds.includes(label.id);
@@ -313,7 +313,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                         onClick={() => handleLabelToggle(label.id)}
                         className={cn(
                           'flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-md transition-colors',
-                          isSelected ? 'bg-accent-light text-accent' : 'hover:bg-stone-100 text-stone-700'
+                          isSelected ? 'bg-accent-light text-primary' : 'hover:bg-muted text-secondary-foreground'
                         )}
                       >
                         <span
@@ -333,7 +333,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
 
         {/* Description */}
         <div>
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-2 block">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
             Description
           </label>
           <RichTextEditor
@@ -349,7 +349,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       </div>
 
       {/* Footer with delete */}
-      <div className="px-5 py-4 border-t border-stone-200 flex-shrink-0">
+      <div className="px-5 py-4 border-t border-border flex-shrink-0">
         <button
           type="button"
           onClick={handleDelete}
@@ -394,11 +394,11 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
             }}
             role="dialog"
             aria-label="Task details"
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col safe-bottom"
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col safe-bottom"
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="w-10 h-1 bg-stone-300 rounded-full" />
+              <div className="w-10 h-1 bg-muted-foreground/40 rounded-full" />
             </div>
             {panelContent}
           </motion.div>
@@ -417,14 +417,14 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
       role="dialog"
       aria-label="Task details"
-      className="flex-shrink-0 bg-white border-l border-stone-200 flex flex-col h-full overflow-hidden relative"
+      className="flex-shrink-0 bg-card border-l border-border flex flex-col h-full overflow-hidden relative"
     >
       {/* Resize handle */}
       <div
         onPointerDown={handleResizeStart}
         className="group/resize absolute top-0 left-0 bottom-0 w-2 cursor-col-resize hover:bg-accent/20 active:bg-accent/30 transition-colors z-10 flex items-center justify-center"
       >
-        <div className="w-0.5 h-8 bg-stone-300 rounded-full group-hover/resize:bg-accent group-active/resize:bg-accent transition-colors" />
+        <div className="w-0.5 h-8 bg-muted-foreground/40 rounded-full group-hover/resize:bg-primary group-active/resize:bg-primary transition-colors" />
       </div>
       {panelContent}
     </motion.div>

@@ -312,10 +312,10 @@ export function BoardView() {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full" data-testid="board-view-loading">
-        <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-stone-200 bg-white">
+        <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-border bg-card">
           <div className="flex items-center gap-4">
-            <div className="h-5 w-5 bg-stone-200 rounded animate-pulse" />
-            <div className="h-7 w-48 bg-stone-200 rounded animate-pulse" />
+            <div className="h-5 w-5 bg-muted rounded animate-pulse" />
+            <div className="h-7 w-48 bg-muted rounded animate-pulse" />
           </div>
         </div>
         <div className="flex-1 overflow-x-auto p-4 md:p-6">
@@ -332,7 +332,7 @@ export function BoardView() {
   if (error || !board) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4" data-testid="board-not-found">
-        <p className="text-stone-500">Board not found</p>
+        <p className="text-muted-foreground">Board not found</p>
         <Link to="/">
           <Button variant="primary">Back to Boards</Button>
         </Link>
@@ -346,13 +346,13 @@ export function BoardView() {
   return (
     <div className="flex flex-col h-full" data-testid="board-view">
       {/* Header */}
-      <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-stone-200 bg-white">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-border bg-card">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <Link
               to="/"
               data-testid="back-to-boards"
-              className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg flex-shrink-0 transition-colors"
+              className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-lg flex-shrink-0 transition-colors"
               title="Back to boards"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -367,11 +367,11 @@ export function BoardView() {
                     onChange={(e) => setEditedBoardName(e.target.value)}
                     onBlur={handleBoardNameSave}
                     onKeyDown={handleBoardNameKeyDown}
-                    className="text-lg sm:text-xl font-bold text-stone-900 bg-white border border-accent rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-accent/30 min-w-[120px] sm:min-w-[200px] max-w-full"
+                    className="text-lg sm:text-xl font-bold text-foreground bg-card border border-accent rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-ring/30 min-w-[120px] sm:min-w-[200px] max-w-full"
                   />
                 ) : (
                   <h1
-                    className="text-lg sm:text-xl font-bold text-stone-900 cursor-pointer hover:text-accent truncate transition-colors"
+                    className="text-lg sm:text-xl font-bold text-foreground cursor-pointer hover:text-primary truncate transition-colors"
                     onClick={handleBoardNameClick}
                     title="Click to edit"
                   >
@@ -398,7 +398,7 @@ export function BoardView() {
                 </div>
               ) : (
                 <p
-                  className="text-xs text-stone-400 truncate cursor-pointer hover:text-stone-600 transition-colors max-w-xl"
+                  className="text-xs text-muted-foreground truncate cursor-pointer hover:text-muted-foreground transition-colors max-w-xl"
                   onClick={() => {
                     setEditedDescription(board.description || '');
                     setIsEditingDescription(true);
@@ -442,9 +442,9 @@ export function BoardView() {
         {/* Empty board onboarding */}
         {sortedColumns.length === 0 && !isAddingColumn ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-            <Columns className="h-16 w-16 text-stone-300 mb-4" />
-            <h3 className="text-xl font-medium text-stone-900 mb-2">Get started with your board</h3>
-            <p className="text-stone-500 mb-6 max-w-md">
+            <Columns className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-medium text-foreground mb-2">Get started with your board</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
               Create your first column to begin organizing your tasks.
             </p>
             <Button variant="primary" onClick={() => setIsAddingColumn(true)}>
@@ -497,7 +497,7 @@ export function BoardView() {
                 {/* Add column button */}
                 <div className={cn(isMobile && 'snap-center flex-shrink-0 w-full')}>
                   {isAddingColumn ? (
-                    <div className="flex flex-col gap-2 w-full md:w-72 md:min-w-72 h-fit p-3 rounded-xl bg-stone-100">
+                    <div className="flex flex-col gap-2 w-full md:w-72 md:min-w-72 h-fit p-3 rounded-xl bg-muted">
                       <Input
                         value={newColumnName}
                         onChange={(e) => setNewColumnName(e.target.value)}
@@ -529,7 +529,7 @@ export function BoardView() {
                   ) : (
                     <button
                       onClick={() => setIsAddingColumn(true)}
-                      className="flex items-center gap-2 w-full md:w-72 md:min-w-72 h-fit p-3 rounded-xl bg-stone-200/50 hover:bg-stone-200 text-stone-500 transition-colors"
+                      className="flex items-center gap-2 w-full md:w-72 md:min-w-72 h-fit p-3 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
                     >
                       <Plus className="h-5 w-5" />
                       Add column
@@ -562,24 +562,24 @@ export function BoardView() {
                   initial={{ scale: 1, rotate: 0 }}
                   animate={{ scale: 1.02, rotate: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="flex flex-col w-72 min-w-72 rounded-xl bg-white/95 backdrop-blur-sm shadow-2xl ring-2 ring-accent/30 cursor-grabbing"
+                  className="flex flex-col w-72 min-w-72 rounded-xl bg-card/95 backdrop-blur-sm shadow-2xl ring-2 ring-ring/30 cursor-grabbing"
                 >
-                  <div className="flex items-center justify-between p-3 border-b border-stone-100">
+                  <div className="flex items-center justify-between p-3 border-b border-border">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-stone-700 uppercase tracking-wide text-xs">{activeColumn.name}</h3>
-                      <span className="rounded-full bg-accent-light px-2 py-0.5 text-xs text-accent font-medium">
+                      <h3 className="font-semibold text-secondary-foreground uppercase tracking-wide text-xs">{activeColumn.name}</h3>
+                      <span className="rounded-full bg-accent-light px-2 py-0.5 text-xs text-primary font-medium">
                         {(activeColumn.todos ?? []).length}
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1 p-2 min-h-[60px] space-y-1.5 bg-stone-50/50 rounded-b-xl">
+                  <div className="flex-1 p-2 min-h-[60px] space-y-1.5 bg-secondary/50 rounded-b-xl">
                     {(activeColumn.todos ?? []).slice(0, 3).map((todo) => (
-                      <div key={todo.id} className="rounded-lg bg-white border border-stone-200 p-2 text-xs text-stone-600 truncate shadow-sm">
+                      <div key={todo.id} className="rounded-lg bg-card border border-border p-2 text-xs text-muted-foreground truncate shadow-sm">
                         {todo.title}
                       </div>
                     ))}
                     {(activeColumn.todos ?? []).length > 3 && (
-                      <div className="text-xs text-stone-400 text-center py-1">
+                      <div className="text-xs text-muted-foreground text-center py-1">
                         +{(activeColumn.todos ?? []).length - 3} more
                       </div>
                     )}
@@ -593,7 +593,7 @@ export function BoardView() {
 
       {/* Mobile dot indicators */}
       {isMobile && sortedColumns.length > 1 && (
-        <div className="flex justify-center gap-1.5 py-2 bg-white border-t border-stone-100 safe-bottom">
+        <div className="flex justify-center gap-1.5 py-2 bg-card border-t border-border safe-bottom">
           {sortedColumns.map((col, i) => (
             <button
               key={col.id}
@@ -606,8 +606,8 @@ export function BoardView() {
               className={cn(
                 'h-2 rounded-full transition-all duration-200',
                 i === activeColumnIndex
-                  ? 'w-6 bg-accent'
-                  : 'w-2 bg-stone-300 hover:bg-stone-400'
+                  ? 'w-6 bg-primary'
+                  : 'w-2 bg-muted-foreground/40 hover:bg-muted-foreground/60'
               )}
               aria-label={`Go to ${col.name}`}
             />

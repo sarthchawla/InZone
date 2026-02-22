@@ -9,7 +9,7 @@ export function Skeleton({ className }: SkeletonProps) {
     <div
       data-testid="skeleton"
       className={cn(
-        'animate-pulse rounded-lg bg-stone-200',
+        'animate-pulse rounded-lg bg-muted',
         className
       )}
     />
@@ -18,7 +18,7 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function BoardCardSkeleton() {
   return (
-    <div className="p-4 bg-white rounded-xl border border-stone-200" data-testid="board-card-skeleton">
+    <div className="p-4 bg-card rounded-xl border border-border" data-testid="board-card-skeleton">
       <div className="space-y-2">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-4 w-full" />
@@ -32,7 +32,7 @@ export function BoardCardSkeleton() {
 
 export function ColumnSkeleton() {
   return (
-    <div className="flex flex-col w-full md:w-72 md:min-w-72 rounded-xl bg-stone-100 p-3" data-testid="column-skeleton">
+    <div className="flex flex-col w-full md:w-72 md:min-w-72 rounded-xl bg-secondary p-3" data-testid="column-skeleton">
       <div className="flex items-center gap-2 mb-3">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-5 w-8 rounded-full" />
@@ -48,7 +48,7 @@ export function ColumnSkeleton() {
 
 export function TodoCardSkeleton() {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-3" data-testid="todo-card-skeleton">
+    <div className="rounded-xl border border-border bg-card p-3" data-testid="todo-card-skeleton">
       <Skeleton className="h-4 w-3/4 mb-2" />
       <div className="flex items-center gap-2">
         <Skeleton className="h-4 w-16 rounded-full" />

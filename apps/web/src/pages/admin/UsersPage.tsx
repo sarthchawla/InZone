@@ -96,8 +96,8 @@ export function UsersPage() {
         className="flex items-center justify-between mb-6"
       >
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Users</h1>
-          <p className="text-sm text-stone-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Users</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {users.length} registered {users.length === 1 ? 'user' : 'users'}
           </p>
         </div>
@@ -122,21 +122,21 @@ export function UsersPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05 }}
-        className="bg-white border border-stone-200/80 rounded-xl shadow-sm overflow-hidden"
+        className="bg-card border border-border rounded-xl shadow-sm overflow-hidden"
       >
         {/* Desktop table */}
         <div className="hidden sm:block">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-stone-100">
-                <th className="text-left px-5 py-3.5 text-xs font-medium text-stone-500 uppercase tracking-wide">User</th>
-                <th className="text-left px-5 py-3.5 text-xs font-medium text-stone-500 uppercase tracking-wide">Role</th>
-                <th className="text-left px-5 py-3.5 text-xs font-medium text-stone-500 uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3.5 text-xs font-medium text-stone-500 uppercase tracking-wide">Joined</th>
-                <th className="text-right px-5 py-3.5 text-xs font-medium text-stone-500 uppercase tracking-wide">Actions</th>
+              <tr className="border-b border-border">
+                <th className="text-left px-5 py-3.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">User</th>
+                <th className="text-left px-5 py-3.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Role</th>
+                <th className="text-left px-5 py-3.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                <th className="text-left px-5 py-3.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Joined</th>
+                <th className="text-right px-5 py-3.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-50">
+            <tbody className="divide-y divide-border">
               {users.map((u, i) => {
                 const isSelf = u.id === currentUser?.id;
                 return (
@@ -145,23 +145,23 @@ export function UsersPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.03 * i }}
-                    className="hover:bg-stone-50/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold flex-shrink-0">
                           {u.name?.charAt(0)?.toUpperCase() ?? '?'}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-stone-900 truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {u.name}
                             {isSelf && (
-                              <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wider bg-accent-light text-accent px-1.5 py-0.5 rounded">
+                              <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                                 you
                               </span>
                             )}
                           </p>
-                          <p className="text-xs text-stone-500 truncate">{u.email}</p>
+                          <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                         </div>
                       </div>
                     </td>
@@ -170,7 +170,7 @@ export function UsersPage() {
                         className={`inline-flex items-center text-xs font-medium px-2 py-1 rounded-md ${
                           u.role === 'admin'
                             ? 'bg-purple-100 text-purple-700'
-                            : 'bg-stone-100 text-stone-600'
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {u.role === 'admin' && (
@@ -194,7 +194,7 @@ export function UsersPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-stone-500">
+                    <td className="px-5 py-3.5 text-xs text-muted-foreground">
                       {new Date(u.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -208,7 +208,7 @@ export function UsersPage() {
                             onClick={() =>
                               handleSetRole(u.id, u.role === 'admin' ? 'user' : 'admin')
                             }
-                            className="text-xs font-medium text-accent hover:bg-accent-light px-2 py-1 rounded-md transition-colors"
+                            className="text-xs font-medium text-primary hover:bg-primary/10 px-2 py-1 rounded-md transition-colors"
                           >
                             {u.role === 'admin' ? 'Demote' : 'Promote'}
                           </button>
@@ -244,32 +244,32 @@ export function UsersPage() {
         </div>
 
         {/* Mobile cards */}
-        <div className="sm:hidden divide-y divide-stone-100">
+        <div className="sm:hidden divide-y divide-border">
           {users.map((u) => {
             const isSelf = u.id === currentUser?.id;
             return (
               <div key={u.id} className="p-4 space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
                     {u.name?.charAt(0)?.toUpperCase() ?? '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-stone-900 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {u.name}
                       {isSelf && (
-                        <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wider bg-accent-light text-accent px-1.5 py-0.5 rounded">
+                        <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                           you
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-stone-500 truncate">{u.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span
                       className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                         u.role === 'admin'
                           ? 'bg-purple-100 text-purple-700'
-                          : 'bg-stone-100 text-stone-600'
+                          : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {u.role || 'user'}
@@ -312,7 +312,7 @@ export function UsersPage() {
         </div>
 
         {users.length === 0 && (
-          <div className="px-6 py-12 text-center text-sm text-stone-500">
+          <div className="px-6 py-12 text-center text-sm text-muted-foreground">
             No users found
           </div>
         )}
