@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import request from "supertest";
 import { createTestApp, TEST_ADMIN } from "../test/app.js";
 import { prismaMock, resetPrismaMock } from "../test/prismaMock.js";
@@ -56,9 +56,20 @@ function mockNoSession() {
 
 let app: Express;
 
+const origAuthBypass = process.env.VITE_AUTH_BYPASS;
+
 beforeEach(() => {
   resetPrismaMock();
+  delete process.env.VITE_AUTH_BYPASS;
   app = createTestApp();
+});
+
+afterAll(() => {
+  if (origAuthBypass !== undefined) {
+    process.env.VITE_AUTH_BYPASS = origAuthBypass;
+  } else {
+    delete process.env.VITE_AUTH_BYPASS;
+  }
 });
 
 // ---------------------------------------------------------------------------

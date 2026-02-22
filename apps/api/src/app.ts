@@ -59,8 +59,8 @@ app.post('/api/auth/set-password', express.json(), async (req, res) => {
     });
 
     res.json({ success: true });
-  } catch (err: any) {
-    const message = err?.message || 'Failed to set password.';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to set password.';
     const status = message.includes('already') ? 400 : 500;
     res.status(status).json({ error: message });
   }

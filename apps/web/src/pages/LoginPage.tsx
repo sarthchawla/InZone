@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { signIn } from '../lib/auth-client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
@@ -14,7 +14,6 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function LoginPage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');

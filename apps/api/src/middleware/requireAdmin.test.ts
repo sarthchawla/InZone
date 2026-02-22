@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { Request, Response, NextFunction } from "express";
 
 // Mock the auth module before importing
@@ -36,8 +36,19 @@ function createMockReqResNext() {
 }
 
 describe("requireAdmin middleware", () => {
+  const origAuthBypass = process.env.VITE_AUTH_BYPASS;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.VITE_AUTH_BYPASS;
+  });
+
+  afterAll(() => {
+    if (origAuthBypass !== undefined) {
+      process.env.VITE_AUTH_BYPASS = origAuthBypass;
+    } else {
+      delete process.env.VITE_AUTH_BYPASS;
+    }
   });
 
   it("allows admin user through - sets req.user and calls next()", async () => {
