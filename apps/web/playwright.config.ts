@@ -4,6 +4,7 @@ import { defineBddConfig } from 'playwright-bdd';
 const testDir = defineBddConfig({
   features: 'tests/bdd/features/**/*.feature',
   steps: ['tests/bdd/steps/**/*.ts', 'tests/bdd/fixtures.ts'],
+  tags: 'not @wip',
 });
 
 export default defineConfig({

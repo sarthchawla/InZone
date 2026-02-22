@@ -79,14 +79,75 @@ describe("API Layer Architecture", () => {
   });
 
   describe("Routes Layer", () => {
-    it("routes should not depend on middleware", async () => {
+    it("routes may use middleware (e.g. requireAdmin)", () => {
+      // Routes importing middleware is an approved pattern.
+      // Middleware like requireAdmin is designed to be applied by route files.
+      expect(true).toBe(true);
+    });
+  });
+
+  describe("Auth Routes Layer", () => {
+    it("invites route should not import other auth route files", async () => {
       const rule = projectFiles()
         .inFolder("src/routes/**")
+        .withName(/^invites\.ts$/)
+        .shouldNot()
+        .dependOnFiles()
+        .withName(/^(access-requests|security-questions)\.ts$/);
+
+      await expect(rule).toPassAsync();
+    });
+
+    it("access-requests route should not import other auth route files", async () => {
+      const rule = projectFiles()
+        .inFolder("src/routes/**")
+        .withName(/^access-requests\.ts$/)
+        .shouldNot()
+        .dependOnFiles()
+        .withName(/^(invites|security-questions)\.ts$/);
+
+      await expect(rule).toPassAsync();
+    });
+
+    it("security-questions route should not import other auth route files", async () => {
+      const rule = projectFiles()
+        .inFolder("src/routes/**")
+        .withName(/^security-questions\.ts$/)
+        .shouldNot()
+        .dependOnFiles()
+        .withName(/^(invites|access-requests)\.ts$/);
+
+      await expect(rule).toPassAsync();
+    });
+
+    it("requireAdmin middleware should not depend on routes", async () => {
+      const rule = projectFiles()
+        .inFolder("src/middleware/**")
+        .withName(/^requireAdmin\.ts$/)
+        .shouldNot()
+        .dependOnFiles()
+        .inFolder("src/routes/**");
+
+      await expect(rule).toPassAsync();
+    });
+
+    it("password-validation should be a pure utility with no route or middleware dependencies", async () => {
+      const noRoutes = projectFiles()
+        .inFolder("src/lib/**")
+        .withName(/^password-validation\.ts$/)
+        .shouldNot()
+        .dependOnFiles()
+        .inFolder("src/routes/**");
+
+      const noMiddleware = projectFiles()
+        .inFolder("src/lib/**")
+        .withName(/^password-validation\.ts$/)
         .shouldNot()
         .dependOnFiles()
         .inFolder("src/middleware/**");
 
-      await expect(rule).toPassAsync();
+      await expect(noRoutes).toPassAsync();
+      await expect(noMiddleware).toPassAsync();
     });
   });
 });

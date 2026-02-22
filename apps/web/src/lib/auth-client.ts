@@ -1,4 +1,6 @@
 import { createAuthClient } from 'better-auth/react';
+import { usernameClient } from 'better-auth/client/plugins';
+import { adminClient } from 'better-auth/client/plugins';
 
 const baseURL = import.meta.env.PROD
   ? window.location.origin
@@ -6,6 +8,7 @@ const baseURL = import.meta.env.PROD
 
 export const authClient = createAuthClient({
   baseURL,
+  plugins: [usernameClient(), adminClient()],
 });
 
 export const { useSession, signIn, signOut, signUp } = authClient;
