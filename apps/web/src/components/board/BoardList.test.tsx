@@ -108,9 +108,9 @@ describe("BoardList", () => {
       render(<BoardList />);
 
       await waitFor(() => {
-        expect(screen.getByText("Start by creating your first board")).toBeInTheDocument();
+        expect(screen.getByText("Create your first board")).toBeInTheDocument();
       });
-      expect(screen.getByText(/Boards help you organise tasks into columns/)).toBeInTheDocument();
+      expect(screen.getByText(/Organize your tasks into boards and columns/)).toBeInTheDocument();
     });
 
     it("shows inline create form in empty state", async () => {

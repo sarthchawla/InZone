@@ -4,11 +4,12 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, ChevronDown, Trash2, Pencil, Gauge } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Trash2, Pencil, Gauge } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TodoCard } from '../todo/TodoCard';
 import { Button, Input, RichTextEditor } from '../ui';
 import type { Column, Todo } from '../../types';
+import type { CardDensity } from '../../hooks/useCardDensity';
 
 interface BoardColumnProps {
   column: Column;
@@ -22,6 +23,9 @@ interface BoardColumnProps {
   activeTodoId?: string | null;
   overTodoId?: string | null;
   isColumnDragActive?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (columnId: string) => void;
+  density?: CardDensity;
 }
 
 export function BoardColumn({
@@ -36,6 +40,9 @@ export function BoardColumn({
   activeTodoId,
   overTodoId,
   isColumnDragActive,
+  isCollapsed,
+  onToggleCollapse,
+  density,
 }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState('');
@@ -80,6 +87,38 @@ export function BoardColumn({
   const todos = column.todos ?? [];
   const sortedTodos = [...todos].sort((a, b) => a.position - b.position);
   const todoIds = sortedTodos.map((t) => t.id);
+
+  // Collapsed column view
+  if (isCollapsed) {
+    return (
+      <div
+        ref={setSortableRef}
+        style={style}
+        data-testid="column"
+        data-collapsed="true"
+        className={cn(
+          'flex flex-col items-center rounded-xl bg-muted transition-all duration-250 ease-in-out cursor-pointer',
+          'w-11 min-w-11 h-full',
+          isDragging && 'opacity-30'
+        )}
+        onClick={() => onToggleCollapse?.(column.id)}
+        title={`${column.name} (${todos.length} cards) - Click to expand`}
+      >
+        <div className="flex flex-col items-center gap-2 py-3">
+          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground flex-shrink-0">
+            {todos.length}
+          </span>
+          <span
+            className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide"
+            style={{ writingMode: 'vertical-lr', textOrientation: 'mixed' }}
+          >
+            {column.name}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -253,6 +292,22 @@ export function BoardColumn({
             )}
           </div>
 
+          {/* Collapse button */}
+          {onToggleCollapse && (
+            <button
+              data-testid="collapse-column"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCollapse(column.id);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="p-1.5 text-muted-foreground hover:bg-muted rounded hover:text-foreground transition-colors flex-shrink-0"
+              title="Collapse column"
+            >
+              <ChevronDown className="h-3.5 w-3.5 rotate-[-90deg]" />
+            </button>
+          )}
+
           {/* Dropdown menu trigger */}
           <div className="relative flex-shrink-0" ref={menuRef}>
             <button
@@ -392,7 +447,7 @@ export function BoardColumn({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
               >
-                <TodoCard todo={todo} onClick={onTodoClick} onContextMenu={onTodoContextMenu} isDropTarget={overTodoId === todo.id} sortDisabled={isColumnDragActive} />
+                <TodoCard todo={todo} onClick={onTodoClick} onContextMenu={onTodoContextMenu} isDropTarget={overTodoId === todo.id} sortDisabled={isColumnDragActive} density={density} />
               </motion.div>
             ))}
           </AnimatePresence>

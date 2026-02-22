@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MoreHorizontal, Clock, Pencil, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, Pencil, Trash2, Kanban } from 'lucide-react';
 import { useBoards, useCreateBoard, useDeleteBoard, useTemplates } from '../../hooks/useBoards';
 import { Input, BoardCardSkeleton, Button } from '../ui';
 import { toast } from '../../lib/toast';
@@ -307,11 +307,14 @@ export function BoardList() {
           transition={{ duration: 0.3 }}
           className="flex flex-col items-center justify-center py-20 text-center"
         >
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+            <Kanban className="w-8 h-8 text-primary" />
+          </div>
           <h3 className="text-xl font-semibold text-foreground mb-2">
-            Start by creating your first board
+            Create your first board
           </h3>
           <p className="text-muted-foreground mb-8 max-w-sm">
-            Boards help you organise tasks into columns. Give your board a name to get started.
+            Organize your tasks into boards and columns. Name your board to get started.
           </p>
           <div className="w-full max-w-sm">
             <InlineCreateForm />

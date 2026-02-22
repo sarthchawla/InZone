@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Check, FileText, GripVertical, MoreHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { Todo, Priority } from '../../types';
+import type { CardDensity } from '../../hooks/useCardDensity';
 
 interface TodoCardProps {
   todo: Todo;
@@ -15,6 +16,7 @@ interface TodoCardProps {
   isDropTarget?: boolean;
   isSelected?: boolean;
   sortDisabled?: boolean;
+  density?: CardDensity;
 }
 
 const priorityBarClass: Record<Priority, string> = {
@@ -47,6 +49,7 @@ export function TodoCard({
   isDropTarget,
   isSelected,
   sortDisabled,
+  density = 'comfortable',
 }: TodoCardProps) {
   const [isChecked, setIsChecked] = useState(false);
 
@@ -238,16 +241,16 @@ export function TodoCard({
             >
               {todo.title}
             </h4>
-            {/* Description indicator */}
-            {todo.description && (
+            {/* Description indicator — hidden in compact density */}
+            {density === 'comfortable' && todo.description && (
               <span className="text-muted-foreground flex-shrink-0" title="Has description">
                 <FileText className="h-4 w-4" />
               </span>
             )}
           </div>
 
-          {/* Label chips */}
-          {todo.labels.length > 0 && (
+          {/* Label chips — hidden in compact density */}
+          {density === 'comfortable' && todo.labels.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               {visibleLabels.map((label) => (
                 <span

@@ -22,6 +22,9 @@ import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } 
 import { useKeyboardShortcuts, BOARD_SHORTCUTS } from '../../hooks/useKeyboardShortcuts';
 import { useBoardDnD } from '../../hooks/useBoardDnD';
 import { useBoardActions } from '../../hooks/useBoardActions';
+import { useBoardFilters } from '../../hooks/useBoardFilters';
+import { useColumnCollapse } from '../../hooks/useColumnCollapse';
+import { useCardDensity } from '../../hooks/useCardDensity';
 import { BoardColumn } from '../column/BoardColumn';
 import { TodoCard } from '../todo';
 import { LabelManager } from '../label';
@@ -35,6 +38,7 @@ import {
   SyncStatusIndicator,
 } from '../ui';
 import { DetailPanel } from './DetailPanel';
+import { BoardToolbar } from './BoardToolbar';
 import type { Todo } from '../../types';
 
 export function BoardView() {
@@ -52,6 +56,9 @@ export function BoardView() {
   const reorderColumns = useReorderColumns();
   const updateBoard = useUpdateBoard();
   const { state: syncState, pendingCount } = useSyncStatus();
+  const { filters, setSearch, togglePriority, toggleLabel, clearFilters, hasActiveFilters } = useBoardFilters();
+  const { toggleCollapse, isCollapsed } = useColumnCollapse(boardId || '');
+  const { density, toggleDensity } = useCardDensity();
 
   const debouncedReorderTodos = useDebouncedMutation({
     mutate: reorderTodos.mutate,
@@ -333,6 +340,17 @@ export function BoardView() {
   const sortedColumns = [...board.columns].sort((a, b) => a.position - b.position);
   const columnIds = sortedColumns.map((c) => `column-${c.id}`);
 
+  // Filter todos within columns based on active filters
+  const filterTodos = (todos: Todo[] | undefined) => {
+    if (!todos || !hasActiveFilters) return todos;
+    return todos.filter(todo => {
+      if (filters.search && !todo.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
+      if (filters.priorities.length > 0 && !filters.priorities.includes(todo.priority)) return false;
+      if (filters.labelIds.length > 0 && !todo.labels.some(l => filters.labelIds.includes(l.id))) return false;
+      return true;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full" data-testid="board-view">
       {/* Header */}
@@ -418,6 +436,18 @@ export function BoardView() {
 
       <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
 
+      {/* Board Toolbar */}
+      <BoardToolbar
+        search={filters.search}
+        onSearchChange={setSearch}
+        filters={filters}
+        onTogglePriority={togglePriority}
+        onClearFilters={clearFilters}
+        hasActiveFilters={hasActiveFilters}
+        density={density}
+        onToggleDensity={toggleDensity}
+      />
+
       {/* Board content + Detail panel row */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Board content — shrinks when detail panel is open */}
@@ -469,7 +499,7 @@ export function BoardView() {
                     className={cn(isMobile && 'snap-center flex-shrink-0 w-full')}
                   >
                     <BoardColumn
-                      column={column}
+                      column={hasActiveFilters ? { ...column, todos: filterTodos(column.todos) } : column}
                       onAddTodo={handleAddTodo}
                       onUpdateColumn={handleUpdateColumn}
                       onDeleteColumn={handleDeleteColumn}
@@ -480,6 +510,9 @@ export function BoardView() {
                       activeTodoId={activeTodo?.id ?? null}
                       overTodoId={overColumnId === column.id ? overTodoId : null}
                       isColumnDragActive={activeColumn !== null}
+                      isCollapsed={isCollapsed(column.id)}
+                      onToggleCollapse={toggleCollapse}
+                      density={density}
                     />
                   </motion.div>
                 ))}

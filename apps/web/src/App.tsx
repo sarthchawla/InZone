@@ -12,6 +12,9 @@ import { signOut } from './lib/auth-client';
 import { useState } from 'react';
 import { Agentation } from 'agentation';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeToggle } from './components/app/ThemeToggle';
+import { Breadcrumbs } from './components/app/Breadcrumbs';
+import { ErrorBoundary } from './components/app/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { RequestAccessPage } from './pages/RequestAccessPage';
@@ -227,9 +230,13 @@ function AppContent() {
                         InZone
                       </h1>
                     </Link>
-                    <UserMenu />
+                    <div className="flex items-center gap-3">
+                      <ThemeToggle />
+                      <UserMenu />
+                    </div>
                   </div>
                 </header>
+                <Breadcrumbs />
                 <main className="flex-1 flex flex-col min-h-0 overflow-auto">
                   <AnimatedRoutes />
                 </main>
@@ -246,7 +253,9 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
           <AppContent />
+        </ErrorBoundary>
           <Toaster position="bottom-right" richColors />
           <SpeedInsights />
           <Analytics />
