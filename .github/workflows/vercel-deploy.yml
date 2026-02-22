@@ -85,12 +85,51 @@ jobs:
           echo "db-url=$DB_URL" >> "$GITHUB_OUTPUT"
           echo "direct-url=$DIRECT_URL" >> "$GITHUB_OUTPUT"
 
+  migrate:
+    name: Run Database Migrations
+    needs: [neon-branch]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always() && (github.event_name == 'push' || needs.neon-branch.result == 'success')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Prisma migrations
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+        run: pnpm prisma migrate deploy
+
+      - name: Seed database (idempotent)
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+        run: pnpm prisma db seed
+
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [neon-branch]
-    if: always() && (github.event_name == 'push' || needs.neon-branch.result == 'success')
+    needs: [neon-branch, migrate]
+    if: always() && needs.migrate.result == 'success'
     outputs:
       deployment-url: ${{ steps.deploy-production.outputs.url || steps.deploy-preview.outputs.url }}
 
@@ -194,48 +233,9 @@ jobs:
               });
             }
 
-  migrate:
-    name: Run Database Migrations
-    needs: [neon-branch, deploy]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run Prisma migrations
-        working-directory: apps/api
-        env:
-          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-        run: pnpm prisma migrate deploy
-
-      - name: Seed database (idempotent)
-        working-directory: apps/api
-        env:
-          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-        run: pnpm prisma db seed
-
   smoke-test:
     name: Smoke Test
-    needs: [deploy, migrate]
+    needs: [deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
