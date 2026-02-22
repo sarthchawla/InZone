@@ -7,7 +7,6 @@ import { http, HttpResponse } from "msw";
 import { createMockBoard, createMockColumn, createMockTodo, mockLabels } from "../../test/mocks/handlers";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../contexts/ToastContext";
 
 // Mock RichTextEditor since tiptap's useEditor does not work in jsdom
 vi.mock("../ui/RichTextEditor", () => ({
@@ -55,12 +54,10 @@ function renderBoardView(boardId: string = "board-1") {
   return rtlRender(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[`/board/${boardId}`]}>
-        <ToastProvider>
-          <Routes>
-            <Route path="/board/:boardId" element={<BoardView />} />
-            <Route path="/" element={<div>Home Page</div>} />
-          </Routes>
-        </ToastProvider>
+        <Routes>
+          <Route path="/board/:boardId" element={<BoardView />} />
+          <Route path="/" element={<div>Home Page</div>} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>
   );

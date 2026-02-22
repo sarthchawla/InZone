@@ -32,16 +32,10 @@ import {
   ColumnSkeleton,
   KeyboardShortcutsHelp,
   ContextMenu,
-  UndoToast,
   SyncStatusIndicator,
 } from '../ui';
 import { DetailPanel } from './DetailPanel';
 import type { Todo } from '../../types';
-
-interface UndoState {
-  message: string;
-  onUndo: () => void;
-}
 
 export function BoardView() {
   const { boardId } = useParams<{ boardId: string }>();
@@ -108,9 +102,6 @@ export function BoardView() {
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [contextMenuTodo, setContextMenuTodo] = useState<Todo | null>(null);
 
-  // Undo toast state
-  const [undoState, setUndoState] = useState<UndoState | null>(null);
-
   const { handleTodoDeleteWithUndo, getContextMenuItems } = useBoardActions({
     boardId,
     columns: board?.columns,
@@ -118,7 +109,6 @@ export function BoardView() {
     setSelectedTodo,
     setContextMenuPosition,
     setContextMenuTodo,
-    setUndoState,
     deleteTodo,
     createTodo,
     updateTodo,
@@ -639,21 +629,6 @@ export function BoardView() {
           }}
         />
       )}
-
-      {/* Undo Toast */}
-      <AnimatePresence>
-        {undoState && (
-          <UndoToast
-            message={undoState.message}
-            onUndo={() => {
-              undoState.onUndo();
-              setUndoState(null);
-            }}
-            onExpire={() => setUndoState(null)}
-            onDismiss={() => setUndoState(null)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Keyboard Shortcuts Help */}
       <KeyboardShortcutsHelp

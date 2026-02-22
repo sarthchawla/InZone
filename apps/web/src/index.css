@@ -196,7 +196,7 @@ body {
 
 /* Tiptap editor styles */
 .tiptap p.is-editor-empty:first-child::before {
-  color: var(--text-tertiary);
+  color: var(--muted-foreground);
   content: attr(data-placeholder);
   float: left;
   height: 0;
@@ -219,14 +219,14 @@ body {
 .tiptap li { margin: 0.125rem 0; }
 
 .tiptap blockquote {
-  border-left: 3px solid var(--surface-3);
+  border-left: 3px solid var(--border);
   padding-left: 0.75rem;
   margin: 0.5rem 0;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .tiptap code {
-  background-color: var(--surface-2);
+  background-color: var(--muted);
   border-radius: 0.25rem;
   padding: 0.125rem 0.375rem;
   font-size: 0.8125rem;
@@ -234,8 +234,8 @@ body {
 }
 
 .tiptap pre {
-  background-color: #1f2937;
-  color: #e5e7eb;
+  background-color: var(--code-block-bg);
+  color: var(--code-block-fg);
   border-radius: 0.5rem;
   padding: 0.75rem;
   margin: 0.5rem 0;
@@ -250,19 +250,20 @@ body {
 }
 
 .tiptap mark {
-  background-color: #fef08a;
+  background-color: var(--highlight-bg);
+  color: var(--highlight-fg);
   border-radius: 0.125rem;
   padding: 0.0625rem 0.125rem;
 }
 
 .tiptap hr {
   border: none;
-  border-top: 1px solid var(--surface-3);
+  border-top: 1px solid var(--border);
   margin: 1rem 0;
 }
 
 .tiptap a {
-  color: var(--accent);
+  color: var(--primary);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -290,7 +291,7 @@ body {
 
 .tiptap ul[data-type="taskList"] li[data-checked="true"] > div > p {
   text-decoration: line-through;
-  color: var(--text-tertiary);
+  color: var(--muted-foreground);
 }
 
 /* Checkbox check animation for task list items */
@@ -299,7 +300,7 @@ body {
   -webkit-appearance: none;
   width: 1rem;
   height: 1rem;
-  border: 2px solid var(--surface-3);
+  border: 2px solid var(--border);
   border-radius: 0.25rem;
   cursor: pointer;
   position: relative;
@@ -307,13 +308,13 @@ body {
 }
 
 .tiptap ul[data-type="taskList"] li label input[type="checkbox"]:hover {
-  border-color: var(--accent);
+  border-color: var(--primary);
   transform: scale(1.1);
 }
 
 .tiptap ul[data-type="taskList"] li label input[type="checkbox"]:checked {
-  background-color: var(--accent);
-  border-color: var(--accent);
+  background-color: var(--primary);
+  border-color: var(--primary);
   animation: checkbox-pop 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -429,6 +430,11 @@ body {
 .priority-bar-medium { border-left: 3px solid #f59e0b; }
 .priority-bar-high { border-left: 3px solid #f97316; }
 .priority-bar-urgent { border-left: 3px solid #ef4444; }
+
+.dark .priority-bar-low { border-left-color: #34d399; }
+.dark .priority-bar-medium { border-left-color: #fbbf24; }
+.dark .priority-bar-high { border-left-color: #fb923c; }
+.dark .priority-bar-urgent { border-left-color: #f87171; }
 
 /* Mobile snap scroll for columns */
 @media (max-width: 767px) {

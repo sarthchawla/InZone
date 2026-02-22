@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, MoreHorizontal, Clock, Pencil, Trash2 } from 'lucide-react';
 import { useBoards, useCreateBoard, useDeleteBoard, useTemplates } from '../../hooks/useBoards';
 import { Input, BoardCardSkeleton, Button } from '../ui';
-import { useToast } from '../../contexts/ToastContext';
+import { toast } from '../../lib/toast';
 import { getErrorMessage } from '../../api/client';
 import { cn } from '../../lib/utils';
 
@@ -36,7 +36,7 @@ function InlineCreateForm({
 }) {
   const { data: templates } = useTemplates();
   const createBoard = useCreateBoard();
-  const toast = useToast();
+  // toast imported from lib/toast
 
   const [name, setName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
@@ -244,7 +244,7 @@ function CardDropdown({
 export function BoardList() {
   const { data: boards, isLoading, error: loadError } = useBoards();
   const deleteBoard = useDeleteBoard();
-  const toast = useToast();
+  // toast imported from lib/toast
 
   // Inline creation ghost-card state
   const [isCreating, setIsCreating] = useState(false);

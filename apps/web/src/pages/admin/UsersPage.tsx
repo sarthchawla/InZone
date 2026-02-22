@@ -4,6 +4,7 @@ import { authClient } from '../../lib/auth-client';
 import { useAuth } from '../../hooks/useAuth';
 import { getErrorMessage } from '../../api/client';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 interface AdminUser {
   id: string;
@@ -18,6 +19,7 @@ export function UsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState('');
+  const [removeConfirm, setRemoveConfirm] = useState<{ open: boolean; userId: string }>({ open: false, userId: '' });
 
   const loadUsers = useCallback(async () => {
     try {
@@ -75,11 +77,14 @@ export function UsersPage() {
     }
   }
 
-  async function handleRemove(userId: string) {
-    if (!confirm('Permanently remove this user and all their data?')) return;
+  function handleRemove(userId: string) {
+    setRemoveConfirm({ open: true, userId });
+  }
+
+  async function confirmRemove() {
     setError('');
     try {
-      await authClient.admin.removeUser({ userId });
+      await authClient.admin.removeUser({ userId: removeConfirm.userId });
       loadUsers();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -317,6 +322,16 @@ export function UsersPage() {
           </div>
         )}
       </motion.div>
+
+      <ConfirmDialog
+        open={removeConfirm.open}
+        onOpenChange={(open) => setRemoveConfirm((prev) => ({ ...prev, open }))}
+        title="Remove User"
+        message="Permanently remove this user and all their data?"
+        confirmLabel="Remove"
+        variant="destructive"
+        onConfirm={confirmRemove}
+      />
     </div>
   );
 }

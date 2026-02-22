@@ -5,7 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 import { BoardList } from './components/board/BoardList';
 import { BoardView } from './components/board/BoardView';
-import { ToastProvider } from './contexts/ToastContext';
+import { Toaster } from 'sonner';
 import { AuthGuard } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { signOut } from './lib/auth-client';
@@ -246,11 +246,10 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
           <AppContent />
+          <Toaster position="bottom-right" richColors />
           <SpeedInsights />
           <Analytics />
-        </ToastProvider>
         <Agentation />
       </QueryClientProvider>
     </ThemeProvider>

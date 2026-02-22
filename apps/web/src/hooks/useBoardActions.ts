@@ -1,9 +1,5 @@
 import type { Todo, Column, Priority, ContextMenuItem } from '../types';
-
-interface UndoState {
-  message: string;
-  onUndo: () => void;
-}
+import { undoToast } from '../lib/toast';
 
 interface UseBoardActionsParams {
   boardId: string | undefined;
@@ -12,7 +8,6 @@ interface UseBoardActionsParams {
   setSelectedTodo: (todo: Todo | null) => void;
   setContextMenuPosition: (pos: { x: number; y: number } | null) => void;
   setContextMenuTodo: (todo: Todo | null) => void;
-  setUndoState: (state: UndoState | null) => void;
   deleteTodo: { mutate: (args: { id: string; boardId: string }) => void };
   createTodo: { mutate: (args: {
     columnId: string;
@@ -34,7 +29,6 @@ export function useBoardActions({
   setSelectedTodo,
   setContextMenuPosition,
   setContextMenuTodo,
-  setUndoState,
   deleteTodo,
   createTodo,
   updateTodo,
@@ -51,20 +45,17 @@ export function useBoardActions({
     setContextMenuTodo(null);
 
     deleteTodo.mutate({ id: todo.id, boardId });
-    setUndoState({
-      message: `"${todo.title}" deleted`,
-      onUndo: () => {
-        // Re-create the todo (best-effort undo)
-        createTodo.mutate({
-          columnId: todo.columnId,
-          boardId,
-          title: todo.title,
-          description: todo.description,
-          priority: todo.priority,
-          dueDate: todo.dueDate,
-          labelIds: todo.labels.map((l) => l.id),
-        });
-      },
+    undoToast(`"${todo.title}" deleted`, () => {
+      // Re-create the todo (best-effort undo)
+      createTodo.mutate({
+        columnId: todo.columnId,
+        boardId,
+        title: todo.title,
+        description: todo.description,
+        priority: todo.priority,
+        dueDate: todo.dueDate,
+        labelIds: todo.labels.map((l) => l.id),
+      });
     });
   };
 

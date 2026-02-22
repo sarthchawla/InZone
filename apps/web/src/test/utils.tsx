@@ -2,7 +2,7 @@ import React, { ReactNode } from "react";
 import { render, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
-import { ToastProvider } from "../contexts/ToastContext";
+
 import { ThemeProvider } from "../contexts/ThemeContext";
 
 // Create a fresh QueryClient for each test
@@ -33,7 +33,7 @@ function AllProviders({ children }: WrapperProps) {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <ToastProvider>{children}</ToastProvider>
+          {children}
         </BrowserRouter>
       </QueryClientProvider>
     </ThemeProvider>

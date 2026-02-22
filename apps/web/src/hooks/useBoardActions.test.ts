@@ -1,6 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../lib/toast', () => ({
+  undoToast: vi.fn(),
+}));
+
 import { useBoardActions } from './useBoardActions';
+import { undoToast } from '../lib/toast';
 import type { Todo, Column, Priority } from '../types';
+
+const mockUndoToast = vi.mocked(undoToast);
 
 const createMockTodo = (overrides: Partial<Todo> = {}): Todo => ({
   id: 'todo-1',
@@ -39,7 +47,6 @@ function createDefaultParams(overrides: Record<string, unknown> = {}) {
     setSelectedTodo: vi.fn(),
     setContextMenuPosition: vi.fn(),
     setContextMenuTodo: vi.fn(),
-    setUndoState: vi.fn(),
     deleteTodo: { mutate: vi.fn() },
     createTodo: { mutate: vi.fn() },
     updateTodo: { mutate: vi.fn() },
@@ -49,6 +56,10 @@ function createDefaultParams(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useBoardActions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('handleTodoDeleteWithUndo', () => {
     it('returns early when boardId is undefined', () => {
       const params = createDefaultParams({ boardId: undefined });
@@ -58,7 +69,7 @@ describe('useBoardActions', () => {
       handleTodoDeleteWithUndo(todo);
 
       expect(params.deleteTodo.mutate).not.toHaveBeenCalled();
-      expect(params.setUndoState).not.toHaveBeenCalled();
+      expect(mockUndoToast).not.toHaveBeenCalled();
       expect(params.setContextMenuPosition).not.toHaveBeenCalled();
     });
 
@@ -106,17 +117,16 @@ describe('useBoardActions', () => {
       });
     });
 
-    it('sets undo state with correct message', () => {
+    it('calls undoToast with correct message', () => {
       const params = createDefaultParams();
       const { handleTodoDeleteWithUndo } = useBoardActions(params);
       const todo = createMockTodo({ title: 'My Task' });
 
       handleTodoDeleteWithUndo(todo);
 
-      expect(params.setUndoState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: '"My Task" deleted',
-        })
+      expect(mockUndoToast).toHaveBeenCalledWith(
+        '"My Task" deleted',
+        expect.any(Function),
       );
     });
 
@@ -138,8 +148,9 @@ describe('useBoardActions', () => {
 
       handleTodoDeleteWithUndo(todo);
 
-      const undoState = params.setUndoState.mock.calls[0][0];
-      undoState.onUndo();
+      // Call the undo callback passed to undoToast
+      const undoCallback = mockUndoToast.mock.calls[0][1];
+      undoCallback();
 
       expect(params.createTodo.mutate).toHaveBeenCalledWith({
         columnId: 'col-1',
