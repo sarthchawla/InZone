@@ -17,7 +17,7 @@ vi.mock("better-auth/node", () => ({
 import { requireAdmin } from "./requireAdmin.js";
 import { auth } from "../lib/auth.js";
 
-const mockedGetSession = auth.api.getSession as ReturnType<typeof vi.fn>;
+const mockedGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
 
 function createMockReqResNext() {
   const req = {

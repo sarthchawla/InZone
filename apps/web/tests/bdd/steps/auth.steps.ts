@@ -221,6 +221,10 @@ Then('I should see an {string} input', async ({ page }, label: string) => {
   await expect(page.getByLabel(label)).toBeVisible();
 });
 
+Then('I should see a {string} input', async ({ page }, label: string) => {
+  await expect(page.getByLabel(label)).toBeVisible();
+});
+
 Then('I should see a {string} link', async ({ page }, linkText: string) => {
   await expect(page.getByRole('link', { name: linkText })).toBeVisible();
 });

@@ -81,7 +81,7 @@ describe("POST /api/invites", () => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app)
@@ -138,6 +138,11 @@ describe("POST /api/invites", () => {
       role: "user",
       createdAt: new Date(),
       updatedAt: new Date(),
+      banned: null,
+      banReason: null,
+      banExpires: null,
+      username: null,
+      displayUsername: null,
     });
 
     const res = await request(app)
@@ -159,7 +164,7 @@ describe("POST /api/invites", () => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app)
@@ -186,7 +191,7 @@ describe("POST /api/invites", () => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app)
@@ -222,7 +227,7 @@ describe("POST /api/invites", () => {
       expiresAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     await request(app)
@@ -257,7 +262,7 @@ describe("GET /api/invites", () => {
         expiresAt: new Date(),
         createdBy: "admin-user-1",
         createdAt: new Date(),
-        updatedAt: new Date(),
+        usedAt: null,
         creator: { name: "Admin User", email: "admin@example.com" },
       },
       {
@@ -269,7 +274,7 @@ describe("GET /api/invites", () => {
         expiresAt: new Date(),
         createdBy: "admin-user-1",
         createdAt: new Date(),
-        updatedAt: new Date(),
+        usedAt: null,
         creator: { name: "Admin User", email: "admin@example.com" },
       },
     ];
@@ -317,7 +322,7 @@ describe("DELETE /api/invites/:id", () => {
       expiresAt: new Date(),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
     prismaMock.invite.update.mockResolvedValue({
       id: "invite-1",
@@ -328,7 +333,7 @@ describe("DELETE /api/invites/:id", () => {
       expiresAt: new Date(),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app).delete("/api/invites/invite-1");
@@ -360,7 +365,7 @@ describe("DELETE /api/invites/:id", () => {
       expiresAt: new Date(),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app).delete("/api/invites/invite-1");
@@ -397,7 +402,7 @@ describe("GET /api/invites/validate", () => {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // future
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app).get(
@@ -418,7 +423,7 @@ describe("GET /api/invites/validate", () => {
       expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // past
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
     prismaMock.invite.update.mockResolvedValue({} as never);
 
@@ -444,7 +449,7 @@ describe("GET /api/invites/validate", () => {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app).get(
@@ -488,7 +493,7 @@ describe("POST /api/invites/set-token", () => {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app)
@@ -527,7 +532,7 @@ describe("POST /api/invites/set-token", () => {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app)
@@ -548,7 +553,7 @@ describe("POST /api/invites/set-token", () => {
       expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // past
       createdBy: "admin-user-1",
       createdAt: new Date(),
-      updatedAt: new Date(),
+      usedAt: null,
     });
 
     const res = await request(app)

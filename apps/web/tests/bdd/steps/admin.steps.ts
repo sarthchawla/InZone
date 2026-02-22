@@ -268,6 +268,4 @@ Then('I should see used invites in the history', async ({ page }) => {
   await expect(page.getByText('used@example.com')).toBeVisible();
 });
 
-Then('I should see a {string} button', async ({ page }, buttonText: string) => {
-  await expect(page.getByRole('button', { name: buttonText })).toBeVisible();
-});
+// 'I should see a {string} button' is defined in common.steps.ts

@@ -15,7 +15,7 @@ describe("API Naming Conventions", () => {
     const rule = projectFiles()
       .inFolder("src/routes/**")
       .should()
-      .haveName(/^[a-z]+(\.(test|spec))?\.ts$/);
+      .haveName(/^[a-z]+(-[a-z]+)*(\.(test|spec))?\.ts$/);
 
     await expect(rule).toPassAsync();
   });

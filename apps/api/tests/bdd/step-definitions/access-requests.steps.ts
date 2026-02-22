@@ -48,7 +48,7 @@ When('I GET \\/api\\/access-requests', async function (this: CustomWorld) {
   this.storeResponse(response.status, response.body, response.headers);
 });
 
-When('I GET \\/api\\/access-requests\\?status={word}', async function (this: CustomWorld, status: string) {
+When(/^I GET \/api\/access-requests\?status=(\w+)$/, async function (this: CustomWorld, status: string) {
   const response = await this.api.get(`/api/access-requests?status=${status}`);
   this.storeResponse(response.status, response.body, response.headers);
 });
