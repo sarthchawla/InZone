@@ -82,7 +82,7 @@ When('I GET \\/api\\/invites\\/validate with the token', async function (this: C
   this.storeResponse(response.status, response.body, response.headers);
 });
 
-When('I GET \\/api\\/invites\\/validate\\?token={word}', async function (this: CustomWorld, token: string) {
+When(/^I GET \/api\/invites\/validate\?token=(\w+)$/, async function (this: CustomWorld, token: string) {
   const response = await this.api.get(`/api/invites/validate?token=${token}`);
   this.storeResponse(response.status, response.body, response.headers);
 });
