@@ -11,6 +11,7 @@ import { useAuth } from './hooks/useAuth';
 import { signOut } from './lib/auth-client';
 import { useState } from 'react';
 import { Agentation } from 'agentation';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { RequestAccessPage } from './pages/RequestAccessPage';
@@ -243,14 +244,16 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AppContent />
-        <SpeedInsights />
-        <Analytics />
-      </ToastProvider>
-      <Agentation />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <AppContent />
+          <SpeedInsights />
+          <Analytics />
+        </ToastProvider>
+        <Agentation />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
