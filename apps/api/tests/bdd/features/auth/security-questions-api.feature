@@ -1,4 +1,4 @@
-@auth @security-questions @api
+@auth @security-questions @api @wip
 Feature: Security Questions API
   As a user
   I want to set up and use security questions

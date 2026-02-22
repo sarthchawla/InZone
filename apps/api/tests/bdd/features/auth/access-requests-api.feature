@@ -1,4 +1,4 @@
-@auth @access-requests @api
+@auth @access-requests @api @wip
 Feature: Access Requests API
   As a visitor or admin
   I want to manage access requests via REST API

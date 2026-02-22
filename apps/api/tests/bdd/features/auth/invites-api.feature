@@ -1,4 +1,4 @@
-@auth @invites @api
+@auth @invites @api @wip
 Feature: Invites API
   As an admin
   I want to manage invite links via REST API

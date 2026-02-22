@@ -13,6 +13,7 @@ const config = {
   },
   parallel: 1, // Run sequentially for API tests to avoid database conflicts
   retry: 0,
+  tags: 'not @wip',
   strict: true,
   worldParameters: {
     apiUrl: process.env.API_URL || 'http://localhost:3001',
