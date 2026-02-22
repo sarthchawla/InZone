@@ -56,7 +56,7 @@ export function BoardView() {
   const reorderColumns = useReorderColumns();
   const updateBoard = useUpdateBoard();
   const { state: syncState, pendingCount } = useSyncStatus();
-  const { filters, setSearch, togglePriority, toggleLabel, clearFilters, hasActiveFilters } = useBoardFilters();
+  const { filters, setSearch, togglePriority, clearFilters, hasActiveFilters } = useBoardFilters();
   const { toggleCollapse, isCollapsed } = useColumnCollapse(boardId || '');
   const { density, toggleDensity } = useCardDensity();
 

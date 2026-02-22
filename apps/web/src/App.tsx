@@ -14,6 +14,7 @@ import { Agentation } from 'agentation';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ThemeToggle } from './components/app/ThemeToggle';
 import { Breadcrumbs } from './components/app/Breadcrumbs';
+import { CommandPalette } from './components/app/CommandPalette';
 import { ErrorBoundary } from './components/app/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
@@ -236,6 +237,7 @@ function AppContent() {
                     </div>
                   </div>
                 </header>
+                <CommandPalette />
                 <Breadcrumbs />
                 <main className="flex-1 flex flex-col min-h-0 overflow-auto">
                   <AnimatedRoutes />
