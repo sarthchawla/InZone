@@ -28,6 +28,44 @@ app.use(cors({
   credentials: true,
 }));
 
+// Intercept Better Auth error page and redirect to frontend
+app.get('/api/auth/error', (req, res) => {
+  const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  const errorCode = req.query.error as string || 'oauth_error';
+
+  if (errorCode === 'unable_to_create_user') {
+    res.redirect(`${frontendUrl}/request-access?error=no_access`);
+  } else {
+    res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(errorCode)}`);
+  }
+});
+
+// Set password for OAuth-only users (server-only Better Auth API)
+app.post('/api/auth/set-password', express.json(), async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || typeof newPassword !== 'string') {
+      res.status(400).json({ error: 'newPassword is required.' });
+      return;
+    }
+
+    // Forward session cookies to Better Auth's server-side API
+    const headers = new Headers();
+    if (req.headers.cookie) headers.set('cookie', req.headers.cookie);
+
+    await auth.api.setPassword({
+      body: { newPassword },
+      headers,
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    const message = err?.message || 'Failed to set password.';
+    const status = message.includes('already') ? 400 : 500;
+    res.status(status).json({ error: message });
+  }
+});
+
 // Better Auth handler - must be BEFORE express.json()
 app.all('/api/auth/*', toNodeHandler(auth));
 

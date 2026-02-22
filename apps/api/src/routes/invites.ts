@@ -39,7 +39,7 @@ invitesRouter.post('/', requireAdmin, async (req, res, next) => {
     }
 
     const token = nanoid(32);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.BETTER_AUTH_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
 
     const invite = await prisma.invite.create({
       data: {

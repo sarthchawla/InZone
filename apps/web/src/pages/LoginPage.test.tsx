@@ -15,9 +15,14 @@ vi.mock("../lib/auth-client", () => ({
 }));
 
 const mockNavigate = vi.fn();
+const mockSetSearchParams = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
-  return { ...actual, useNavigate: () => mockNavigate };
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
+  };
 });
 
 import { LoginPage } from "./LoginPage";
@@ -137,14 +142,24 @@ describe("LoginPage", () => {
 
     it("redirects to / on successful login", async () => {
       mockEmailSignIn.mockResolvedValue({ data: { session: {} } });
+      // Mock window.location.href assignment
+      const locationSpy = vi.spyOn(window, "location", "get").mockReturnValue({
+        ...window.location,
+        href: window.location.href,
+      } as Location);
+      const hrefSetter = vi.fn();
+      Object.defineProperty(window.location, "href", { set: hrefSetter, configurable: true });
+
       render(<LoginPage />);
 
       fillForm("test@example.com", "pass123");
       fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith("/");
+        expect(hrefSetter).toHaveBeenCalledWith("/");
       });
+
+      locationSpy.mockRestore();
     });
   });
 });

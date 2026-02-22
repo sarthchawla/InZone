@@ -55,10 +55,10 @@ beforeEach(() => {
 });
 
 describe("UsersPage", () => {
-  it("renders heading 'User Management'", async () => {
+  it("renders heading 'Users'", async () => {
     render(<UsersPage />);
     expect(
-      screen.getByRole("heading", { name: /user management/i })
+      screen.getByRole("heading", { name: /users/i })
     ).toBeInTheDocument();
   });
 
@@ -68,20 +68,20 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Admin")).toBeInTheDocument();
-      expect(screen.getByText("admin@example.com")).toBeInTheDocument();
-      expect(screen.getByText("Regular User")).toBeInTheDocument();
-      expect(screen.getByText("user@example.com")).toBeInTheDocument();
+      expect(screen.getAllByText("Admin").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("admin@example.com").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Regular User").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("user@example.com").length).toBeGreaterThan(0);
     });
   });
 
-  it("shows '(you)' badge for current user", async () => {
+  it("shows 'you' badge for current user", async () => {
     mockListUsers.mockResolvedValue({ data: { users: usersData } });
 
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("you")).toBeInTheDocument();
+      expect(screen.getAllByText("you").length).toBeGreaterThan(0);
     });
   });
 
@@ -91,15 +91,15 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Regular User")).toBeInTheDocument();
+      expect(screen.getAllByText("Regular User").length).toBeGreaterThan(0);
     });
 
-    // The other user should have Make Admin button, but the admin (self) should not
-    const makeAdminButtons = screen.getAllByText("Make Admin");
-    expect(makeAdminButtons).toHaveLength(1); // Only for user-2, not admin-1
+    // Promote buttons should exist only for non-self users (desktop + mobile = 2)
+    const promoteButtons = screen.getAllByText("Promote");
+    expect(promoteButtons).toHaveLength(2); // desktop + mobile for user-2 only
   });
 
-  it("shows Make Admin/Make User toggle", async () => {
+  it("shows Promote/Demote toggle", async () => {
     const mixedUsers = [
       ...usersData,
       {
@@ -116,10 +116,10 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      // user-2 has role "user" -> shows "Make Admin"
-      expect(screen.getByText("Make Admin")).toBeInTheDocument();
-      // user-3 has role "admin" -> shows "Make User"
-      expect(screen.getByText("Make User")).toBeInTheDocument();
+      // user-2 has role "user" -> shows "Promote"
+      expect(screen.getAllByText("Promote").length).toBeGreaterThan(0);
+      // user-3 has role "admin" -> shows "Demote"
+      expect(screen.getAllByText("Demote").length).toBeGreaterThan(0);
     });
   });
 
@@ -141,23 +141,24 @@ describe("UsersPage", () => {
 
     await waitFor(() => {
       // user-2 is not banned -> shows "Ban"
-      expect(screen.getByText("Ban")).toBeInTheDocument();
+      expect(screen.getAllByText("Ban").length).toBeGreaterThan(0);
       // user-3 is banned -> shows "Unban"
-      expect(screen.getByText("Unban")).toBeInTheDocument();
+      expect(screen.getAllByText("Unban").length).toBeGreaterThan(0);
     });
   });
 
-  it("calls setRole on Make Admin click", async () => {
+  it("calls setRole on Promote click", async () => {
     mockListUsers.mockResolvedValue({ data: { users: usersData } });
     mockSetRole.mockResolvedValue({});
 
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Make Admin")).toBeInTheDocument();
+      expect(screen.getAllByText("Promote").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Make Admin"));
+    // Click the first Promote button (desktop table)
+    fireEvent.click(screen.getAllByText("Promote")[0]);
 
     await waitFor(() => {
       expect(mockSetRole).toHaveBeenCalledWith({
@@ -174,10 +175,10 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Ban")).toBeInTheDocument();
+      expect(screen.getAllByText("Ban").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Ban"));
+    fireEvent.click(screen.getAllByText("Ban")[0]);
 
     await waitFor(() => {
       expect(mockBanUser).toHaveBeenCalledWith({ userId: "user-2" });
@@ -202,10 +203,10 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Unban")).toBeInTheDocument();
+      expect(screen.getAllByText("Unban").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Unban"));
+    fireEvent.click(screen.getAllByText("Unban")[0]);
 
     await waitFor(() => {
       expect(mockUnbanUser).toHaveBeenCalledWith({ userId: "user-2" });
@@ -220,10 +221,10 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Remove")).toBeInTheDocument();
+      expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Remove"));
+    fireEvent.click(screen.getAllByText("Remove")[0]);
 
     await waitFor(() => {
       expect(window.confirm).toHaveBeenCalled();
@@ -238,10 +239,10 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Remove")).toBeInTheDocument();
+      expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Remove"));
+    fireEvent.click(screen.getAllByText("Remove")[0]);
 
     await waitFor(() => {
       expect(window.confirm).toHaveBeenCalled();
@@ -266,10 +267,10 @@ describe("UsersPage", () => {
     render(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Make Admin")).toBeInTheDocument();
+      expect(screen.getAllByText("Promote").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Make Admin"));
+    fireEvent.click(screen.getAllByText("Promote")[0]);
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Permission denied");

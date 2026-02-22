@@ -1,10 +1,11 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 
 const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === 'true';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
+  const location = useLocation();
 
   if (AUTH_BYPASS) {
     return <>{children}</>;
@@ -19,7 +20,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />;
+    // Preserve error query params so OAuth error messages aren't lost
+    const loginPath = location.search ? `/login${location.search}` : '/login';
+    return <Navigate to={loginPath} replace />;
   }
 
   return <>{children}</>;

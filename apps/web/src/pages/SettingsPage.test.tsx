@@ -4,7 +4,12 @@ import { SettingsPage } from "./SettingsPage";
 
 vi.mock("../hooks/useAuth", () => ({
   useAuth: () => ({
-    user: { id: "user-1", name: "Test User", email: "test@example.com" },
+    user: {
+      id: "user-1",
+      name: "Test User",
+      email: "test@example.com",
+      username: "testuser",
+    },
   }),
 }));
 
@@ -13,6 +18,9 @@ vi.mock("../lib/auth-client", () => ({
     updateUser: vi.fn(),
     changePassword: vi.fn(),
     revokeOtherSessions: vi.fn(),
+    listAccounts: vi.fn().mockResolvedValue({
+      data: [{ providerId: "credential" }],
+    }),
   },
 }));
 
@@ -30,22 +38,28 @@ import { apiClient } from "../api/client";
 const mockUpdateUser = authClient.updateUser as ReturnType<typeof vi.fn>;
 const mockChangePassword = authClient.changePassword as ReturnType<typeof vi.fn>;
 const mockRevokeOtherSessions = authClient.revokeOtherSessions as ReturnType<typeof vi.fn>;
+const mockListAccounts = authClient.listAccounts as ReturnType<typeof vi.fn>;
 const mockApiPost = apiClient.post as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: user has credential account
+  mockListAccounts.mockResolvedValue({
+    data: [{ providerId: "credential" }],
+  });
 });
 
 describe("SettingsPage", () => {
-  it("renders profile section with user name", () => {
+  it("renders profile section with user name and username", () => {
     render(<SettingsPage />);
     expect(screen.getByText("Profile")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Test User")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("testuser")).toBeInTheDocument();
   });
 
   it("shows email as read-only", () => {
     render(<SettingsPage />);
-    expect(screen.getByText(/test@example\.com/)).toBeInTheDocument();
+    expect(screen.getAllByText(/test@example\.com/).length).toBeGreaterThan(0);
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
   });
 
@@ -54,17 +68,24 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
   });
 
-  it("saves name changes on profile form submit", async () => {
+  it("saves name and username changes on profile form submit", async () => {
     mockUpdateUser.mockResolvedValueOnce({});
 
     render(<SettingsPage />);
 
     const nameInput = screen.getByDisplayValue("Test User");
     fireEvent.change(nameInput, { target: { value: "Updated Name" } });
+
+    const usernameInput = screen.getByDisplayValue("testuser");
+    fireEvent.change(usernameInput, { target: { value: "newusername" } });
+
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
-      expect(mockUpdateUser).toHaveBeenCalledWith({ name: "Updated Name" });
+      expect(mockUpdateUser).toHaveBeenCalledWith({
+        name: "Updated Name",
+        username: "newusername",
+      });
     });
 
     await waitFor(() => {
@@ -72,28 +93,78 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("shows Change Password section", () => {
+  it("shows Change Password form when user has credential account", async () => {
     render(<SettingsPage />);
-    expect(screen.getByRole("button", { name: "Change Password" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("Change password")).toBeInTheDocument();
+    });
     expect(screen.getByPlaceholderText("Current password")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("New password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update Password" })).toBeInTheDocument();
+  });
+
+  it("shows Set Password form when user is OAuth-only", async () => {
+    mockListAccounts.mockResolvedValue({
+      data: [{ providerId: "google" }],
+    });
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Set a password")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/You signed up with Google/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Current password")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("New password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Set Password" })).toBeInTheDocument();
+  });
+
+  it("calls set-password API for OAuth-only users", async () => {
+    mockListAccounts.mockResolvedValue({
+      data: [{ providerId: "google" }],
+    });
+    mockApiPost.mockResolvedValueOnce({ data: { success: true } });
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Set a password")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("New password"), {
+      target: { value: "MyNewPass1!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set Password" }));
+
+    await waitFor(() => {
+      expect(mockApiPost).toHaveBeenCalledWith("/auth/set-password", {
+        newPassword: "MyNewPass1!",
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Password set! You can now sign in with email and password.")
+      ).toBeInTheDocument();
+    });
   });
 
   it("shows Security Questions section with Configured status", async () => {
     render(<SettingsPage />);
 
-    expect(screen.getByText("Security Questions")).toBeInTheDocument();
+    expect(screen.getByText("Security questions")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("Configured")).toBeInTheDocument();
     });
   });
 
-  it("shows danger zone with Sign Out All button", () => {
+  it("shows danger zone with Sign Out Others button", () => {
     render(<SettingsPage />);
     expect(screen.getByText("Danger Zone")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /sign out all other devices/i })
+      screen.getByRole("button", { name: /sign out others/i })
     ).toBeInTheDocument();
   });
 
@@ -103,7 +174,7 @@ describe("SettingsPage", () => {
     render(<SettingsPage />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /sign out all other devices/i })
+      screen.getByRole("button", { name: /sign out others/i })
     );
 
     await waitFor(() => {
@@ -115,10 +186,14 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("changes password successfully", async () => {
+  it("changes password successfully for credential users", async () => {
     mockChangePassword.mockResolvedValueOnce({});
 
     render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Change password")).toBeInTheDocument();
+    });
 
     fireEvent.change(screen.getByPlaceholderText("Current password"), {
       target: { value: "oldpass123" },
@@ -126,7 +201,7 @@ describe("SettingsPage", () => {
     fireEvent.change(screen.getByPlaceholderText("New password"), {
       target: { value: "newpass456" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update Password" }));
 
     await waitFor(() => {
       expect(mockChangePassword).toHaveBeenCalledWith({
@@ -147,13 +222,17 @@ describe("SettingsPage", () => {
 
     render(<SettingsPage />);
 
+    await waitFor(() => {
+      expect(screen.getByText("Change password")).toBeInTheDocument();
+    });
+
     fireEvent.change(screen.getByPlaceholderText("Current password"), {
       target: { value: "badpass" },
     });
     fireEvent.change(screen.getByPlaceholderText("New password"), {
       target: { value: "newpass456" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update Password" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Wrong password");
@@ -163,6 +242,9 @@ describe("SettingsPage", () => {
   it("shows security questions form when Update is clicked", async () => {
     render(<SettingsPage />);
 
+    await waitFor(() => {
+      expect(screen.getByText("Update")).toBeInTheDocument();
+    });
     fireEvent.click(screen.getByText("Update"));
 
     await waitFor(() => {
@@ -177,6 +259,9 @@ describe("SettingsPage", () => {
 
     render(<SettingsPage />);
 
+    await waitFor(() => {
+      expect(screen.getByText("Update")).toBeInTheDocument();
+    });
     fireEvent.click(screen.getByText("Update"));
 
     await waitFor(() => {
@@ -204,11 +289,11 @@ describe("SettingsPage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: "Update Questions" })
+        screen.getByRole("button", { name: "Save Questions" })
       ).not.toBeDisabled();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Update Questions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Questions" }));
 
     await waitFor(() => {
       expect(mockApiPost).toHaveBeenCalledWith("/security-questions/setup", {
@@ -220,7 +305,6 @@ describe("SettingsPage", () => {
       });
     });
 
-    // After successful submission, the form hides and status shows "Configured"
     await waitFor(() => {
       expect(screen.queryByLabelText("Security question 1")).not.toBeInTheDocument();
     });
@@ -235,7 +319,7 @@ describe("SettingsPage", () => {
     render(<SettingsPage />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /sign out all other devices/i })
+      screen.getByRole("button", { name: /sign out others/i })
     );
 
     await waitFor(() => {
@@ -243,10 +327,14 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("disables Change Password button when fields are empty", () => {
+  it("disables Update Password button when fields are empty", async () => {
     render(<SettingsPage />);
 
-    const changeBtn = screen.getByRole("button", { name: "Change Password" });
+    await waitFor(() => {
+      expect(screen.getByText("Change password")).toBeInTheDocument();
+    });
+
+    const changeBtn = screen.getByRole("button", { name: "Update Password" });
     expect(changeBtn).toBeDisabled();
   });
 });

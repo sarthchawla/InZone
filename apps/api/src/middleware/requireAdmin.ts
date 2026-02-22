@@ -9,9 +9,9 @@ export async function requireAdmin(
 ): Promise<void> {
   if (process.env.VITE_AUTH_BYPASS === 'true') {
     req.user = {
-      id: 'dev-admin-000',
-      name: 'Dev Admin',
-      email: 'admin@localhost',
+      id: 'dev-user-000',
+      name: 'Dev User',
+      email: 'dev@localhost',
       image: null,
     };
     next();

@@ -1,17 +1,36 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { signIn } from '../lib/auth-client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  state_mismatch: 'Your sign-in session expired. Please try again.',
+  unable_to_create_user: 'An invite or approved access request is required to sign up.',
+  oauth_error: 'Something went wrong during sign-in. Please try again.',
+  access_denied: 'Access was denied. Please try again or request access.',
+};
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Pick up OAuth error from redirect query params
+  useEffect(() => {
+    const errorCode = searchParams.get('error');
+    if (errorCode) {
+      setError(OAUTH_ERROR_MESSAGES[errorCode] || `Sign-in failed: ${errorCode}`);
+      // Clean the URL without triggering a re-render loop
+      searchParams.delete('error');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +49,9 @@ export function LoginPage() {
         setLoading(false);
         return;
       }
-      navigate('/');
+      // Full page load to ensure the session cookie is picked up by useSession()
+      // (client-side navigate would race against the session cache)
+      window.location.href = '/';
     } catch {
       setError('Invalid credentials.');
     } finally {

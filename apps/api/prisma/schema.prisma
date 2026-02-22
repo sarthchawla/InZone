@@ -206,15 +206,16 @@ model Invite {
 }
 
 model AccessRequest {
-  id          String    @id @default(cuid())
-  email       String
-  name        String
-  reason      String?
-  status      String    @default("pending")
-  role        String    @default("user")
-  reviewedBy  String?
-  reviewedAt  DateTime?
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(cuid())
+  email         String
+  name          String
+  reason        String?
+  passwordHash  String
+  status        String    @default("pending")
+  role          String    @default("user")
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
   @@index([email])
   @@index([status])

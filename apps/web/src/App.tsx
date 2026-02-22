@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -40,21 +40,31 @@ function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full hover:bg-stone-100 p-1 transition-colors"
+        className="flex items-center gap-2 rounded-full hover:bg-stone-100 p-1 pr-2 transition-colors"
       >
-        {user.image ? (
-          <img
-            src={user.image}
-            alt={user.name}
-            className="w-8 h-8 rounded-full"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-medium">
-            {user.name?.charAt(0)?.toUpperCase() ?? '?'}
-          </div>
-        )}
+        <div className="relative">
+          {user.image ? (
+            <img
+              src={user.image}
+              alt={user.name}
+              className="w-8 h-8 rounded-full"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-medium">
+              {user.name?.charAt(0)?.toUpperCase() ?? '?'}
+            </div>
+          )}
+          {isAdmin && (
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-purple-500 border-2 border-white rounded-full" title="Admin" />
+          )}
+        </div>
         <span className="text-sm text-stone-700 hidden sm:inline">{user.name}</span>
+        {isAdmin && (
+          <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+            Admin
+          </span>
+        )}
       </button>
       {open && (
         <>
@@ -109,6 +119,21 @@ function UserMenu() {
       )}
     </div>
   );
+}
+
+/**
+ * Catches Better Auth's OAuth error redirects (e.g. /api/auth/error?error=unable_to_create_user)
+ * and sends users to the appropriate frontend page instead of a blank screen.
+ */
+function AuthErrorRedirect() {
+  const [searchParams] = useSearchParams();
+  const errorCode = searchParams.get('error') || '';
+
+  if (errorCode === 'unable_to_create_user') {
+    return <Navigate to="/request-access?error=no_access" replace />;
+  }
+
+  return <Navigate to={`/login?error=${encodeURIComponent(errorCode || 'oauth_error')}`} replace />;
 }
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
@@ -175,6 +200,9 @@ function AppContent() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Better Auth error redirect — catches OAuth failures */}
+        <Route path="/api/auth/error" element={<AuthErrorRedirect />} />
+
         {/* Public routes (no auth required) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
@@ -186,8 +214,8 @@ function AppContent() {
           path="/*"
           element={
             <AuthGuard>
-              <div className="h-screen flex flex-col overflow-hidden">
-                <header className="bg-white border-b border-stone-200">
+              <div className="h-screen flex flex-col">
+                <header className="bg-white border-b border-stone-200 flex-shrink-0">
                   <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
                     <Link to="/" className="inline-block">
                       <h1 className="text-xl sm:text-2xl font-bold text-accent hover:text-accent-hover transition-colors">
@@ -197,7 +225,7 @@ function AppContent() {
                     <UserMenu />
                   </div>
                 </header>
-                <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <main className="flex-1 flex flex-col min-h-0 overflow-auto">
                   <AnimatedRoutes />
                 </main>
               </div>

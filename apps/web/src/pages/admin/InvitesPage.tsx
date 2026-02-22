@@ -76,7 +76,7 @@ export function InvitesPage() {
   const history = invites.filter((i) => i.status !== 'pending');
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 pb-16 w-full">
       <h1 className="text-2xl font-bold text-stone-900 mb-6">Invite Management</h1>
 
       {error && (
