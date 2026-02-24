@@ -1,42 +1,48 @@
-# Loki Mode — InZone UI/UX Refresh
+# Loki Mode — InZone UI/UX Refresh — COMPLETE
 
-## Current State
-- **Phase:** DEVELOPMENT — Phase 2a (Design System — Light Mode)
-- **PRD:** `.claude/plans/ui-refresh-prd.md` (v1.1, fully reviewed)
+## Final State
+- **All 5 Phases:** COMPLETE ✓
 - **Branch:** `improve-ui-ux`
-- **Phase 1:** COMPLETE ✓
+- **Tests:** 1006 passing, 13 skipped, 0 failures
+- **Coverage:** 84.13% lines, 75.34% branches, 81.71% functions
+- **Architecture:** 23/23 tests passing
+- **Build:** Clean
 
-## Phase 1 Completed Tasks
-1. ✅ Tailwind v3 → v4 migration (PostCSS removal, @tailwindcss/vite, @theme inline)
-2. ✅ Self-hosted fonts (Satoshi + General Sans WOFF2 from Fontshare)
-3. ✅ ThemeProvider + FOUC prevention (8 tests passing)
-4. ✅ shadcn/ui foundation (button, input, card, label + components.json)
-5. ✅ Token aliasing (new semantic tokens + backward-compatible aliases + dark mode)
-6. ✅ Architecture test update (shadcn naming exception)
-7. ✅ Gate check: 941 tests passing, 84.84% coverage, build OK, arch tests OK
+## Commits (5)
+1. `f931ec45` Phase 1: Foundation — TW v4, tokens, ThemeProvider, shadcn
+2. `ee7383cf` Phase 2a: Design system light mode with semantic tokens
+3. `269e6903` Phase 2b+3: Dark mode CSS fixes, sonner toast, ConfirmDialog
+4. `8b6bb27f` Phase 4a+4b: Board UX + app-wide features
+5. `677820e3` Phase 5: Command Palette, final polish
 
-## Mistakes & Learnings
-- matchMedia mock needed in vitest.setup.ts for ThemeProvider (jsdom doesn't have it)
-- macOS case-insensitive FS means button.tsx = Button.tsx — shadcn files named shadcn-button.tsx/shadcn-input.tsx
-- Arch tests use separate vitest config (vitest.arch.config.ts), not the default run
-- Need to clean up .dark class and localStorage between tests to prevent leakage
+## What Was Delivered
+### P0 (Must Have) ✅
+- Complete color palette swap (indigo → teal)
+- All hardcoded stone/gray classes → semantic tokens
+- Satoshi + General Sans typography (self-hosted WOFF2)
+- Dark mode with system auto-detection
+- ThemeToggle in header with spring animation
+- Theme persisted in localStorage
+- FOUC prevention
+- All data-testid preserved
+- Responsive design maintained
+- Error boundary wrapping app content
+- Tiptap editor themed for both modes
 
-## Key Files Modified (Phase 1)
-- apps/web/package.json (deps)
-- apps/web/vite.config.ts (@tailwindcss/vite)
-- apps/web/src/index.css (TW v4 + tokens + dark mode)
-- apps/web/src/fonts.css (new — @font-face declarations)
-- apps/web/index.html (FOUC script, removed Google Fonts)
-- apps/web/src/contexts/ThemeContext.tsx (new)
-- apps/web/src/contexts/ThemeContext.test.tsx (new)
-- apps/web/src/App.tsx (ThemeProvider wrapper)
-- apps/web/src/test/utils.tsx (ThemeProvider + renderDark)
-- apps/web/vitest.setup.ts (matchMedia mock + dark class cleanup)
-- apps/web/src/architecture/naming.arch.test.ts (shadcn regex)
-- apps/web/components.json (new — shadcn config)
-- apps/web/src/components/ui/card.tsx (new — shadcn)
-- apps/web/src/components/ui/label.tsx (new — shadcn)
-- apps/web/src/components/ui/shadcn-button.tsx (new — shadcn)
-- apps/web/src/components/ui/shadcn-input.tsx (new — shadcn)
-- apps/web/public/fonts/*.woff2 (new — font files)
-- DELETED: tailwind.config.js, postcss.config.js
+### P1 (Should Have) ✅
+- shadcn/ui foundation (button, input, card, dialog, dropdown-menu, command)
+- Board toolbar with search and priority filters
+- Collapsible columns with CSS transition
+- Card density toggle (comfortable/compact)
+- Breadcrumbs navigation
+- ConfirmDialog replacing window.confirm()
+- Toast → sonner migration
+
+### P2 (Nice to Have) ✅
+- Command Palette (Cmd+K)
+
+### Known Remaining Work
+- Old CSS variable aliases still in :root (some components still reference them)
+- Token aliases should be removed after full migration verification
+- shadcn Button/Input coexist with old versions (shadcn-button.tsx/shadcn-input.tsx naming)
+- Full shadcn component migration (replacing old Button/Input) deferred
