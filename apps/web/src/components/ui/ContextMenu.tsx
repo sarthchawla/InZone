@@ -74,11 +74,11 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
         {/* Bottom sheet */}
         <div
           ref={menuRef}
-          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl p-2 pb-[env(safe-area-inset-bottom)] animate-fade-in"
+          className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl shadow-2xl p-2 pb-[env(safe-area-inset-bottom)] animate-fade-in"
         >
           {/* Drag handle */}
           <div className="flex justify-center py-2 mb-1">
-            <div className="w-10 h-1 bg-stone-300 rounded-full" />
+            <div className="w-10 h-1 bg-border rounded-full" />
           </div>
           {items.map((item, i) => (
             <MenuItemRow
@@ -98,7 +98,7 @@ export function ContextMenu({ items, position, onClose }: ContextMenuProps) {
   return ReactDOM.createPortal(
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[200px] bg-white rounded-xl shadow-2xl border border-stone-200 p-1.5 animate-fade-in"
+      className="fixed z-50 min-w-[200px] bg-card rounded-xl shadow-2xl border border-border p-1.5 animate-fade-in"
       style={{
         left: adjustedPos?.x ?? position.x,
         top: adjustedPos?.y ?? position.y,

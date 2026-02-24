@@ -77,7 +77,7 @@ export function InvitesPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 pb-16 w-full">
-      <h1 className="text-2xl font-bold text-stone-900 mb-6">Invite Management</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Invite Management</h1>
 
       {error && (
         <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
@@ -85,10 +85,10 @@ export function InvitesPage() {
         </div>
       )}
 
-      <form onSubmit={handleCreate} className="bg-white border border-stone-200 rounded-lg p-4 mb-6">
+      <form onSubmit={handleCreate} className="bg-card border border-border rounded-lg p-4 mb-6">
         <div className="flex gap-3 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">Email</label>
             <Input
               type="email"
               value={email}
@@ -97,11 +97,11 @@ export function InvitesPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
-              className="border border-stone-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-accent/30 focus:border-accent"
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring/30 focus:border-primary"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -123,7 +123,7 @@ export function InvitesPage() {
           {success && <p className="text-green-700 text-sm font-medium mb-2">{success}</p>}
           {newLink && (
             <div className="flex items-center gap-2">
-              <code className="text-xs bg-white border border-green-200 rounded px-2 py-1 flex-1 truncate">
+              <code className="text-xs bg-card border border-green-200 rounded px-2 py-1 flex-1 truncate">
                 {newLink}
               </code>
               <button
@@ -137,16 +137,16 @@ export function InvitesPage() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-stone-900 mb-3">Pending Invites</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-3">Pending Invites</h2>
       {pending.length === 0 ? (
-        <p className="text-stone-500 text-sm mb-6">No pending invites.</p>
+        <p className="text-muted-foreground text-sm mb-6">No pending invites.</p>
       ) : (
-        <div className="bg-white border border-stone-200 rounded-lg divide-y divide-stone-100 mb-6">
+        <div className="bg-card border border-border rounded-lg divide-y divide-border mb-6">
           {pending.map((invite) => (
             <div key={invite.id} className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-stone-900">{invite.email}</p>
-                <p className="text-xs text-stone-500">
+                <p className="text-sm font-medium text-foreground">{invite.email}</p>
+                <p className="text-xs text-muted-foreground">
                   Role: {invite.role} &middot; Expires{' '}
                   {new Date(invite.expiresAt).toLocaleDateString()}
                 </p>
@@ -154,7 +154,7 @@ export function InvitesPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => copyLink(invite.token)}
-                  className="text-xs text-accent hover:underline"
+                  className="text-xs text-primary hover:underline"
                 >
                   Copy Link
                 </button>
@@ -172,13 +172,13 @@ export function InvitesPage() {
 
       {history.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-stone-900 mb-3">History</h2>
-          <div className="bg-white border border-stone-200 rounded-lg divide-y divide-stone-100">
+          <h2 className="text-lg font-semibold text-foreground mb-3">History</h2>
+          <div className="bg-card border border-border rounded-lg divide-y divide-border">
             {history.map((invite) => (
               <div key={invite.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-stone-900">{invite.email}</p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-sm font-medium text-foreground">{invite.email}</p>
+                  <p className="text-xs text-muted-foreground">
                     Role: {invite.role} &middot;{' '}
                     <span className="capitalize">{invite.status}</span>{' '}
                     {new Date(invite.createdAt).toLocaleDateString()}

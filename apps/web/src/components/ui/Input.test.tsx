@@ -45,8 +45,8 @@ describe("Input", () => {
       expect(input).toHaveClass("w-full");
       expect(input).toHaveClass("rounded-lg");
       expect(input).toHaveClass("border");
-      expect(input).toHaveClass("border-stone-300");
-      expect(input).toHaveClass("bg-white");
+      expect(input).toHaveClass("border-border");
+      expect(input).toHaveClass("bg-card");
       expect(input).toHaveClass("px-3");
       expect(input).toHaveClass("py-2");
       expect(input).toHaveClass("text-sm");
@@ -144,8 +144,8 @@ describe("Input", () => {
       const input = screen.getByRole("textbox");
       expect(input).toHaveClass("focus-visible:outline-none");
       expect(input).toHaveClass("focus-visible:ring-2");
-      expect(input).toHaveClass("focus-visible:ring-accent/30");
-      expect(input).toHaveClass("focus-visible:border-accent");
+      expect(input).toHaveClass("focus-visible:ring-ring/30");
+      expect(input).toHaveClass("focus-visible:border-primary");
     });
 
     it("can be focused", async () => {
@@ -161,7 +161,7 @@ describe("Input", () => {
     it("has placeholder text color style", () => {
       render(<Input placeholder="Test" />);
       const input = screen.getByRole("textbox");
-      expect(input).toHaveClass("placeholder:text-stone-400");
+      expect(input).toHaveClass("placeholder:text-muted-foreground");
     });
   });
 

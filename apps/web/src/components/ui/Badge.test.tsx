@@ -13,8 +13,8 @@ describe("Badge", () => {
     it("renders with default variant styling", () => {
       render(<Badge>Default</Badge>);
       const badge = screen.getByText("Default");
-      expect(badge).toHaveClass("bg-gray-100");
-      expect(badge).toHaveClass("text-gray-700");
+      expect(badge).toHaveClass("bg-muted");
+      expect(badge).toHaveClass("text-secondary-foreground");
     });
 
     it("renders with low variant styling", () => {
@@ -68,7 +68,7 @@ describe("Badge", () => {
       const badge = screen.getByText("Merged");
       expect(badge).toHaveClass("my-custom");
       expect(badge).toHaveClass("inline-flex");
-      expect(badge).toHaveClass("bg-gray-100");
+      expect(badge).toHaveClass("bg-muted");
     });
   });
 
@@ -94,7 +94,7 @@ describe("Badge", () => {
     it("handles undefined variant", () => {
       render(<Badge variant={undefined}>Undefined</Badge>);
       const badge = screen.getByText("Undefined");
-      expect(badge).toHaveClass("bg-gray-100");
+      expect(badge).toHaveClass("bg-muted");
     });
 
     it("renders with special characters", () => {

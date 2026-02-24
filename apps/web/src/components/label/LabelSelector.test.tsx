@@ -106,8 +106,8 @@ describe("LabelSelector", () => {
       await waitFor(() => {
         // The selected label should show a check icon - find the button containing Bug text
         const bugElements = screen.getAllByText("Bug");
-        // At least one Bug element should be in a selected state (bg-blue-50)
-        const selectedButton = bugElements.find(el => el.closest("button.bg-blue-50"));
+        // At least one Bug element should be in a selected state (bg-primary/10)
+        const selectedButton = bugElements.find(el => el.closest("button.bg-primary\\/10"));
         expect(selectedButton || bugElements.length > 0).toBeTruthy();
       });
     });
@@ -162,9 +162,9 @@ describe("LabelSelector", () => {
       });
 
       // Find the Bug button in the dropdown - it should be inside the dropdown area
-      // The dropdown buttons have bg-blue-50 class when selected
+      // The dropdown buttons have bg-primary/10 class when selected
       const dropdownButtons = screen.getAllByRole("button").filter(btn =>
-        btn.classList.contains("bg-blue-50") && btn.textContent?.includes("Bug")
+        btn.classList.contains("bg-primary/10") && btn.textContent?.includes("Bug")
       );
 
       expect(dropdownButtons.length).toBeGreaterThan(0);

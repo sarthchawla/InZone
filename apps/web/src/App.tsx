@@ -5,12 +5,17 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 import { BoardList } from './components/board/BoardList';
 import { BoardView } from './components/board/BoardView';
-import { ToastProvider } from './contexts/ToastContext';
+import { Toaster } from 'sonner';
 import { AuthGuard } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { signOut } from './lib/auth-client';
 import { useState } from 'react';
 import { Agentation } from 'agentation';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeToggle } from './components/app/ThemeToggle';
+import { Breadcrumbs } from './components/app/Breadcrumbs';
+import { CommandPalette } from './components/app/CommandPalette';
+import { ErrorBoundary } from './components/app/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { RequestAccessPage } from './pages/RequestAccessPage';
@@ -44,7 +49,7 @@ function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full hover:bg-stone-100 p-1 pr-2 transition-colors"
+        className="flex items-center gap-2 rounded-full hover:bg-muted p-1 pr-2 transition-colors"
       >
         <div className="relative">
           {user.image ? (
@@ -55,15 +60,15 @@ function UserMenu() {
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-medium">
+            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
               {user.name?.charAt(0)?.toUpperCase() ?? '?'}
             </div>
           )}
           {isAdmin && (
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-purple-500 border-2 border-white rounded-full" title="Admin" />
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-purple-500 border-2 border-background rounded-full" title="Admin" />
           )}
         </div>
-        <span className="text-sm text-stone-700 hidden sm:inline">{user.name}</span>
+        <span className="text-sm text-secondary-foreground hidden sm:inline">{user.name}</span>
         {isAdmin && (
           <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
             Admin
@@ -73,48 +78,48 @@ function UserMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-1 z-20 bg-white border border-stone-200 rounded-xl shadow-lg py-1 w-48">
-            <div className="px-4 py-2 border-b border-stone-100">
-              <p className="text-sm font-medium text-stone-900 truncate">{user.name}</p>
-              <p className="text-xs text-stone-500 truncate">{user.email}</p>
+          <div className="absolute right-0 mt-1 z-20 bg-card border border-border rounded-xl shadow-lg py-1 w-48">
+            <div className="px-4 py-2 border-b border-border">
+              <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
             <Link
               to="/settings"
               onClick={() => setOpen(false)}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              className="block w-full text-left px-4 py-2 text-sm text-secondary-foreground hover:bg-muted transition-colors"
             >
               Settings
             </Link>
             {isAdmin && (
               <>
-                <div className="border-t border-gray-100 my-1" />
+                <div className="border-t border-border my-1" />
                 <Link
                   to="/admin/invites"
                   onClick={() => setOpen(false)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary-foreground hover:bg-muted transition-colors"
                 >
                   Manage Invites
                 </Link>
                 <Link
                   to="/admin/requests"
                   onClick={() => setOpen(false)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary-foreground hover:bg-muted transition-colors"
                 >
                   Access Requests
                 </Link>
                 <Link
                   to="/admin/users"
                   onClick={() => setOpen(false)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary-foreground hover:bg-muted transition-colors"
                 >
                   Manage Users
                 </Link>
               </>
             )}
-            <div className="border-t border-gray-100 my-1" />
+            <div className="border-t border-border my-1" />
             <button
               onClick={() => signOut()}
-              className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-100 transition-colors"
+              className="w-full text-left px-4 py-2.5 text-sm text-secondary-foreground hover:bg-muted transition-colors"
             >
               Sign out
             </button>
@@ -219,16 +224,21 @@ function AppContent() {
           element={
             <AuthGuard>
               <div className="h-screen flex flex-col">
-                <header className="bg-white border-b border-stone-200 flex-shrink-0">
+                <header className="bg-card border-b border-border flex-shrink-0">
                   <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
                     <Link to="/" className="inline-block">
-                      <h1 className="text-xl sm:text-2xl font-bold text-accent hover:text-accent-hover transition-colors">
+                      <h1 className="text-xl sm:text-2xl font-bold text-primary hover:text-primary/90 transition-colors">
                         InZone
                       </h1>
                     </Link>
-                    <UserMenu />
+                    <div className="flex items-center gap-3">
+                      <ThemeToggle />
+                      <UserMenu />
+                    </div>
                   </div>
                 </header>
+                <CommandPalette />
+                <Breadcrumbs />
                 <main className="flex-1 flex flex-col min-h-0 overflow-auto">
                   <AnimatedRoutes />
                 </main>
@@ -243,14 +253,17 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AppContent />
-        <SpeedInsights />
-        <Analytics />
-      </ToastProvider>
-      <Agentation />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
+          <Toaster position="bottom-right" richColors />
+          <SpeedInsights />
+          <Analytics />
+        <Agentation />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

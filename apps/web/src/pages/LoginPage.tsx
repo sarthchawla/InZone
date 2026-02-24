@@ -60,14 +60,14 @@ export function LoginPage() {
 
   return (
     <motion.div
-      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      className="min-h-screen bg-background flex items-center justify-center p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-accent mb-2 text-center">InZone</h1>
-        <p className="text-stone-600 mb-6 text-center">Sign in to manage your boards</p>
+      <div className="bg-card shadow rounded-lg p-8 w-full max-w-sm">
+        <h1 className="text-2xl font-bold font-display text-primary mb-2 text-center">InZone</h1>
+        <p className="text-muted-foreground mb-6 text-center">Sign in to manage your boards</p>
 
         {error && (
           <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
@@ -82,7 +82,7 @@ export function LoginPage() {
               callbackURL: window.location.origin + '/',
             })
           }
-          className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-700 font-medium hover:bg-stone-50 transition-colors"
+          className="w-full flex items-center justify-center gap-3 bg-card border border-border rounded-lg px-4 py-3 text-secondary-foreground font-medium hover:bg-muted transition-colors"
         >
           <GoogleIcon />
           Continue with Google
@@ -90,16 +90,16 @@ export function LoginPage() {
 
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-stone-200" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-stone-500">or</span>
+            <span className="bg-card px-2 text-muted-foreground">or</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">
               Email or Username
             </label>
             <Input
@@ -111,7 +111,7 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">Password</label>
             <Input
               type="password"
               value={password}
@@ -130,17 +130,17 @@ export function LoginPage() {
             </Button>
             <Link
               to="/reset-password"
-              className="text-sm text-accent hover:underline"
+              className="text-sm text-primary hover:underline"
             >
               Forgot password?
             </Link>
           </div>
         </form>
 
-        <div className="mt-6 pt-4 border-t border-stone-200 text-center">
-          <p className="text-sm text-stone-500">
+        <div className="mt-6 pt-4 border-t border-border text-center">
+          <p className="text-sm text-muted-foreground">
             Don't have an account?{' '}
-            <Link to="/request-access" className="text-accent hover:underline font-medium">
+            <Link to="/request-access" className="text-primary hover:underline font-medium">
               Request Access
             </Link>
           </p>

@@ -6,7 +6,7 @@ describe("Frontend Naming Conventions", () => {
     const rule = projectFiles()
       .inFolder("src/components/**")
       .should()
-      .haveName(/^[A-Z][a-zA-Z]+(\.(test|spec))?\.tsx$|^index\.ts$/);
+      .haveName(/^[A-Z][a-zA-Z]+(\.(test|spec))?\.tsx$|^[a-z][a-z-]+\.tsx$|^index\.ts$/);
 
     await expect(rule).toPassAsync();
   });

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Check, FileText, GripVertical, MoreHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { Todo, Priority } from '../../types';
+import type { CardDensity } from '../../hooks/useCardDensity';
 
 interface TodoCardProps {
   todo: Todo;
@@ -15,6 +16,7 @@ interface TodoCardProps {
   isDropTarget?: boolean;
   isSelected?: boolean;
   sortDisabled?: boolean;
+  density?: CardDensity;
 }
 
 const priorityBarClass: Record<Priority, string> = {
@@ -47,6 +49,7 @@ export function TodoCard({
   isDropTarget,
   isSelected,
   sortDisabled,
+  density = 'comfortable',
 }: TodoCardProps) {
   const [isChecked, setIsChecked] = useState(false);
 
@@ -156,12 +159,12 @@ export function TodoCard({
       onContextMenu={handleContextMenu}
       data-testid="todo-card"
       className={cn(
-        'group relative rounded-xl border border-stone-200/60 bg-white shadow-sm',
+        'group relative rounded-xl border border-border bg-card shadow-sm',
         priorityBarClass[todo.priority],
-        'hover:shadow-md hover:border-stone-300/80 hover:-translate-y-0.5',
+        'hover:shadow-md hover:border-border hover:-translate-y-0.5',
         'active:scale-[0.98] active:shadow-sm',
         'transition-all duration-200 cursor-pointer',
-        isOverlay && 'shadow-2xl ring-2 ring-accent/20 rotate-[1.5deg] cursor-grabbing z-50 bg-white',
+        isOverlay && 'shadow-2xl ring-2 ring-ring/20 rotate-[1.5deg] cursor-grabbing z-50 bg-card',
         isDropTarget && 'ring-2 ring-accent/40 border-accent/30 shadow-md',
         isSelected && 'ring-2 ring-accent',
         isOptimistic && 'animate-pulse opacity-80',
@@ -180,7 +183,7 @@ export function TodoCard({
       <button
         data-testid="actions-button"
         onClick={handleActionsClick}
-        className="absolute top-2 right-2 p-1 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors z-10"
+        className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors z-10"
         title="Actions"
       >
         <MoreHorizontal className="h-4 w-4" />
@@ -192,7 +195,7 @@ export function TodoCard({
           className="flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity -ml-1 mt-0.5"
           title="Drag to reorder"
         >
-          <GripVertical className="h-4 w-4 text-stone-300" />
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
 
         {/* Completion checkbox with touch-friendly target */}
@@ -207,7 +210,7 @@ export function TodoCard({
               'h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-colors',
               isChecked
                 ? 'bg-green-500 border-green-500'
-                : 'border-stone-300 bg-white hover:border-stone-400'
+                : 'border-border bg-card hover:border-muted-foreground'
             )}
             title={isChecked ? 'Mark as incomplete' : 'Mark as complete'}
           >
@@ -233,21 +236,21 @@ export function TodoCard({
               data-testid="todo-title"
               className={cn(
                 'text-sm font-medium flex-1',
-                isChecked ? 'line-through text-stone-400' : 'text-stone-900'
+                isChecked ? 'line-through text-muted-foreground' : 'text-foreground'
               )}
             >
               {todo.title}
             </h4>
-            {/* Description indicator */}
-            {todo.description && (
-              <span className="text-stone-400 flex-shrink-0" title="Has description">
+            {/* Description indicator — hidden in compact density */}
+            {density === 'comfortable' && todo.description && (
+              <span className="text-muted-foreground flex-shrink-0" title="Has description">
                 <FileText className="h-4 w-4" />
               </span>
             )}
           </div>
 
-          {/* Label chips */}
-          {todo.labels.length > 0 && (
+          {/* Label chips — hidden in compact density */}
+          {density === 'comfortable' && todo.labels.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               {visibleLabels.map((label) => (
                 <span
@@ -263,7 +266,7 @@ export function TodoCard({
                 </span>
               ))}
               {extraLabelCount > 0 && (
-                <span className="text-xs text-stone-400">
+                <span className="text-xs text-muted-foreground">
                   +{extraLabelCount} more
                 </span>
               )}
@@ -271,10 +274,10 @@ export function TodoCard({
           )}
 
           {/* Metadata line: priority dot + text, due date, label count separated by middot */}
-          <div className="flex items-center gap-1.5 text-xs text-stone-500">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {metadataSegments.map((segment, i) => (
               <span key={i} className="inline-flex items-center gap-1">
-                {i > 0 && <span className="text-stone-300 mx-0.5">&middot;</span>}
+                {i > 0 && <span className="text-muted-foreground/40 mx-0.5">&middot;</span>}
                 {segment}
               </span>
             ))}

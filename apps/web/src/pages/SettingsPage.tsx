@@ -29,7 +29,7 @@ function SectionCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay, ease: [0.25, 0.1, 0.25, 1] }}
-      className="bg-white border border-stone-200/80 rounded-xl shadow-sm"
+      className="bg-card border border-border rounded-xl shadow-sm"
     >
       {children}
     </motion.section>
@@ -47,12 +47,12 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-start gap-3 px-6 pt-6 pb-4">
-      <div className="w-9 h-9 rounded-lg bg-surface-2 flex items-center justify-center text-stone-500 flex-shrink-0 mt-0.5">
+      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground flex-shrink-0 mt-0.5">
         {icon}
       </div>
       <div>
-        <h2 className="text-base font-semibold text-stone-900">{title}</h2>
-        <p className="text-sm text-stone-500 mt-0.5">{description}</p>
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
       </div>
     </div>
   );
@@ -202,8 +202,8 @@ export function SettingsPage() {
         transition={{ duration: 0.25 }}
         className="mb-8"
       >
-        <h1 className="text-2xl font-bold text-stone-900">Settings</h1>
-        <p className="text-sm text-stone-500 mt-1">Manage your account, security, and preferences</p>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage your account, security, and preferences</p>
       </motion.div>
 
       {error && (
@@ -234,17 +234,17 @@ export function SettingsPage() {
           />
           <form onSubmit={handleUpdateProfile} className="px-6 pb-6 space-y-4">
             {/* Avatar + role row */}
-            <div className="flex items-center gap-4 p-3 bg-surface-0 rounded-lg">
+            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
               {user?.image ? (
                 <img src={user.image} alt={user.name ?? ''} className="w-12 h-12 rounded-full" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center text-lg font-semibold">
+                <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-lg font-semibold">
                   {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-stone-900 truncate">{user?.name}</p>
-                <p className="text-xs text-stone-500 truncate">{user?.email}</p>
+                <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
               {isAdmin && (
                 <span className="text-[10px] font-semibold uppercase tracking-wider bg-purple-100 text-purple-700 px-2 py-1 rounded-md">
@@ -255,7 +255,7 @@ export function SettingsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1.5">Display name</label>
+                <label className="block text-sm font-medium text-secondary-foreground mb-1.5">Display name</label>
                 <Input
                   type="text"
                   value={name}
@@ -263,8 +263,8 @@ export function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1.5">
-                  Username <span className="text-stone-400 font-normal">(optional)</span>
+                <label className="block text-sm font-medium text-secondary-foreground mb-1.5">
+                  Username <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
                 <Input
                   type="text"
@@ -275,10 +275,10 @@ export function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1.5">Email</label>
-              <div className="flex items-center min-h-[44px] w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-500">
+              <label className="block text-sm font-medium text-secondary-foreground mb-1.5">Email</label>
+              <div className="flex items-center min-h-[44px] w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
                 {user?.email}
-                <span className="ml-auto text-xs text-stone-400">Read-only</span>
+                <span className="ml-auto text-xs text-muted-foreground">Read-only</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -306,8 +306,8 @@ export function SettingsPage() {
             <form onSubmit={handlePasswordSubmit} className="space-y-3">
               {hasCredential === false ? (
                 <>
-                  <h3 className="text-sm font-medium text-stone-700">Set a password</h3>
-                  <p className="text-xs text-stone-500">
+                  <h3 className="text-sm font-medium text-secondary-foreground">Set a password</h3>
+                  <p className="text-xs text-muted-foreground">
                     You signed up with Google. Add a password so you can also sign in with email.
                   </p>
                   <Input
@@ -320,7 +320,7 @@ export function SettingsPage() {
                 </>
               ) : (
                 <>
-                  <h3 className="text-sm font-medium text-stone-700">Change password</h3>
+                  <h3 className="text-sm font-medium text-secondary-foreground">Change password</h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Input
                       type="password"
@@ -353,14 +353,14 @@ export function SettingsPage() {
             </form>
 
             {/* Divider */}
-            <div className="border-t border-stone-100 my-6" />
+            <div className="border-t border-border my-6" />
 
             {/* Security Questions */}
             <div>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-medium text-stone-700">Security questions</h3>
-                  <p className="text-xs text-stone-500 mt-0.5">
+                  <h3 className="text-sm font-medium text-secondary-foreground">Security questions</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {sqConfigured ? (
                       <span className="inline-flex items-center gap-1 text-green-600">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -375,7 +375,7 @@ export function SettingsPage() {
                 </div>
                 <button
                   onClick={() => setShowSqForm(!showSqForm)}
-                  className="text-sm font-medium text-accent hover:text-accent-hover transition-colors"
+                  className="text-sm font-medium text-primary hover:text-primary/90 transition-colors"
                 >
                   {showSqForm ? 'Cancel' : sqConfigured ? 'Update' : 'Set Up'}
                 </button>
@@ -390,8 +390,8 @@ export function SettingsPage() {
                   className="mt-4 space-y-4"
                 >
                   {sqQuestions.map((q, i) => (
-                    <div key={i} className="p-3 bg-surface-0 rounded-lg space-y-2">
-                      <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide">
+                    <div key={i} className="p-3 bg-muted rounded-lg space-y-2">
+                      <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Question {i + 1}
                       </label>
                       <select
@@ -402,7 +402,7 @@ export function SettingsPage() {
                           setSqQuestions(updated);
                         }}
                         aria-label={`Security question ${i + 1}`}
-                        className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-card focus:ring-2 focus:ring-ring/30 focus:border-primary"
                       >
                         <option value="">Select a question</option>
                         {SECURITY_QUESTIONS.filter(
@@ -456,15 +456,15 @@ export function SettingsPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-stone-900">Danger Zone</h2>
-              <p className="text-sm text-stone-500 mt-0.5">Irreversible actions that affect your account</p>
+              <h2 className="text-base font-semibold text-foreground">Danger Zone</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Irreversible actions that affect your account</p>
             </div>
           </div>
           <div className="px-6 pb-6">
             <div className="flex items-center justify-between p-3 border border-red-200 bg-red-50/50 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-stone-900">Sign out all other devices</p>
-                <p className="text-xs text-stone-500 mt-0.5">Revoke all sessions except your current one</p>
+                <p className="text-sm font-medium text-foreground">Sign out all other devices</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Revoke all sessions except your current one</p>
               </div>
               <Button variant="danger" size="sm" onClick={handleSignOutAll}>
                 Sign Out Others

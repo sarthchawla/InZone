@@ -213,10 +213,9 @@ describe("UsersPage", () => {
     });
   });
 
-  it("calls removeUser when clicking Remove and confirming", async () => {
+  it("calls removeUser when clicking Remove and confirming in dialog", async () => {
     mockListUsers.mockResolvedValue({ data: { users: usersData } });
     mockRemoveUser.mockResolvedValue({});
-    window.confirm = vi.fn(() => true);
 
     render(<UsersPage />);
 
@@ -224,17 +223,25 @@ describe("UsersPage", () => {
       expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
     });
 
+    // Click Remove button to open confirm dialog
     fireEvent.click(screen.getAllByText("Remove")[0]);
 
+    // Confirm dialog should appear
     await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalled();
+      expect(screen.getByText("Remove User")).toBeInTheDocument();
+    });
+
+    // Click the confirm "Remove" button in the dialog
+    const dialogRemoveBtn = screen.getByRole("button", { name: /^Remove$/ });
+    fireEvent.click(dialogRemoveBtn);
+
+    await waitFor(() => {
       expect(mockRemoveUser).toHaveBeenCalledWith({ userId: "user-2" });
     });
   });
 
-  it("does not call removeUser when clicking Remove and cancelling", async () => {
+  it("does not call removeUser when clicking Cancel in confirm dialog", async () => {
     mockListUsers.mockResolvedValue({ data: { users: usersData } });
-    window.confirm = vi.fn(() => false);
 
     render(<UsersPage />);
 
@@ -242,10 +249,20 @@ describe("UsersPage", () => {
       expect(screen.getAllByText("Remove").length).toBeGreaterThan(0);
     });
 
+    // Click Remove button to open confirm dialog
     fireEvent.click(screen.getAllByText("Remove")[0]);
 
+    // Confirm dialog should appear
     await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalled();
+      expect(screen.getByText("Remove User")).toBeInTheDocument();
+    });
+
+    // Click Cancel
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    // Dialog should close and removeUser should not be called
+    await waitFor(() => {
+      expect(screen.queryByText("Remove User")).not.toBeInTheDocument();
     });
     expect(mockRemoveUser).not.toHaveBeenCalled();
   });

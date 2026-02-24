@@ -1079,6 +1079,10 @@ Each phase ships as a separate PR (or small set of PRs) for reviewability and ro
 - [ ] ConfirmDialog component replacing all `window.confirm()` calls
 - [ ] Toast → sonner migration with `useToast` compatibility wrapper
 
+### Known UX Issues to Fix
+- [ ] Board templates have no description shown — users cannot tell what each template contains before selecting one. Add a short description or preview for each template option.
+- [ ] "Rename" option on the boards list page shows a "feature not yet done" message — renaming works from inside a board but not from the boards list page. Either wire up inline renaming on the boards list or remove the option from the context menu there.
+
 ### Nice to Have (P2)
 - [ ] Command palette (Cmd+K) — client-side search only
 - [ ] Header backdrop blur on scroll

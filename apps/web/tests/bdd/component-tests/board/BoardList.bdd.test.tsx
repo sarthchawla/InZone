@@ -40,9 +40,9 @@ describe("Feature: Board Navigation", () => {
       // When: the board list renders
       render(<BoardList />);
 
-      // Then: "Start by creating your first board" message appears
+      // Then: "Create your first board" message appears
       await waitFor(() => {
-        expect(screen.getByText("Start by creating your first board")).toBeInTheDocument();
+        expect(screen.getByText("Create your first board")).toBeInTheDocument();
       });
 
       // Then: an inline create form is displayed with a board name input
@@ -51,7 +51,7 @@ describe("Feature: Board Navigation", () => {
 
       // Then: helpful description text is shown
       expect(
-        screen.getByText(/Boards help you organise tasks into columns/i)
+        screen.getByText(/Organize your tasks into boards and columns/i)
       ).toBeInTheDocument();
     });
   });

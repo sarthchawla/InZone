@@ -142,7 +142,7 @@ export function SignUpPage() {
   if (token && tokenValid === null) {
     return (
       <motion.div
-        className="min-h-screen flex items-center justify-center bg-surface-0"
+        className="min-h-screen flex items-center justify-center bg-background"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
@@ -150,7 +150,7 @@ export function SignUpPage() {
         <div
           role="status"
           aria-label="Loading"
-          className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
         />
       </motion.div>
     );
@@ -159,17 +159,17 @@ export function SignUpPage() {
   if (token && tokenValid === false) {
     return (
       <motion.div
-        className="min-h-screen flex items-center justify-center bg-surface-0 p-4"
+        className="min-h-screen flex items-center justify-center bg-background p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Invite</h1>
-          <p className="text-stone-600 mb-6">
+        <div className="bg-card shadow rounded-lg p-8 w-full max-w-sm text-center">
+          <h1 className="text-2xl font-bold font-display text-red-600 mb-4">Invalid Invite</h1>
+          <p className="text-muted-foreground mb-6">
             This invite link is invalid, expired, or has already been used.
           </p>
-          <Link to="/login" className="text-accent hover:underline">
+          <Link to="/login" className="text-primary hover:underline">
             Back to Sign In
           </Link>
         </div>
@@ -179,16 +179,16 @@ export function SignUpPage() {
 
   return (
     <motion.div
-      className="min-h-screen bg-surface-0 flex items-center justify-center p-4"
+      className="min-h-screen bg-background flex items-center justify-center p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-accent mb-2 text-center">
+      <div className="bg-card shadow rounded-lg p-8 w-full max-w-md">
+        <h1 className="text-2xl font-bold font-display text-primary mb-2 text-center">
           Create your InZone account
         </h1>
-        <p className="text-stone-500 text-sm text-center mb-6">
+        <p className="text-muted-foreground text-sm text-center mb-6">
           {inviteEmail ? `You've been invited as ${inviteEmail}` : 'Sign up with an approved email'}
         </p>
 
@@ -200,7 +200,7 @@ export function SignUpPage() {
 
         <button
           onClick={handleGoogleSignUp}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 rounded-lg px-4 py-3 text-stone-700 font-medium hover:bg-stone-50 transition-colors mb-4"
+          className="w-full flex items-center justify-center gap-3 bg-card border border-border rounded-lg px-4 py-3 text-secondary-foreground font-medium hover:bg-muted transition-colors mb-4"
         >
           <GoogleIcon />
           Continue with Google
@@ -208,27 +208,27 @@ export function SignUpPage() {
 
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-stone-200" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-stone-500">or</span>
+            <span className="bg-card px-2 text-muted-foreground">or</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Email *</label>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">Email *</label>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               readOnly={!!inviteEmail}
-              className={inviteEmail ? 'bg-stone-100' : ''}
+              className={inviteEmail ? 'bg-muted' : ''}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Name *</label>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">Name *</label>
             <Input
               type="text"
               value={name}
@@ -237,8 +237,8 @@ export function SignUpPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
-              Username <span className="text-stone-400">(optional)</span>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">
+              Username <span className="text-muted-foreground">(optional)</span>
             </label>
             <Input
               type="text"
@@ -248,7 +248,7 @@ export function SignUpPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Password *</label>
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">Password *</label>
             <Input
               type="password"
               value={password}
@@ -261,10 +261,10 @@ export function SignUpPage() {
                   className="flex items-center gap-1.5 text-xs"
                   aria-label={`${check.label}: ${check.passed ? 'met' : 'not met'}`}
                 >
-                  <span className={check.passed ? 'text-green-500' : 'text-stone-400'}>
+                  <span className={check.passed ? 'text-green-500' : 'text-muted-foreground'}>
                     {check.passed ? '\u2713' : '\u2717'}
                   </span>
-                  <span className={check.passed ? 'text-green-700' : 'text-stone-500'}>
+                  <span className={check.passed ? 'text-green-700' : 'text-muted-foreground'}>
                     {check.label}
                   </span>
                 </div>
@@ -273,7 +273,7 @@ export function SignUpPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-secondary-foreground mb-1">
               Confirm Password *
             </label>
             <Input
@@ -287,8 +287,8 @@ export function SignUpPage() {
           </div>
 
           <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-medium text-stone-700 mb-1">Security Questions</h3>
-            <p className="text-xs text-stone-500 mb-3">
+            <h3 className="text-sm font-medium text-secondary-foreground mb-1">Security Questions</h3>
+            <p className="text-xs text-muted-foreground mb-3">
               Required — used to reset your password if forgotten.
             </p>
             {questions.map((q, i) => (
@@ -301,7 +301,7 @@ export function SignUpPage() {
                     setQuestions(updated);
                   }}
                   aria-label={`Security question ${i + 1}`}
-                  className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mb-1 focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm mb-1 focus:ring-2 focus:ring-ring/30 focus:border-primary"
                 >
                   <option value="">Select a question</option>
                   {SECURITY_QUESTIONS.filter(
@@ -336,9 +336,9 @@ export function SignUpPage() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-stone-500 mt-4">
+        <p className="text-center text-sm text-muted-foreground mt-4">
           Already have an account?{' '}
-          <Link to="/login" className="text-accent hover:underline">
+          <Link to="/login" className="text-primary hover:underline">
             Sign in
           </Link>
         </p>

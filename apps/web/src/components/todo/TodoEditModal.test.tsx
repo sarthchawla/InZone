@@ -246,7 +246,7 @@ describe("TodoEditModal", () => {
       await user.click(highButton!);
 
       // The HIGH button should now have selected styles
-      expect(highButton).toHaveClass("border-blue-500");
+      expect(highButton).toHaveClass("border-primary");
     });
 
     it("updates due date when selected", async () => {

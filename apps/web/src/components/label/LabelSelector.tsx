@@ -82,14 +82,14 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-2 w-full min-h-[40px] px-3 py-2 rounded-md border border-gray-300',
-          'bg-white text-sm text-left',
-          'hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+          'flex items-center gap-2 w-full min-h-[40px] px-3 py-2 rounded-md border border-border',
+          'bg-card text-sm text-left',
+          'hover:border-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent'
         )}
       >
         <div className="flex-1 flex flex-wrap gap-1">
           {selectedLabels.length === 0 ? (
-            <span className="text-gray-400">Select labels...</span>
+            <span className="text-muted-foreground">Select labels...</span>
           ) : (
             selectedLabels.map((label) => (
               <span
@@ -112,14 +112,14 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
             ))
           )}
         </div>
-        <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', isOpen && 'rotate-180')} />
+        <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-card shadow-lg">
           <div className="max-h-60 overflow-y-auto p-1">
             {labels.length === 0 && !showCreateForm && (
-              <div className="px-3 py-2 text-sm text-gray-500">No labels yet. Create one!</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">No labels yet. Create one!</div>
             )}
 
             {labels.map((label) => {
@@ -131,22 +131,22 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                   onClick={() => handleToggleLabel(label)}
                   className={cn(
                     'flex items-center gap-2 w-full px-3 py-2 text-sm text-left rounded',
-                    'hover:bg-gray-50',
-                    isSelected && 'bg-blue-50'
+                    'hover:bg-muted',
+                    isSelected && 'bg-primary/10'
                   )}
                 >
                   <span
                     className="h-4 w-4 rounded-full flex-shrink-0"
                     style={{ backgroundColor: label.color }}
                   />
-                  <span className="flex-1 text-gray-900">{label.name}</span>
-                  {isSelected && <Check className="h-4 w-4 text-blue-600" />}
+                  <span className="flex-1 text-foreground">{label.name}</span>
+                  {isSelected && <Check className="h-4 w-4 text-primary" />}
                 </button>
               );
             })}
           </div>
 
-          <div className="border-t border-gray-200 p-2">
+          <div className="border-t border-border p-2">
             {showCreateForm ? (
               <div className="space-y-2">
                 <input
@@ -154,7 +154,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                   value={newLabelName}
                   onChange={(e) => setNewLabelName(e.target.value)}
                   placeholder="Label name"
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -175,7 +175,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                       onClick={() => setNewLabelColor(color)}
                       className={cn(
                         'h-6 w-6 rounded-full transition-transform',
-                        newLabelColor === color && 'ring-2 ring-offset-1 ring-gray-400 scale-110'
+                        newLabelColor === color && 'ring-2 ring-offset-1 ring-ring scale-110'
                       )}
                       style={{ backgroundColor: color }}
                     />
@@ -186,7 +186,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                     type="button"
                     onClick={handleCreateLabel}
                     disabled={!newLabelName.trim() || createLabel.isPending}
-                    className="flex-1 px-2 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    className="flex-1 px-2 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
                   >
                     {createLabel.isPending ? 'Creating...' : 'Create'}
                   </button>
@@ -196,7 +196,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                       setShowCreateForm(false);
                       setNewLabelName('');
                     }}
-                    className="px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded"
+                    className="px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded"
                   >
                     Cancel
                   </button>
@@ -206,7 +206,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
               <button
                 type="button"
                 onClick={() => setShowCreateForm(true)}
-                className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded"
               >
                 <Plus className="h-4 w-4" />
                 Create new label
