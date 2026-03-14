@@ -1,5 +1,8 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 import { allowedOrigins } from './lib/origins.js';
@@ -13,6 +16,10 @@ import { invitesRouter } from './routes/invites.js';
 import { accessRequestsRouter } from './routes/access-requests.js';
 import { securityQuestionsRouter } from './routes/security-questions.js';
 import { errorHandler } from './middleware/errorHandler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../package.json'), 'utf-8'));
 
 const app: Express = express();
 
@@ -73,7 +80,7 @@ app.use(express.json());
 
 // Health check - available at both /health and /api/health for compatibility
 app.get(['/health', '/api/health'], (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: rootPkg.version, timestamp: new Date().toISOString() });
 });
 
 // Public API Routes (no auth required — auth handled per-route)

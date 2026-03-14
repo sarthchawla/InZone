@@ -106,6 +106,17 @@ pnpm run db:studio             # Open Prisma Studio GUI
 - `bdd-backend.yml` - Backend BDD tests (Cucumber.js)
 - `vercel-deploy.yml` - Vercel deployment
 - `neon-cleanup.yml` - Neon database branch cleanup
+- `commitlint.yml` - Validates conventional commit messages on PRs to master/main
+- `release-please.yml` - Automated semantic versioning, changelogs, and GitHub releases
+
+## Versioning & Releases
+- Uses **conventional commits** enforced by **commitlint** + **husky** (commit-msg hook).
+- Commit format: `type(scope): description` (e.g., `feat: add board templates`, `fix: resolve drag bug`).
+- **release-please** automates version bumps: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE` → major.
+- Single version for the entire monorepo (root `package.json` + `apps/web/package.json` + `apps/api/package.json` kept in sync).
+- Config: `release-please-config.json` + `.release-please-manifest.json`.
+- Version displayed in the frontend footer (`AppFooter` component) via Vite `define` (`__APP_VERSION__`).
+- Version included in API health endpoint (`GET /api/health` → `{ status, version, timestamp }`).
 
 ## Worktree Support
 - This repo supports git worktrees for parallel development.
