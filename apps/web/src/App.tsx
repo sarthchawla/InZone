@@ -11,6 +11,7 @@ import { useAuth } from './hooks/useAuth';
 import { signOut } from './lib/auth-client';
 import { useState } from 'react';
 import { Agentation } from 'agentation';
+import { AppFooter } from './components/ui/AppFooter';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { RequestAccessPage } from './pages/RequestAccessPage';
@@ -232,6 +233,7 @@ function AppContent() {
                 <main className="flex-1 flex flex-col min-h-0 overflow-auto">
                   <AnimatedRoutes />
                 </main>
+                <AppFooter />
               </div>
             </AuthGuard>
           }

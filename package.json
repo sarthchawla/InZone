@@ -28,12 +28,16 @@
     "worktree:setup": "node scripts/worktree/dist/index.js setup",
     "worktree:list": "node scripts/worktree/dist/index.js list",
     "worktree:cleanup": "node scripts/worktree/dist/index.js cleanup",
-    "worktree:db-start": "node scripts/worktree-db-start.js"
+    "worktree:db-start": "node scripts/worktree-db-start.js",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.4.4",
+    "@commitlint/config-conventional": "^20.4.4",
     "@vercel/node": "^5.6.6",
     "agentation": "^2.2.1",
     "archunit": "^2.1.63",
+    "husky": "^9.1.7",
     "prettier": "^3.2.5",
     "turbo": "^2.3.4",
     "typescript": "^5.7.3"

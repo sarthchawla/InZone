@@ -47,7 +47,14 @@ Create a PR with the following format:
 ### Title Format
 `[type]: Brief description`
 
-Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`
+
+**Note:** This repo uses **conventional commits** (enforced by commitlint + husky). Commit messages
+and PR titles MUST follow the format `type(scope): description` or `type: description`.
+Version bumps are automated by **release-please** based on commit types:
+- `feat:` → minor version bump (0.1.0 → 0.2.0)
+- `fix:` → patch version bump (0.1.0 → 0.1.1)
+- `feat!:` or `BREAKING CHANGE:` → major version bump
 
 Examples:
 - `feat: Add board description with markdown support`
