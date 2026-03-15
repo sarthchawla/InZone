@@ -142,13 +142,6 @@ describe("LoginPage", () => {
 
     it("redirects to / on successful login", async () => {
       mockEmailSignIn.mockResolvedValue({ data: { session: {} } });
-      // Mock window.location.href assignment
-      const locationSpy = vi.spyOn(window, "location", "get").mockReturnValue({
-        ...window.location,
-        href: window.location.href,
-      } as Location);
-      const hrefSetter = vi.fn();
-      Object.defineProperty(window.location, "href", { set: hrefSetter, configurable: true });
 
       render(<LoginPage />);
 
@@ -156,10 +149,8 @@ describe("LoginPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
-        expect(hrefSetter).toHaveBeenCalledWith("/");
+        expect(mockNavigate).toHaveBeenCalledWith("/");
       });
-
-      locationSpy.mockRestore();
     });
   });
 });

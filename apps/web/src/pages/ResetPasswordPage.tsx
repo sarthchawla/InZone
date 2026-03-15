@@ -104,7 +104,7 @@ export function ResetPasswordPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center" role="status">
+        <div className="bg-white shadow rounded-lg p-8 w-full max-w-lg text-center" role="status">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -136,7 +136,7 @@ export function ResetPasswordPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
+      <div className="bg-white shadow rounded-lg p-8 w-full max-w-lg">
         <div className="mb-6" role="group" aria-label="Password reset progress">
           <div className="flex items-center justify-between mb-2">
             {['Identify', 'Verify', 'Reset'].map((label, i) => {

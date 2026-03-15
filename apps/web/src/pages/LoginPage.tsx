@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { signIn } from '../lib/auth-client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
@@ -15,6 +15,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 
 export function LoginPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -48,9 +49,7 @@ export function LoginPage() {
         setLoading(false);
         return;
       }
-      // Full page load to ensure the session cookie is picked up by useSession()
-      // (client-side navigate would race against the session cache)
-      window.location.href = '/';
+      navigate('/');
     } catch {
       setError('Invalid credentials.');
     } finally {
@@ -65,7 +64,7 @@ export function LoginPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm">
+      <div className="bg-white shadow rounded-lg p-8 w-full max-w-lg">
         <h1 className="text-2xl font-bold text-accent mb-2 text-center">InZone</h1>
         <p className="text-stone-600 mb-6 text-center">Sign in to manage your boards</p>
 

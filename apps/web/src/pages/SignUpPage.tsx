@@ -164,7 +164,7 @@ export function SignUpPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <div className="bg-white shadow rounded-lg p-8 w-full max-w-sm text-center">
+        <div className="bg-white shadow rounded-lg p-8 w-full max-w-lg text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Invite</h1>
           <p className="text-stone-600 mb-6">
             This invite link is invalid, expired, or has already been used.
@@ -184,7 +184,7 @@ export function SignUpPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-md">
+      <div className="bg-white shadow rounded-lg p-8 w-full max-w-lg">
         <h1 className="text-2xl font-bold text-accent mb-2 text-center">
           Create your InZone account
         </h1>

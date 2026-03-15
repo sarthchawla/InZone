@@ -1,4 +1,5 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/auth-client';
 
 const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === 'true';
@@ -6,6 +7,14 @@ const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === 'true';
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Listen for 401 events from the API client and redirect via React Router
+  useEffect(() => {
+    const handler = () => navigate('/login', { replace: true });
+    window.addEventListener('auth:unauthorized', handler);
+    return () => window.removeEventListener('auth:unauthorized', handler);
+  }, [navigate]);
 
   if (AUTH_BYPASS) {
     return <>{children}</>;
