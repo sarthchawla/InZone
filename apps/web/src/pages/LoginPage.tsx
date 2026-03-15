@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { signIn } from '../lib/auth-client';
 import { GoogleIcon } from '../components/ui/GoogleIcon';
@@ -15,7 +15,6 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 
 export function LoginPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -49,7 +48,9 @@ export function LoginPage() {
         setLoading(false);
         return;
       }
-      navigate('/');
+      // Full page reload ensures useSession() picks up the new session cookie
+      // (client-side navigate would race against Better Auth's session cache)
+      window.location.href = '/';
     } catch {
       setError('Invalid credentials.');
     } finally {
