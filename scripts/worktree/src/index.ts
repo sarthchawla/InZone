@@ -18,6 +18,7 @@ program
   .description('Create a new worktree with isolated ports and database')
   .option('-b, --branch <branch>', 'Branch name for the worktree')
   .option('-s, --source <branch>', 'Source branch to create from (default: current branch)')
+  .option('-p, --path <path>', 'Target path for the worktree (default: configured worktree base directory)')
   .option('--no-open', 'Do not open in editor after setup')
   .action(setup);
 

@@ -8,6 +8,9 @@ arguments:
   - name: source
     description: Source branch to create from
     required: false
+  - name: path
+    description: Optional target path for the worktree, such as Codex Desktop CODEX_WORKTREE_PATH
+    required: false
 ---
 
 # Worktree Setup Command
@@ -53,6 +56,14 @@ pnpm worktree:setup --branch "$BRANCH" --source "$SOURCE"
 ```
 
 Replace `$BRANCH` and `$SOURCE` with the actual values.
+
+If the user or tool provides a target path, such as Codex Desktop's `CODEX_WORKTREE_PATH`, pass it explicitly:
+
+```bash
+pnpm worktree:setup --branch "$BRANCH" --source "$SOURCE" --path "$CODEX_WORKTREE_PATH"
+```
+
+If no path is provided, the command keeps the existing default behavior and creates the worktree under the configured worktree base directory.
 
 ### Step 4: Report Results
 
