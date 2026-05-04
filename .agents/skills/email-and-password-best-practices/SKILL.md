@@ -1,6 +1,6 @@
 ---
-name: email-and-password-best-practices
-description: This skill provides guidance and enforcement rules for implementing secure email and password authentication using Better Auth.
+name: "email-and-password-best-practices"
+description: "This skill provides guidance and enforcement rules for implementing secure email and password authentication using Better Auth."
 ---
 
 ## Email Verification Setup

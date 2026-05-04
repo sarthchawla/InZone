@@ -1,6 +1,6 @@
 ---
-name: better-auth-security-best-practices
-description: This skill provides guidance for implementing security features that span across Better Auth, including rate limiting, CSRF protection, session security, trusted origins, secret management, OAuth security, IP tracking, and security auditing. These topics are not covered in individual plugin skills.
+name: "better-auth-security-best-practices"
+description: "This skill provides guidance for implementing security features that span across Better Auth, including rate limiting, CSRF protection, session security, trusted origins, secret management, OAuth security, IP tracking, and security auditing. These topics are not covered in individual plugin skills."
 ---
 
 ## Secret Management

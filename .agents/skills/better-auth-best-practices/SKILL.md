@@ -1,6 +1,6 @@
 ---
-name: better-auth-best-practices
-description: Skill for integrating Better Auth - the comprehensive TypeScript authentication framework.
+name: "better-auth-best-practices"
+description: "Skill for integrating Better Auth - the comprehensive TypeScript authentication framework."
 ---
 
 # Better Auth Integration Guide

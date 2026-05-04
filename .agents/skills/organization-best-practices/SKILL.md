@@ -1,6 +1,6 @@
 ---
-name: organization-best-practices
-description: This skill provides guidance and enforcement rules for implementing multi-tenant organizations, teams, and role-based access control using Better Auth's organization plugin.
+name: "organization-best-practices"
+description: "This skill provides guidance and enforcement rules for implementing multi-tenant organizations, teams, and role-based access control using Better Auth's organization plugin."
 ---
 
 ## Setting Up Organizations
