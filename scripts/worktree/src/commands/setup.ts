@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import * as path from 'path';
 import { Worktree } from '../types.js';
 import {
   sanitizeBranchName,
@@ -27,6 +28,7 @@ import { generateAllConfigs } from '../lib/config-generator.js';
 interface SetupOptions {
   branch?: string;
   source?: string;
+  path?: string;
   open?: boolean;
 }
 
@@ -96,7 +98,9 @@ export async function setup(options: SetupOptions): Promise<void> {
 
     // Get paths
     const mainRepoPath = getRepoRoot();
-    const worktreePath = getWorktreePath(settings.worktreeBaseDir, worktreeId);
+    const worktreePath = options.path
+      ? path.resolve(options.path)
+      : getWorktreePath(settings.worktreeBaseDir, worktreeId);
 
     // Create git worktree
     console.log(`\nCreating git worktree at ${worktreePath}...`);

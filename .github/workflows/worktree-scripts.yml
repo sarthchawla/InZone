@@ -39,6 +39,9 @@ jobs:
       - name: Build
         run: pnpm --filter @inzone/worktree build
 
+      - name: Verify setup path option
+        run: pnpm worktree:setup --help | grep -- '--path <path>'
+
   test:
     name: Test
     runs-on: ubuntu-latest

@@ -53,6 +53,14 @@ pnpm worktree:setup --branch "$BRANCH" --source "$SOURCE"
 
 Replace `$BRANCH` and `$SOURCE` with the actual values.
 
+If the user or tool provides a target path, such as Codex Desktop's `CODEX_WORKTREE_PATH`, pass it explicitly:
+
+```bash
+pnpm worktree:setup --branch "$BRANCH" --source "$SOURCE" --path "$CODEX_WORKTREE_PATH"
+```
+
+If no path is provided, the command keeps the existing default behavior and creates the worktree under the configured worktree base directory.
+
 ### Step 4: Report Results
 
 After successful execution, format the output as a clear summary:
@@ -121,4 +129,4 @@ Claude: Setting up worktree for 'feature/api-v2' from 'master'...
 
 ## Codex Usage Notes
 
-Use this skill when the user asks to create or set up a worktree. Treat any text after the command name as the requested branch name and optional source branch. If the source branch is missing, infer the safest default from the repository conventions or ask before creating the worktree.
+Use this skill when the user asks to create or set up a worktree. Treat any text after the command name as the requested branch name, optional source branch, and optional target path. If the source branch is missing, infer the safest default from the repository conventions or ask before creating the worktree.

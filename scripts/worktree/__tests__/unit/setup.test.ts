@@ -1,0 +1,110 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as path from 'path';
+import { setup } from '../../src/commands/setup.js';
+import * as registry from '../../src/lib/registry.js';
+import * as portAllocator from '../../src/lib/port-allocator.js';
+import * as docker from '../../src/lib/docker.js';
+import * as git from '../../src/lib/git.js';
+import * as configGenerator from '../../src/lib/config-generator.js';
+import * as utils from '../../src/lib/utils.js';
+
+vi.mock('../../src/lib/registry.js');
+vi.mock('../../src/lib/port-allocator.js');
+vi.mock('../../src/lib/docker.js');
+vi.mock('../../src/lib/git.js');
+vi.mock('../../src/lib/config-generator.js');
+vi.mock('../../src/lib/utils.js');
+
+describe('setup command', () => {
+  const ports = { frontend: 5174, backend: 3002, database: 7433 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    vi.mocked(registry.initRegistry).mockReturnValue({
+      worktrees: [],
+      settings: {
+        worktreeBaseDir: '../InZone-worktrees',
+        portRanges: {
+          frontend: { min: 5173, max: 5199 },
+          backend: { min: 3001, max: 3099 },
+          database: { min: 7432, max: 7499 },
+        },
+      },
+    });
+    vi.mocked(registry.getSettings).mockReturnValue({
+      worktreeBaseDir: '../InZone-worktrees',
+      portRanges: {
+        frontend: { min: 5173, max: 5199 },
+        backend: { min: 3001, max: 3099 },
+        database: { min: 7432, max: 7499 },
+      },
+    });
+    vi.mocked(registry.getWorktreeByBranch).mockReturnValue(undefined);
+    vi.mocked(registry.addWorktree).mockImplementation((worktree) => ({
+      ...worktree,
+      createdAt: '2026-05-05T00:00:00.000Z',
+      lastAccessed: '2026-05-05T00:00:00.000Z',
+    }));
+    vi.mocked(portAllocator.findAllPorts).mockReturnValue(ports);
+    vi.mocked(docker.getDbContainerName).mockReturnValue('inzone-db-wt-feature-auth');
+    vi.mocked(docker.getAppContainerName).mockReturnValue('inzone-wt-feature-auth');
+    vi.mocked(git.isValidBranchName).mockReturnValue(true);
+    vi.mocked(git.worktreeExistsForBranch).mockReturnValue(false);
+    vi.mocked(git.branchExists).mockReturnValue(true);
+    vi.mocked(git.getCurrentBranch).mockReturnValue('master');
+    vi.mocked(git.getWorktreePath).mockReturnValue('/repo/../InZone-worktrees/feature-auth');
+    vi.mocked(utils.sanitizeBranchName).mockReturnValue('feature-auth');
+    vi.mocked(utils.getRepoRoot).mockReturnValue('/repo/InZone');
+    vi.mocked(utils.runCommandSafe).mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('uses the configured default worktree path when no custom path is provided', async () => {
+    await setup({ branch: 'feature/auth', source: 'master', open: false });
+
+    expect(git.getWorktreePath).toHaveBeenCalledWith('../InZone-worktrees', 'feature-auth');
+    expect(git.createWorktree).toHaveBeenCalledWith(
+      '/repo/../InZone-worktrees/feature-auth',
+      'feature/auth'
+    );
+    expect(configGenerator.generateAllConfigs).toHaveBeenCalledWith(
+      '/repo/../InZone-worktrees/feature-auth',
+      'feature-auth',
+      ports,
+      '/repo/InZone'
+    );
+  });
+
+  it('uses a custom target path when provided', async () => {
+    await setup({
+      branch: 'feature/auth',
+      source: 'master',
+      path: '/tmp/codex/InZone',
+      open: false,
+    });
+
+    expect(git.getWorktreePath).not.toHaveBeenCalled();
+    expect(git.createWorktree).toHaveBeenCalledWith(
+      path.resolve('/tmp/codex/InZone'),
+      'feature/auth'
+    );
+    expect(configGenerator.generateAllConfigs).toHaveBeenCalledWith(
+      path.resolve('/tmp/codex/InZone'),
+      'feature-auth',
+      ports,
+      '/repo/InZone'
+    );
+    expect(registry.addWorktree).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: path.resolve('/tmp/codex/InZone'),
+        ports,
+      })
+    );
+  });
+});
