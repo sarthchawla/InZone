@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { existsSync, readdirSync, rmdirSync } from 'fs';
 import * as path from 'path';
 import { Worktree } from '../types.js';
 import {
@@ -30,6 +31,26 @@ interface SetupOptions {
   source?: string;
   path?: string;
   open?: boolean;
+}
+
+function prepareCustomWorktreePath(worktreePath: string, mainRepoPath: string): void {
+  if (!existsSync(worktreePath)) {
+    return;
+  }
+
+  if (path.resolve(worktreePath) === path.resolve(mainRepoPath)) {
+    throw new Error(`Refusing to use main repository path as a worktree target: ${worktreePath}`);
+  }
+
+  const entries = readdirSync(worktreePath);
+  if (entries.length > 0) {
+    throw new Error(
+      `Target path already exists and is not empty: ${worktreePath}. ` +
+        'Choose an empty Codex worktree path or clean it up before retrying.'
+    );
+  }
+
+  rmdirSync(worktreePath);
 }
 
 /**
@@ -104,6 +125,9 @@ export async function setup(options: SetupOptions): Promise<void> {
 
     // Create git worktree
     console.log(`\nCreating git worktree at ${worktreePath}...`);
+    if (options.path) {
+      prepareCustomWorktreePath(worktreePath, mainRepoPath);
+    }
     createWorktree(worktreePath, branch);
 
     // Generate configuration files
