@@ -1,6 +1,6 @@
 ---
-name: create-auth-skill
-description: Skill for creating auth layers in TypeScript/JavaScript apps using Better Auth.
+name: "create-auth-skill"
+description: "Skill for creating auth layers in TypeScript/JavaScript apps using Better Auth."
 ---
 
 # Create Auth Skill

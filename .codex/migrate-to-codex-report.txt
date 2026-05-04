@@ -1,0 +1,88 @@
+Migration inventory:
+  active: instruction files - 2 found
+    - CLAUDE.md
+    - AGENTS.md
+  active: skills - 15 found
+    - DB migrations and schema changes
+    - better-auth-best-practices
+    - better-auth-security-best-practices
+    - component-refactoring
+    - create-auth-skill
+    - docker-expert
+    - email-and-password-best-practices
+    - frontend-code-review
+    - frontend-testing
+    - nodejs-backend-patterns
+    - organization-best-practices
+    - postgresql-table-design
+    - two-factor-authentication-best-practices
+    - vercel-react-best-practices
+    - web-design-guidelines
+  active: command sources - 12 found
+    provider: source command (12)
+      - create-missing-tests
+      - create-mr
+      - fix-all-tests
+      - fix-ci
+      - fix-vercel-deployment
+      - update-mr
+      - update-tests
+      - vercel-logs
+      - verify-feature
+      - worktree
+      - worktree-cleanup
+      - worktree-list
+  inactive: subagents - none found
+Migration surfaces:
+  active: AGENTS.md - 1 instruction file(s) found.
+  active: skills - 27 skill(s) converted.
+  inactive: MCP config - No settings or MCP config found.
+  inactive: subagents - No subagents found.
+Migration report:
+  symlinked: AGENTS.md - Linked to CLAUDE.md.
+  rewritten: .agents/skills/DB migrations and schema changes/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/better-auth-best-practices/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/better-auth-security-best-practices/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/component-refactoring/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/create-auth-skill/SKILL.md - Converted Claude skill.
+  manual_fix_required: .agents/skills/docker-expert/SKILL.md - Manual review required for Claude skill fields: `category`, `color`, `displayName`.
+  rewritten: .agents/skills/email-and-password-best-practices/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/frontend-code-review/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/frontend-testing/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/nodejs-backend-patterns/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/organization-best-practices/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/postgresql-table-design/SKILL.md - Converted Claude skill.
+  rewritten: .agents/skills/two-factor-authentication-best-practices/SKILL.md - Converted Claude skill.
+  manual_fix_required: .agents/skills/vercel-react-best-practices/SKILL.md - Manual review required for Claude skill fields: `author`, `license`, `metadata`, `version`.
+  manual_fix_required: .agents/skills/web-design-guidelines/SKILL.md - Manual review required for Claude skill fields: `argument-hint`, `author`, `metadata`, `version`.
+  manual_fix_required: .agents/skills/source-command-create-missing-tests/SKILL.md - Converted source command `create-missing-tests` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-create-mr/SKILL.md - Converted source command `create-mr` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-fix-all-tests/SKILL.md - Converted source command `fix-all-tests` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-fix-ci/SKILL.md - Converted source command `fix-ci` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-fix-vercel-deployment/SKILL.md - Converted source command `fix-vercel-deployment` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-update-mr/SKILL.md - Converted source command `update-mr` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-update-tests/SKILL.md - Converted source command `update-tests` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-vercel-logs/SKILL.md - Converted source command `vercel-logs` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-verify-feature/SKILL.md - Converted source command `verify-feature` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-worktree-cleanup/SKILL.md - Converted source command `worktree-cleanup` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-worktree-list/SKILL.md - Converted source command `worktree-list` to a single-file Codex skill; review invocation and template placeholder semantics.
+  manual_fix_required: .agents/skills/source-command-worktree/SKILL.md - Converted source command `worktree` to a single-file Codex skill; review invocation and template placeholder semantics.
+  overwritten: .agents/skills/email-and-password-best-practices - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/vercel-react-best-practices - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/web-design-guidelines - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/postgresql-table-design - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/source-command-worktree-cleanup - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/create-auth-skill - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/better-auth-security-best-practices - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/better-auth-best-practices - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/DB migrations and schema changes - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/docker-expert - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/source-command-worktree - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/source-command-fix-all-tests - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/source-command-worktree-list - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/frontend-code-review - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/component-refactoring - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/nodejs-backend-patterns - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/two-factor-authentication-best-practices - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/organization-best-practices - Existing Codex skill will be replaced.
+  overwritten: .agents/skills/frontend-testing - Existing Codex skill will be replaced.
