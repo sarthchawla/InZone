@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { existsSync, readdirSync, rmdirSync } from 'fs';
+import { existsSync, readdirSync, realpathSync, rmdirSync } from 'fs';
 import * as path from 'path';
 import { Worktree } from '../types.js';
 import {
@@ -17,12 +17,14 @@ import { findAllPorts } from '../lib/port-allocator.js';
 import { getDbContainerName, getAppContainerName } from '../lib/docker.js';
 import {
   branchExists,
+  checkoutBranch,
   createBranch,
   getCurrentBranch,
-  worktreeExistsForBranch,
   createWorktree,
   getWorktreePath,
+  isLinkedWorktree,
   isValidBranchName,
+  listGitWorktrees,
 } from '../lib/git.js';
 import { generateAllConfigs } from '../lib/config-generator.js';
 
@@ -33,13 +35,13 @@ interface SetupOptions {
   open?: boolean;
 }
 
-function prepareCustomWorktreePath(worktreePath: string, mainRepoPath: string): void {
+function normalizePathForComparison(targetPath: string): string {
+  return existsSync(targetPath) ? realpathSync(targetPath) : path.resolve(targetPath);
+}
+
+function prepareCustomWorktreePath(worktreePath: string): void {
   if (!existsSync(worktreePath)) {
     return;
-  }
-
-  if (path.resolve(worktreePath) === path.resolve(mainRepoPath)) {
-    throw new Error(`Refusing to use main repository path as a worktree target: ${worktreePath}`);
   }
 
   const entries = readdirSync(worktreePath);
@@ -88,17 +90,35 @@ export async function setup(options: SetupOptions): Promise<void> {
       );
     }
 
-    // Check if git worktree already exists
-    if (worktreeExistsForBranch(branch)) {
-      throw new Error(
-        `Git worktree for branch '${branch}' already exists. ` +
-          `Use 'git worktree list' to see all worktrees.`
-      );
-    }
-
     // Get source branch
     const sourceBranch = options.source || getCurrentBranch();
     console.log(`Creating worktree for '${branch}' from '${sourceBranch}'...`);
+
+    // Get paths
+    const mainRepoPath = getRepoRoot();
+    const worktreeId = sanitizeBranchName(branch);
+    const worktreePath = options.path
+      ? path.resolve(options.path)
+      : getWorktreePath(settings.worktreeBaseDir, worktreeId);
+    const normalizedWorktreePath = normalizePathForComparison(worktreePath);
+    const normalizedMainRepoPath = normalizePathForComparison(mainRepoPath);
+    const isCurrentCheckoutTarget = normalizedWorktreePath === normalizedMainRepoPath;
+
+    if (options.path && isCurrentCheckoutTarget && !isLinkedWorktree()) {
+      throw new Error(`Refusing to use main repository path as a worktree target: ${worktreePath}`);
+    }
+
+    const existingGitWorktree = listGitWorktrees().find((worktree) => worktree.branch === branch);
+    if (
+      existingGitWorktree &&
+      (!isCurrentCheckoutTarget ||
+        normalizePathForComparison(existingGitWorktree.path) !== normalizedWorktreePath)
+    ) {
+      throw new Error(
+        `Git worktree for branch '${branch}' already exists at ${existingGitWorktree.path}. ` +
+          `Use 'git worktree list' to see all worktrees.`
+      );
+    }
 
     // Create branch if it doesn't exist
     if (!branchExists(branch)) {
@@ -107,7 +127,6 @@ export async function setup(options: SetupOptions): Promise<void> {
     }
 
     // Generate worktree ID
-    const worktreeId = sanitizeBranchName(branch);
     console.log(`Worktree ID: ${worktreeId}`);
 
     // Allocate ports
@@ -117,18 +136,17 @@ export async function setup(options: SetupOptions): Promise<void> {
       `  Frontend: ${ports.frontend}, Backend: ${ports.backend}, Database: ${ports.database}`
     );
 
-    // Get paths
-    const mainRepoPath = getRepoRoot();
-    const worktreePath = options.path
-      ? path.resolve(options.path)
-      : getWorktreePath(settings.worktreeBaseDir, worktreeId);
-
     // Create git worktree
-    console.log(`\nCreating git worktree at ${worktreePath}...`);
-    if (options.path) {
-      prepareCustomWorktreePath(worktreePath, mainRepoPath);
+    if (isCurrentCheckoutTarget) {
+      console.log(`\nUsing existing git worktree at ${worktreePath}...`);
+      checkoutBranch(branch);
+    } else {
+      console.log(`\nCreating git worktree at ${worktreePath}...`);
+      if (options.path) {
+        prepareCustomWorktreePath(worktreePath);
+      }
+      createWorktree(worktreePath, branch);
     }
-    createWorktree(worktreePath, branch);
 
     // Generate configuration files
     console.log('\nGenerating configuration files...');

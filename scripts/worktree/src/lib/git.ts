@@ -74,6 +74,22 @@ export function worktreeExistsForBranch(branch: string): boolean {
 }
 
 /**
+ * Check whether the current checkout is a linked git worktree.
+ */
+export function isLinkedWorktree(): boolean {
+  const gitDir = path.resolve(runCommand('git', ['rev-parse', '--git-dir']).trim());
+  const gitCommonDir = path.resolve(runCommand('git', ['rev-parse', '--git-common-dir']).trim());
+  return gitDir !== gitCommonDir;
+}
+
+/**
+ * Checkout an existing branch in the current worktree.
+ */
+export function checkoutBranch(branch: string): void {
+  runCommand('git', ['checkout', branch]);
+}
+
+/**
  * Create a new git worktree
  */
 export function createWorktree(worktreePath: string, branch: string): void {
