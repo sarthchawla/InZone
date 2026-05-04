@@ -55,7 +55,8 @@ describe('setup command', () => {
     vi.mocked(docker.getDbContainerName).mockReturnValue('inzone-db-wt-feature-auth');
     vi.mocked(docker.getAppContainerName).mockReturnValue('inzone-wt-feature-auth');
     vi.mocked(git.isValidBranchName).mockReturnValue(true);
-    vi.mocked(git.worktreeExistsForBranch).mockReturnValue(false);
+    vi.mocked(git.listGitWorktrees).mockReturnValue([]);
+    vi.mocked(git.isLinkedWorktree).mockReturnValue(false);
     vi.mocked(git.branchExists).mockReturnValue(true);
     vi.mocked(git.getCurrentBranch).mockReturnValue('master');
     vi.mocked(git.getWorktreePath).mockReturnValue('/repo/../InZone-worktrees/feature-auth');
@@ -132,6 +133,38 @@ describe('setup command', () => {
     expect(git.createWorktree).toHaveBeenCalledWith(
       path.resolve(targetPath),
       'feature/auth'
+    );
+  });
+
+  it('adopts the current linked worktree when the custom target is the current repo root', async () => {
+    const tempRoot = mkdtempSync(path.join(tmpdir(), 'inzone-codex-worktree-'));
+    tempDirs.push(tempRoot);
+    const targetPath = path.join(tempRoot, 'InZone');
+    mkdirSync(targetPath);
+    vi.mocked(utils.getRepoRoot).mockReturnValue(targetPath);
+    vi.mocked(git.isLinkedWorktree).mockReturnValue(true);
+
+    await setup({
+      branch: 'codex/52cf',
+      source: 'master',
+      path: targetPath,
+      open: false,
+    });
+
+    expect(git.createWorktree).not.toHaveBeenCalled();
+    expect(git.checkoutBranch).toHaveBeenCalledWith('codex/52cf');
+    expect(configGenerator.generateAllConfigs).toHaveBeenCalledWith(
+      path.resolve(targetPath),
+      'feature-auth',
+      ports,
+      targetPath
+    );
+    expect(registry.addWorktree).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branch: 'codex/52cf',
+        path: path.resolve(targetPath),
+        ports,
+      })
     );
   });
 });
