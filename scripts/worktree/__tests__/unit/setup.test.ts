@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import { setup } from '../../src/commands/setup.js';
 import * as registry from '../../src/lib/registry.js';
@@ -17,6 +19,7 @@ vi.mock('../../src/lib/utils.js');
 
 describe('setup command', () => {
   const ports = { frontend: 5174, backend: 3002, database: 7433 };
+  let tempDirs: string[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,6 +66,10 @@ describe('setup command', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    for (const tempDir of tempDirs) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+    tempDirs = [];
   });
 
   it('uses the configured default worktree path when no custom path is provided', async () => {
@@ -105,6 +112,26 @@ describe('setup command', () => {
         path: path.resolve('/tmp/codex/InZone'),
         ports,
       })
+    );
+  });
+
+  it('allows an existing empty custom target path', async () => {
+    const tempRoot = mkdtempSync(path.join(tmpdir(), 'inzone-worktree-'));
+    tempDirs.push(tempRoot);
+    const targetPath = path.join(tempRoot, 'InZone');
+    mkdirSync(targetPath);
+
+    await setup({
+      branch: 'feature/auth',
+      source: 'master',
+      path: targetPath,
+      open: false,
+    });
+
+    expect(existsSync(targetPath)).toBe(false);
+    expect(git.createWorktree).toHaveBeenCalledWith(
+      path.resolve(targetPath),
+      'feature/auth'
     );
   });
 });

@@ -6,7 +6,7 @@ name = "dynamic worktree env"
 script = '''
 set -euo pipefail
 
-BRANCH="${BRANCH:-$(basename "$CODEX_WORKTREE_PATH")}"
+BRANCH="${BRANCH:-codex/$(basename "$(dirname "$CODEX_WORKTREE_PATH")")}"
 SOURCE="${SOURCE:-master}"
 
 pnpm install --frozen-lockfile
@@ -20,7 +20,7 @@ pnpm install --frozen-lockfile
 script = '''
 set -euo pipefail
 
-BRANCH="${BRANCH:-$(basename "$CODEX_WORKTREE_PATH")}"
+BRANCH="${BRANCH:-codex/$(basename "$(dirname "$CODEX_WORKTREE_PATH")")}"
 
 pnpm worktree:cleanup "$BRANCH" --force || pnpm worktree:cleanup --sync --force
 '''
