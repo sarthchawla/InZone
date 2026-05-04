@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/sarthchawla/InZone/compare/inzone-v0.2.0...inzone-v0.3.0) (2026-05-04)
+
+
+### Features
+
+* **worktree:** allow custom setup path ([#32](https://github.com/sarthchawla/InZone/issues/32)) ([73ba9dc](https://github.com/sarthchawla/InZone/commit/73ba9dcb25d999bec57373176c5bce70f2ef6207))
+
+
+### Bug Fixes
+
+* **worktree:** adopt Codex Desktop checkout ([df65dbb](https://github.com/sarthchawla/InZone/commit/df65dbb52d61168b118825f95a8bfe64f9b1164a))
+
+
+### Documentation
+
+* add versioning system release flow diagram ([#29](https://github.com/sarthchawla/InZone/issues/29)) ([86f5fbb](https://github.com/sarthchawla/InZone/commit/86f5fbb8e43d2ff842ded71c2ed37f6db936f6fc))
+
 ## [0.2.0](https://github.com/sarthchawla/InZone/compare/inzone-v0.1.0...inzone-v0.2.0) (2026-03-14)
 
 
