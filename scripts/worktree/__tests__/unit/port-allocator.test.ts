@@ -16,6 +16,8 @@ describe('port-allocator', () => {
       switch (type) {
         case 'frontend':
           return { min: 5173, max: 5199 };
+        case 'mcpPlayground':
+          return { min: 5273, max: 5299 };
         case 'backend':
           return { min: 3001, max: 3099 };
         case 'database':
@@ -92,7 +94,7 @@ describe('port-allocator', () => {
   });
 
   describe('findAllPorts', () => {
-    it('allocates all three ports', () => {
+    it('allocates all service ports', () => {
       vi.mocked(registry.getUsedPorts).mockReturnValue([]);
       vi.mocked(utils.runCommandSafe).mockReturnValue(null);
 
@@ -100,6 +102,7 @@ describe('port-allocator', () => {
 
       expect(ports).toEqual({
         frontend: 5173,
+        mcpPlayground: 5273,
         backend: 3001,
         database: 7432,
       });
@@ -110,6 +113,8 @@ describe('port-allocator', () => {
         switch (type) {
           case 'frontend':
             return [5173, 5174];
+          case 'mcpPlayground':
+            return [5273, 5274];
           case 'backend':
             return [3001];
           case 'database':
@@ -124,6 +129,7 @@ describe('port-allocator', () => {
 
       expect(ports).toEqual({
         frontend: 5175,
+        mcpPlayground: 5275,
         backend: 3002,
         database: 7434,
       });

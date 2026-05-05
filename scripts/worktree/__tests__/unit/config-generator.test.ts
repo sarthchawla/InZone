@@ -15,7 +15,7 @@ vi.mock('fs');
 vi.mock('../../src/lib/utils.js');
 
 describe('config-generator', () => {
-  const mockPorts = { frontend: 5174, backend: 3002, database: 7433 };
+  const mockPorts = { frontend: 5174, mcpPlayground: 5274, backend: 3002, database: 7433 };
   const mockWorktreePath = '/path/to/worktree';
   const mockWorktreeId = 'feature-auth';
 
@@ -62,6 +62,7 @@ describe('config-generator', () => {
       expect(filePath).toBe(path.join(mockWorktreePath, 'apps', 'web', '.env'));
       expect(content).toContain('VITE_API_URL=http://localhost:3002');
       expect(content).toContain('VITE_DEV_PORT=5174');
+      expect(content).toContain('VITE_MCP_PLAYGROUND_PORT=5274');
       expect(content).toContain('VITE_AUTH_BYPASS=true');
       expect(content).toContain('feature-auth');
     });
@@ -82,8 +83,9 @@ describe('config-generator', () => {
 
       const config = JSON.parse(content as string);
       expect(config.name).toBe('InZone - feature-auth');
-      expect(config.forwardPorts).toEqual([5174, 3002, 7433]);
+      expect(config.forwardPorts).toEqual([5174, 5274, 3002, 7433]);
       expect(config.containerEnv.VITE_DEV_PORT).toBe('5174');
+      expect(config.containerEnv.VITE_MCP_PLAYGROUND_PORT).toBe('5274');
       expect(config.containerEnv.API_PORT).toBe('3002');
       expect(config.containerEnv.DATABASE_URL).toContain('host.docker.internal:7433');
     });
@@ -110,9 +112,11 @@ describe('config-generator', () => {
       );
       expect(content).toContain('container_name: inzone-wt-feature-auth');
       expect(content).toContain('VITE_DEV_PORT=5174');
+      expect(content).toContain('VITE_MCP_PLAYGROUND_PORT=5274');
       expect(content).toContain('API_PORT=3002');
       expect(content).toContain('host.docker.internal:7433');
       expect(content).toContain(`"5174:5174"`);
+      expect(content).toContain(`"5274:5274"`);
       expect(content).toContain(`"3002:3002"`);
       expect(content).toContain('host.docker.internal:host-gateway');
     });
