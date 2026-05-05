@@ -41,3 +41,21 @@
   - Delete column: show a deleting state for the column action until delete plus board/list refetch finishes; then replace the draft from latest board.
   - Delete todo: show `Deleting...` in the task detail panel until delete plus board/list refetch finishes.
 - Keep staged field/DnD edits on explicit Save; loaders are for already-explicit immediate actions.
+
+## Follow-up Unsaved Navigation Protection
+- Warn users before losing staged board edits through browser refresh, tab close, or in-app navigation away from the board.
+- Use the same board dirty state that drives `Save changes`, so the warning appears for staged board metadata, column edits, task priority changes, and drag/drop changes.
+- Do not warn while immediate actions are only loading, because those actions are already in-flight and not user-discardable drafts.
+- Add focused tests for:
+  - `beforeunload` is prevented while board changes are unsaved.
+  - in-app Back to boards navigation prompts while board changes are unsaved.
+  - no prompt after Discard or Save clears the dirty state.
+
+## Follow-up Recording Split
+- Replace one large native video with multiple short scenario videos to keep each artifact reviewable and uploadable.
+- Target scenario files:
+  - `explicit-save-unsaved-navigation.mov`
+  - `explicit-save-board-save.mov`
+  - `explicit-save-task-save.mov`
+  - `explicit-save-immediate-loaders.mov`
+- Add the videos as GitHub PR comments using direct playable Markdown/video embedding where GitHub supports it; fall back to clear direct links only if GitHub sanitizes inline playback.

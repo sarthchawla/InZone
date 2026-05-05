@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useBeforeUnload, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,6 +45,8 @@ interface UndoState {
 
 type ColumnUpdates = { name?: string; description?: string | null; wipLimit?: number | null };
 type TodoUpdates = { priority?: Priority };
+
+const UNSAVED_CHANGES_MESSAGE = 'You have unsaved board changes. Save or discard them before leaving this board.';
 
 function normalizeDescription(description: string | undefined | null) {
   return description || '';
@@ -108,6 +110,7 @@ function hasDraftBoardChanges(
 
 export function BoardView() {
   const { boardId } = useParams<{ boardId: string }>();
+  const navigate = useNavigate();
   const { data: board, isLoading, error } = useBoard(boardId);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -131,6 +134,7 @@ export function BoardView() {
   const [deletingColumnIds, setDeletingColumnIds] = useState<Set<string>>(() => new Set());
   const [deletingTodoIds, setDeletingTodoIds] = useState<Set<string>>(() => new Set());
   const [boardSaveError, setBoardSaveError] = useState<string | null>(null);
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
 
   const hasUnsavedBoardChanges = useMemo(
     () => hasDraftBoardChanges(board, draftBoard, dirtyColumnIds, dirtyTodoIds),
@@ -140,6 +144,57 @@ export function BoardView() {
     isSavingNewColumn || addingTodoColumnIds.size > 0 || deletingColumnIds.size > 0 || deletingTodoIds.size > 0;
   const hasBoardChanges = !isSavingImmediateAction && hasUnsavedBoardChanges;
   const isBoardInteractionDisabled = isSavingBoardDraft || isSavingImmediateAction || hasUnsavedBoardChanges;
+  const shouldWarnBeforeLeaving = hasBoardChanges && !isSavingBoardDraft;
+
+  useBeforeUnload(
+    useCallback((event) => {
+      if (!shouldWarnBeforeLeaving) return;
+      event.preventDefault();
+      event.returnValue = UNSAVED_CHANGES_MESSAGE;
+    }, [shouldWarnBeforeLeaving])
+  );
+
+  useEffect(() => {
+    if (!shouldWarnBeforeLeaving) return;
+
+    const handleInternalNavigation = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target instanceof Element
+        ? event.target.closest<HTMLAnchorElement>('a[href]')
+        : null;
+      if (!target || (target.target && target.target !== '_self')) return;
+
+      const url = new URL(target.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+
+      const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const nextPath = `${url.pathname}${url.search}${url.hash}`;
+      if (currentPath === nextPath) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setPendingNavigationPath(nextPath);
+    };
+
+    document.addEventListener('click', handleInternalNavigation, true);
+    return () => {
+      document.removeEventListener('click', handleInternalNavigation, true);
+    }
+  }, [shouldWarnBeforeLeaving]);
+
+  const handleStayOnBoard = () => {
+    setPendingNavigationPath(null);
+  };
+
+  const handleLeaveWithoutSaving = () => {
+    if (!pendingNavigationPath) return;
+    const nextPath = pendingNavigationPath;
+    setPendingNavigationPath(null);
+    navigate(nextPath);
+  };
 
   useEffect(() => {
     if (board && !hasBoardChanges && !isSavingBoardDraft) {
@@ -1198,7 +1253,42 @@ export function BoardView() {
         shortcuts={[...BOARD_SHORTCUTS]}
       />
 
-      {/* Label Manager */}
+      <AnimatePresence>
+        {pendingNavigationPath && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/30 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="unsaved-navigation-title"
+              aria-describedby="unsaved-navigation-description"
+              className="w-full max-w-sm rounded-xl border border-stone-200 bg-white p-5 shadow-xl"
+              initial={{ scale: 0.98, y: 8 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.98, y: 8 }}
+            >
+              <h2 id="unsaved-navigation-title" className="text-base font-semibold text-stone-900">
+                Unsaved changes
+              </h2>
+              <p id="unsaved-navigation-description" className="mt-2 text-sm text-stone-600">
+                Save or discard your board changes before leaving, or those edits will be lost.
+              </p>
+              <div className="mt-5 flex justify-end gap-2">
+                <Button variant="ghost" onClick={handleStayOnBoard}>
+                  Stay
+                </Button>
+                <Button variant="primary" onClick={handleLeaveWithoutSaving}>
+                  Leave without saving
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

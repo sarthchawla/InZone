@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BoardView } from "./BoardView";
 import { server } from "../../test/mocks/server";
@@ -39,6 +39,7 @@ Object.defineProperty(window, "matchMedia", {
 // Custom render for BoardView that sets up routing with boardId param
 // Does NOT use the default wrapper since it includes BrowserRouter
 function renderBoardView(boardId: string = "board-1") {
+  window.history.pushState({}, "", `/board/${boardId}`);
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -1078,6 +1079,94 @@ describe("BoardView", () => {
 
       // Should not call API with empty name
       expect(patchHandler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("unsaved navigation warning", () => {
+    it("prevents browser unload while board changes are unsaved", async () => {
+      const user = userEvent.setup();
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: "Project Alpha" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("heading", { name: "Project Alpha" }));
+      const boardNameInput = screen.getByDisplayValue("Project Alpha");
+      await user.clear(boardNameInput);
+      await user.type(boardNameInput, "Dirty Project");
+      await user.keyboard("{Enter}");
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+      });
+
+      const event = new Event("beforeunload", { cancelable: true });
+      fireEvent(window, event);
+
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("blocks in-app navigation when the user stays on the board", async () => {
+      const user = userEvent.setup();
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: "Project Alpha" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("heading", { name: "Project Alpha" }));
+      const boardNameInput = screen.getByDisplayValue("Project Alpha");
+      await user.clear(boardNameInput);
+      await user.type(boardNameInput, "Dirty Project");
+      await user.keyboard("{Enter}");
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("back-to-boards"));
+
+      await waitFor(() => {
+        expect(screen.getByRole("alertdialog", { name: "Unsaved changes" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: "Stay" }));
+
+      expect(screen.queryByText("Home Page")).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Dirty Project" })).toBeInTheDocument();
+    });
+
+    it("allows in-app navigation when the user chooses to leave without saving", async () => {
+      const user = userEvent.setup();
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: "Project Alpha" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("heading", { name: "Project Alpha" }));
+      const boardNameInput = screen.getByDisplayValue("Project Alpha");
+      await user.clear(boardNameInput);
+      await user.type(boardNameInput, "Dirty Project");
+      await user.keyboard("{Enter}");
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("back-to-boards"));
+
+      await waitFor(() => {
+        expect(screen.getByRole("alertdialog", { name: "Unsaved changes" })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole("button", { name: "Leave without saving" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Home Page")).toBeInTheDocument();
+      });
     });
   });
 

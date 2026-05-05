@@ -2,6 +2,12 @@
   "url": "http://localhost:5174/",
   "artifact": ".codex/artifacts/explicit-save-browser-verification.gif",
   "nativeArtifact": ".codex/artifacts/explicit-save-browser-verification.mov",
+  "scenarioArtifacts": {
+    "unsavedNavigation": ".codex/artifacts/explicit-save-unsaved-navigation.mov",
+    "boardSave": ".codex/artifacts/explicit-save-board-save.mov",
+    "taskSave": ".codex/artifacts/explicit-save-task-save.mov",
+    "immediateLoaders": ".codex/artifacts/explicit-save-immediate-loaders.mov"
+  },
   "frameCount": 59,
   "coverage": [
     "Board list: starting point",
@@ -64,5 +70,5 @@
     "Column delete: Deleting... until refetch",
     "Temporary column removed after refetch"
   ],
-  "note": "The GIF is the full captioned Browser walkthrough. The native MOV is a compact post-fix in-app browser recording that covers board Save changes, save-time interaction lock, task Save task, add-card loader, and label action loader behavior."
+  "note": "The GIF is the full captioned Browser walkthrough. The native MOV is a compact post-fix in-app browser recording. Scenario MOV files split the proof into unsaved navigation warning, board save, task save, and immediate loader flows for GitHub comments."
 }
