@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-05-05T03:11:36.609Z",
+  "scenarios": [
+    {
+      "slug": "01-settings-create-copy-token-config",
+      "title": "Settings creates a named MCP token and copies token/config",
+      "videos": [
+        "01-settings-create-copy-token-config/01-settings-create-copy-token-config.webm"
+      ],
+      "screenshot": "01-settings-create-copy-token-config/01-settings-create-copy-token-config.png"
+    },
+    {
+      "slug": "02-settings-reveal-copy-hide-revoke-existing-token",
+      "title": "Settings reveals an existing token, copies it again, hides it, and revokes it",
+      "videos": [
+        "02-settings-reveal-copy-hide-revoke-existing-token/02-settings-reveal-copy-hide-revoke-existing-token.webm"
+      ],
+      "screenshot": "02-settings-reveal-copy-hide-revoke-existing-token/02-settings-reveal-copy-hide-revoke-existing-token.png"
+    },
+    {
+      "slug": "03-playground-valid-board-todo-crud",
+      "title": "Playground connects with a valid token and performs board/todo CRUD",
+      "videos": [
+        "03-playground-valid-board-todo-crud/03-playground-valid-board-todo-crud.webm"
+      ],
+      "screenshot": "03-playground-valid-board-todo-crud/03-playground-valid-board-todo-crud.png"
+    },
+    {
+      "slug": "04-playground-auth-failures",
+      "title": "Playground rejects missing, malformed, revoked, and expired tokens",
+      "videos": [
+        "04-playground-auth-failures/04-playground-auth-failures.webm"
+      ],
+      "screenshot": "04-playground-auth-failures/04-playground-auth-failures.png"
+    },
+    {
+      "slug": "05-playground-cross-user-denial",
+      "title": "Playground denies another user board and todo through a valid token",
+      "videos": [
+        "05-playground-cross-user-denial/05-playground-cross-user-denial.webm"
+      ],
+      "screenshot": "05-playground-cross-user-denial/05-playground-cross-user-denial.png"
+    },
+    {
+      "slug": "06-settings-opens-dedicated-playground",
+      "title": "Settings opens the dedicated SDK-backed MCP playground app",
+      "videos": [
+        "06-settings-opens-dedicated-playground/06-settings-opens-dedicated-playground-1.webm",
+        "06-settings-opens-dedicated-playground/06-settings-opens-dedicated-playground-2.webm"
+      ],
+      "screenshot": "06-settings-opens-dedicated-playground/06-settings-opens-dedicated-playground.png"
+    }
+  ]
+}
