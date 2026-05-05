@@ -86,6 +86,7 @@ export async function cleanTestDatabase(): Promise<void> {
   await prisma.boardTemplate.deleteMany({});
 
   // 6. Delete auth-related tables
+  await prisma.mcpToken.deleteMany({});
   await prisma.session.deleteMany({});
   await prisma.account.deleteMany({});
   await prisma.user.deleteMany({});

@@ -1,0 +1,129 @@
+name: BDD MCP Playground
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/mcp-playground/**'
+      - 'apps/mcp/**'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/bdd-mcp-playground.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'apps/mcp-playground/**'
+      - 'apps/mcp/**'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/bdd-mcp-playground.yml'
+
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgresql://test:test@localhost:5432/inzone_test
+  DIRECT_URL: postgresql://test:test@localhost:5432/inzone_test
+
+jobs:
+  mcp-playground-bdd:
+    name: MCP Playground BDD
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: inzone_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm --filter mcp-playground exec playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: pnpm --filter api db:generate
+
+      - name: Run database migrations
+        run: pnpm --filter api db:migrate:deploy
+
+      - name: Seed test database
+        run: pnpm --filter api db:seed
+        env:
+          VITE_AUTH_BYPASS: 'true'
+
+      - name: Start backend API server
+        run: |
+          pnpm --filter api dev &
+          sleep 5
+        env:
+          API_PORT: 3001
+          VITE_AUTH_BYPASS: 'true'
+          VITE_MCP_PLAYGROUND_PORT: 5273
+
+      - name: Start MCP playground dev server
+        run: |
+          pnpm --filter mcp-playground dev &
+          sleep 5
+        env:
+          VITE_API_URL: http://localhost:3001
+          VITE_MCP_PLAYGROUND_PORT: 5273
+
+      - name: Wait for servers
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:3001/health >/dev/null && curl -fsS http://localhost:5273 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Servers did not become ready in time"
+          exit 1
+
+      - name: Run MCP playground BDD
+        run: pnpm --filter mcp-playground test:bdd
+        env:
+          BASE_URL: http://localhost:5273
+          API_URL: http://localhost:3001
+          API_PORT: 3001
+          VITE_MCP_PLAYGROUND_PORT: 5273
+          CI: true
+
+      - name: Upload MCP playground BDD report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mcp-playground-bdd-report
+          path: |
+            apps/mcp-playground/playwright-report/
+            apps/mcp-playground/test-results/
+            apps/mcp-playground/blob-report/
+          retention-days: 14

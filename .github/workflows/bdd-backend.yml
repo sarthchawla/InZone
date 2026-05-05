@@ -5,6 +5,7 @@ on:
     branches: [main, master]
     paths:
       - 'apps/api/**'
+      - 'apps/mcp/**'
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -13,6 +14,7 @@ on:
     branches: [main, master]
     paths:
       - 'apps/api/**'
+      - 'apps/mcp/**'
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -64,6 +66,9 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm --filter api db:generate
+
+      - name: Build MCP package
+        run: pnpm --filter @inzone/mcp build
 
       - name: Run database migrations
         run: pnpm --filter api db:migrate:deploy

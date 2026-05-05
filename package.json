@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "if [ -f .devcontainer/docker-compose.worktree.yml ]; then pnpm run worktree:db-start && pnpm run db:migrate:deploy && pnpm run db:generate && pnpm run db:seed; else pnpm run db:start; fi && turbo run dev",
     "dev:app": "turbo run dev",
+    "dev:mcp-playground": "pnpm --filter mcp-playground dev",
     "build": "pnpm run db:generate && turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",

@@ -12,4 +12,7 @@ export const allowedOrigins: string[] = [
   process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined,
   process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
   process.env.NODE_ENV !== 'production' ? 'http://localhost:5173' : undefined,
+  process.env.NODE_ENV !== 'production'
+    ? `http://localhost:${process.env.VITE_MCP_PLAYGROUND_PORT || '5273'}`
+    : undefined,
 ].filter((v): v is string => Boolean(v));

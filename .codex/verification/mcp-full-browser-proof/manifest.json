@@ -1,0 +1,23 @@
+{
+  "recordedAt": "2026-05-05T01:57:34.213Z",
+  "settingsUrl": "http://localhost:5173/settings",
+  "playgroundUrl": "http://localhost:5273",
+  "proofVideo": "/Users/schawla/.codex/worktrees/2277/InZone/.codex/verification/mcp-full-browser-proof/b1c173e63ac34d85db7692d4c725bfe4.webm",
+  "screenshot": "/Users/schawla/.codex/worktrees/2277/InZone/.codex/verification/mcp-full-browser-proof/mcp-playground-all-cases-result.png",
+  "coveredCases": [
+    "Settings MCP section visible",
+    "Create MCP token from UI",
+    "Copy newly generated token",
+    "Copy newly generated config",
+    "Reveal listed token",
+    "Copy revealed token",
+    "Copy revealed config",
+    "Hide revealed token",
+    "Revoke token",
+    "Legacy hash-only unavailable state when present",
+    "Open dedicated MCP playground",
+    "Connect with official MCP SDK StreamableHTTP client",
+    "Run list-boards successfully",
+    "Show malformed JSON error"
+  ]
+}

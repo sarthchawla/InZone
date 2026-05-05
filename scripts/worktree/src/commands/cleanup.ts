@@ -146,7 +146,7 @@ async function cleanupSingle(target: string, options: CleanupOptions): Promise<v
   console.log(chalk.blue(`\nPreparing to remove worktree: ${worktree.id}\n`));
   console.log(`  Branch:   ${worktree.branch}`);
   console.log(`  Path:     ${worktree.path}`);
-  console.log(`  Ports:    ${worktree.ports.frontend}/${worktree.ports.backend}/${worktree.ports.database}`);
+  console.log(`  Ports:    ${worktree.ports.frontend}/${worktree.ports.mcpPlayground ?? '-'}/${worktree.ports.backend}/${worktree.ports.database}`);
   console.log(`  Database: ${worktree.dbContainerName}`);
 
   // Confirm unless --force
@@ -171,6 +171,9 @@ async function cleanupSingle(target: string, options: CleanupOptions): Promise<v
   console.log(chalk.green(`\n✓ Worktree '${worktree.id}' removed successfully!\n`));
   console.log('Freed resources:');
   console.log(`  - Frontend port: ${worktree.ports.frontend}`);
+  if (worktree.ports.mcpPlayground) {
+    console.log(`  - MCP playground port: ${worktree.ports.mcpPlayground}`);
+  }
   console.log(`  - Backend port:  ${worktree.ports.backend}`);
   console.log(`  - Database port: ${worktree.ports.database}`);
   console.log(`\nNote: Branch '${worktree.branch}' was not deleted. Delete manually if needed:`);
@@ -280,7 +283,7 @@ async function cleanupMultiple(options: CleanupOptions): Promise<void> {
   console.log(chalk.bold(`\n${options.dryRun ? '[DRY RUN] ' : ''}Worktrees to remove:\n`));
   for (const wt of worktreesToRemove) {
     console.log(`  - ${wt.id} (${wt.branch})`);
-    console.log(chalk.dim(`    Ports: ${wt.ports.frontend}/${wt.ports.backend}/${wt.ports.database}`));
+    console.log(chalk.dim(`    Ports: ${wt.ports.frontend}/${wt.ports.mcpPlayground ?? '-'}/${wt.ports.backend}/${wt.ports.database}`));
   }
 
   // Confirm unless --force or --dry-run
@@ -401,7 +404,7 @@ async function cleanupSync(options: CleanupOptions): Promise<void> {
     console.log(chalk.yellow('\nOrphaned entries:\n'));
     for (const { worktree, reason } of orphanedEntries) {
       console.log(`  - ${worktree.id} (${worktree.branch})`);
-      console.log(chalk.dim(`    ${reason} | Ports: ${worktree.ports.frontend}/${worktree.ports.backend}/${worktree.ports.database}`));
+      console.log(chalk.dim(`    ${reason} | Ports: ${worktree.ports.frontend}/${worktree.ports.mcpPlayground ?? '-'}/${worktree.ports.backend}/${worktree.ports.database}`));
     }
   }
 
@@ -438,7 +441,12 @@ async function cleanupSync(options: CleanupOptions): Promise<void> {
     removeDatabase(worktree.id);
     removeDevcontainer(worktree.id);
     removeWorktree(worktree.id);
-    freedPorts.push(worktree.ports.frontend, worktree.ports.backend, worktree.ports.database);
+    freedPorts.push(
+      worktree.ports.frontend,
+      ...(worktree.ports.mcpPlayground ? [worktree.ports.mcpPlayground] : []),
+      worktree.ports.backend,
+      worktree.ports.database,
+    );
     console.log(chalk.green(`  ✓ Removed`));
   }
 
