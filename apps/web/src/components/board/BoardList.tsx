@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, MoreHorizontal, Clock, Pencil, Trash2 } from 'lucide-react';
-import { useBoards, useCreateBoard, useDeleteBoard, useTemplates } from '../../hooks/useBoards';
+import { boardKeys, useBoards, useCreateBoard, useDeleteBoard, useTemplates } from '../../hooks/useBoards';
 import { Input, BoardCardSkeleton, Button } from '../ui';
 import { useToast } from '../../contexts/ToastContext';
 import { getErrorMessage } from '../../api/client';
@@ -36,37 +37,39 @@ function InlineCreateForm({
 }) {
   const { data: templates } = useTemplates();
   const createBoard = useCreateBoard();
+  const queryClient = useQueryClient();
   const toast = useToast();
 
   const [name, setName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [createError, setCreateError] = useState<string | null>(null);
+  const [isSavingBoard, setIsSavingBoard] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
-  const handleCreate = () => {
-    if (!name.trim()) return;
+  const handleCreate = async () => {
+    if (!name.trim() || isSavingBoard) return;
     setCreateError(null);
-    createBoard.mutate(
-      {
+
+    setIsSavingBoard(true);
+    try {
+      await createBoard.mutateAsync({
         name: name.trim(),
         templateId: selectedTemplate || undefined,
-      },
-      {
-        onSuccess: () => {
-          setName('');
-          setSelectedTemplate('');
-          toast.success('Board created successfully');
-          onCancel?.();
-        },
-        onError: (error) => {
-          setCreateError(getErrorMessage(error));
-        },
-      },
-    );
+      });
+      await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      setName('');
+      setSelectedTemplate('');
+      toast.success('Board created successfully');
+      onCancel?.();
+    } catch (error) {
+      setCreateError(getErrorMessage(error));
+    } finally {
+      setIsSavingBoard(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -93,6 +96,7 @@ function InlineCreateForm({
         onKeyDown={handleKeyDown}
         placeholder="Board name..."
         data-testid="board-name-input"
+        disabled={isSavingBoard}
       />
 
       {/* Template chips */}
@@ -100,6 +104,7 @@ function InlineCreateForm({
         <button
           type="button"
           onClick={() => setSelectedTemplate('')}
+          disabled={isSavingBoard}
           className={cn(
             'px-3 py-1 text-xs rounded-full border transition-colors',
             selectedTemplate === ''
@@ -114,6 +119,7 @@ function InlineCreateForm({
             key={t.id}
             type="button"
             onClick={() => setSelectedTemplate(t.id)}
+            disabled={isSavingBoard}
             className={cn(
               'px-3 py-1 text-xs rounded-full border transition-colors',
               selectedTemplate === t.id
@@ -130,18 +136,20 @@ function InlineCreateForm({
         <button
           type="button"
           onClick={handleCreate}
-          disabled={!name.trim() || createBoard.isPending}
+          disabled={!name.trim() || isSavingBoard}
+          aria-busy={isSavingBoard}
           className={cn(
             'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
             'bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed',
           )}
         >
-          {createBoard.isPending ? 'Creating...' : 'Create'}
+          {isSavingBoard ? 'Creating...' : 'Create'}
         </button>
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
+            disabled={isSavingBoard}
             className="px-3 py-1.5 text-sm text-stone-500 hover:text-stone-700 transition-colors"
           >
             Cancel
@@ -161,11 +169,13 @@ function CardDropdown({
   boardName,
   onRename,
   onDelete,
+  isDeleting,
 }: {
   boardId: string;
   boardName: string;
   onRename: (boardId: string) => void;
-  onDelete: (boardId: string) => void;
+  onDelete: (boardId: string) => void | Promise<void>;
+  isDeleting?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -187,8 +197,9 @@ function CardDropdown({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setOpen((v) => !v);
+          if (!isDeleting) setOpen((v) => !v);
         }}
+        disabled={isDeleting}
         className={cn(
           'p-1 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors',
         )}
@@ -213,22 +224,24 @@ function CardDropdown({
                 setOpen(false);
                 onRename(boardId);
               }}
+              disabled={isDeleting}
               className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
             >
               <Pencil className="h-3.5 w-3.5" />
               Rename
             </button>
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setOpen(false);
-                onDelete(boardId);
+                await onDelete(boardId);
               }}
+              disabled={isDeleting}
               className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </button>
           </motion.div>
         )}
@@ -244,10 +257,12 @@ function CardDropdown({
 export function BoardList() {
   const { data: boards, isLoading, error: loadError } = useBoards();
   const deleteBoard = useDeleteBoard();
+  const queryClient = useQueryClient();
   const toast = useToast();
 
   // Inline creation ghost-card state
   const [isCreating, setIsCreating] = useState(false);
+  const [deletingBoardIds, setDeletingBoardIds] = useState<Set<string>>(() => new Set());
 
   // Rename state (placeholder for future inline rename)
   const handleRename = (_boardId: string) => {
@@ -255,15 +270,21 @@ export function BoardList() {
     toast.info('Rename coming soon');
   };
 
-  const handleDelete = (boardId: string) => {
-    deleteBoard.mutate(boardId, {
-      onSuccess: () => {
-        toast.info('Board deleted');
-      },
-      onError: (error) => {
-        toast.error(getErrorMessage(error));
-      },
-    });
+  const handleDelete = async (boardId: string) => {
+    setDeletingBoardIds((current) => new Set(current).add(boardId));
+    try {
+      await deleteBoard.mutateAsync(boardId);
+      await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      toast.info('Board deleted');
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setDeletingBoardIds((current) => {
+        const next = new Set(current);
+        next.delete(boardId);
+        return next;
+      });
+    }
   };
 
   /* ---- Loading skeleton ---- */
@@ -331,6 +352,7 @@ export function BoardList() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {boards.map((board, index) => {
           const isOptimistic = board.id.startsWith('temp-');
+          const isDeleting = deletingBoardIds.has(board.id);
           const totalTodos =
             board.columns?.reduce((sum, col) => sum + (col.todos?.length ?? 0), 0) ?? 0;
           const sortedCols = [...(board.columns ?? [])].sort((a, b) => a.position - b.position);
@@ -356,8 +378,14 @@ export function BoardList() {
                   // Mobile compact: horizontal layout
                   'sm:block',
                   isOptimistic && 'animate-pulse opacity-80',
+                  isDeleting && 'pointer-events-none opacity-60',
                 )}
               >
+                {isDeleting && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 text-sm font-medium text-stone-600">
+                    Deleting...
+                  </div>
+                )}
                 {/* Top row: name + ⋯ */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -375,6 +403,7 @@ export function BoardList() {
                       boardName={board.name}
                       onRename={handleRename}
                       onDelete={handleDelete}
+                      isDeleting={deletingBoardIds.has(board.id)}
                     />
                   )}
                 </div>

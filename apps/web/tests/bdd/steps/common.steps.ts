@@ -149,19 +149,6 @@ Given('the network is unavailable', async ({ page, mockedRoutes }) => {
 
 // Common UI interactions
 When('I click {string}', async ({ page }, buttonText: string) => {
-  // Special handling for "Save" — the revamped UI uses auto-save, so blur the active element
-  // to trigger the debounced save, then wait for the save to complete.
-  if (buttonText === 'Save') {
-    const detailPanel = page.locator('[role="dialog"][aria-label="Task details"]');
-    if (await detailPanel.isVisible().catch(() => false)) {
-      // Blur the focused element to trigger auto-save
-      await page.evaluate(() => (document.activeElement as HTMLElement)?.blur?.());
-      // Wait for the debounced auto-save (800ms debounce + network)
-      await page.waitForTimeout(1500);
-      return;
-    }
-  }
-
   // Special handling for "Cancel" — close the DetailPanel via the X button or Escape
   if (buttonText === 'Cancel') {
     const detailPanel = page.locator('[role="dialog"][aria-label="Task details"]');
@@ -174,7 +161,7 @@ When('I click {string}', async ({ page }, buttonText: string) => {
   // Map common button text to partial matches (prefix-based)
   // e.g., "Create" matches "Create Board", "Save" matches "Save Todo"
   const buttonPrefixes: Record<string, string[]> = {
-    'Save': ['Save', 'Add', 'Submit'],
+    'Save': ['Save', 'Save task', 'Save changes', 'Add', 'Submit'],
     'Create': ['Create'],
     'Cancel': ['Cancel', 'Close'],
     'Delete': ['Delete', 'Remove'],

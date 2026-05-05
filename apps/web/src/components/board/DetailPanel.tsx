@@ -1,21 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Loader2, Trash2, Calendar, Plus, Tag } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { boardKeys } from '../../hooks/useBoards';
 import { useUpdateTodo, useDeleteTodo } from '../../hooks/useTodos';
 import { useLabels } from '../../hooks/useLabels';
 import { RichTextEditor } from '../ui/RichTextEditor';
-import type { Todo, Column, Priority } from '../../types';
+import type { Board, Todo, Column, Priority } from '../../types';
 
 export interface DetailPanelProps {
   todo: Todo | null;
   boardId: string;
   columns: Column[];
   onClose: () => void;
+  onCommitted?: (latestBoard: Board | undefined) => void;
 }
 
-type SaveStatus = 'idle' | 'saving' | 'saved';
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const PRIORITY_CONFIG: { value: Priority; label: string; color: string }[] = [
   { value: 'LOW', label: 'Low', color: 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200' },
@@ -31,8 +34,9 @@ const PRIORITY_ACTIVE: Record<Priority, string> = {
   URGENT: 'bg-red-500 text-white border-red-500',
 };
 
-export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProps) {
+export function DetailPanel({ todo, boardId, columns, onClose, onCommitted }: DetailPanelProps) {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
   const { data: allLabels } = useLabels();
@@ -44,8 +48,8 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const panelRef = useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = useState(400);
@@ -60,34 +64,82 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       setDescription(todo.description ?? '');
       setSelectedLabelIds(todo.labels.map((l) => l.id));
       setSaveStatus('idle');
+      setIsDeleting(false);
     }
-  }, [todo?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [todo]);
 
-  // Debounced save
-  const saveField = useCallback(
-    (updates: Record<string, unknown>) => {
-      if (!todo) return;
-      clearTimeout(debounceRef.current);
-      clearTimeout(savedTimerRef.current);
-
-      debounceRef.current = setTimeout(() => {
-        setSaveStatus('saving');
-        updateTodo.mutate(
-          { id: todo.id, boardId, ...updates },
-          {
-            onSuccess: () => {
-              setSaveStatus('saved');
-              savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
-            },
-            onError: () => {
-              setSaveStatus('idle');
-            },
-          }
-        );
-      }, 800);
-    },
-    [todo, boardId, updateTodo]
+  const dueDateForSave = dueDate ? new Date(`${dueDate}T00:00:00.000Z`).toISOString() : null;
+  const originalDueDate = todo?.dueDate ?? null;
+  const originalLabelIds = useMemo(() => todo?.labels.map((label) => label.id) ?? [], [todo]);
+  const labelsChanged = useMemo(() => {
+    if (selectedLabelIds.length !== originalLabelIds.length) return true;
+    return selectedLabelIds.some((id, index) => id !== originalLabelIds[index]);
+  }, [originalLabelIds, selectedLabelIds]);
+  const hasChanges = Boolean(todo) && (
+    title.trim() !== (todo?.title ?? '') ||
+    priority !== todo?.priority ||
+    dueDateForSave !== originalDueDate ||
+    description !== (todo?.description ?? '') ||
+    labelsChanged
   );
+  const isBusy = saveStatus === 'saving' || isDeleting;
+  const canSave = Boolean(todo && title.trim() && hasChanges && !isBusy);
+
+  const resetDraft = useCallback(() => {
+    if (!todo) return;
+    setTitle(todo.title);
+    setPriority(todo.priority);
+    setDueDate(todo.dueDate ? todo.dueDate.split('T')[0] : '');
+    setDescription(todo.description ?? '');
+    setSelectedLabelIds(todo.labels.map((l) => l.id));
+    setSaveStatus('idle');
+  }, [todo]);
+
+  const handleSave = useCallback(async () => {
+    if (!todo || !canSave) return;
+
+    const updates: {
+      title?: string;
+      description?: string;
+      priority?: Priority;
+      dueDate?: string | null;
+      labelIds?: string[];
+    } = {};
+
+    if (title.trim() !== todo.title) updates.title = title.trim();
+    if (priority !== todo.priority) updates.priority = priority;
+    if (dueDateForSave !== originalDueDate) updates.dueDate = dueDateForSave;
+    if (description !== (todo.description ?? '')) updates.description = description;
+    if (labelsChanged) updates.labelIds = selectedLabelIds;
+
+    clearTimeout(savedTimerRef.current);
+    setSaveStatus('saving');
+
+    try {
+      await updateTodo.mutateAsync({ id: todo.id, boardId, ...updates });
+      await queryClient.refetchQueries({ queryKey: boardKeys.detail(boardId), type: 'active' });
+      await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      onCommitted?.(queryClient.getQueryData<Board>(boardKeys.detail(boardId)));
+      setSaveStatus('saved');
+      savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      setSaveStatus('error');
+    }
+  }, [
+    boardId,
+    canSave,
+    description,
+    dueDateForSave,
+    labelsChanged,
+    originalDueDate,
+    onCommitted,
+    priority,
+    queryClient,
+    selectedLabelIds,
+    title,
+    todo,
+    updateTodo,
+  ]);
 
   // Escape to close
   useEffect(() => {
@@ -101,7 +153,6 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
   // Cleanup timers
   useEffect(() => {
     return () => {
-      clearTimeout(debounceRef.current);
       clearTimeout(savedTimerRef.current);
     };
   }, []);
@@ -128,15 +179,24 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
     document.addEventListener('pointerup', handleUp);
   }, [panelWidth]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!todo) return;
-    deleteTodo.mutate({ id: todo.id, boardId });
-    onClose();
+    setIsDeleting(true);
+    try {
+      await deleteTodo.mutateAsync({ id: todo.id, boardId });
+      await queryClient.refetchQueries({ queryKey: boardKeys.detail(boardId), type: 'active' });
+      await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      onCommitted?.(queryClient.getQueryData<Board>(boardKeys.detail(boardId)));
+      onClose();
+    } catch {
+      setSaveStatus('error');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handlePriorityChange = (p: Priority) => {
     setPriority(p);
-    saveField({ priority: p });
   };
 
   const handleLabelToggle = (labelId: string) => {
@@ -144,7 +204,6 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       ? selectedLabelIds.filter((id) => id !== labelId)
       : [...selectedLabelIds, labelId];
     setSelectedLabelIds(next);
-    saveField({ labelIds: next });
   };
 
   const currentColumn = columns.find((c) => c.id === todo?.columnId);
@@ -168,7 +227,19 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                 Saving...
               </motion.div>
             )}
-            {saveStatus === 'saved' && (
+            {isDeleting && (
+              <motion.div
+                key="deleting"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-1.5 text-xs text-stone-500"
+              >
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Deleting...
+              </motion.div>
+            )}
+            {saveStatus === 'saved' && !isDeleting && (
               <motion.div
                 key="saved"
                 initial={{ opacity: 0 }}
@@ -180,11 +251,23 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                 Saved
               </motion.div>
             )}
+            {saveStatus === 'error' && !isDeleting && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-1.5 text-xs text-red-600"
+              >
+                Failed to save
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
         <button
           type="button"
           onClick={onClose}
+          disabled={isBusy}
           className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
           aria-label="Close panel"
         >
@@ -206,11 +289,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => {
-            if (title.trim() && title !== todo?.title) {
-              saveField({ title: title.trim() });
-            }
-          }}
+          disabled={isBusy}
           className="w-full text-lg font-semibold text-stone-900 border-0 border-b border-transparent focus:border-accent outline-none bg-transparent pb-1 transition-colors placeholder:text-stone-400"
           placeholder="Task title"
         />
@@ -226,6 +305,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                 key={p.value}
                 type="button"
                 onClick={() => handlePriorityChange(p.value)}
+                disabled={isBusy}
                 className={cn(
                   'px-3 py-1.5 text-xs font-medium rounded-lg border transition-all',
                   priority === p.value ? PRIORITY_ACTIVE[p.value] : p.color
@@ -246,10 +326,10 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
           <input
             type="date"
             value={dueDate}
+            disabled={isBusy}
             onChange={(e) => {
               const val = e.target.value;
               setDueDate(val);
-              saveField({ dueDate: val ? new Date(val + 'T00:00:00.000Z').toISOString() : null });
             }}
             className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none transition-colors bg-white"
           />
@@ -270,6 +350,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                   key={id}
                   type="button"
                   onClick={() => handleLabelToggle(id)}
+                  disabled={isBusy}
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors hover:opacity-80"
                   style={{
                     backgroundColor: `${label.color}20`,
@@ -285,6 +366,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
             <button
               type="button"
               onClick={() => setShowLabelPicker((prev) => !prev)}
+              disabled={isBusy}
               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-stone-500 bg-stone-100 hover:bg-stone-200 rounded-full transition-colors"
             >
               <Plus className="w-3 h-3" />
@@ -311,6 +393,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
                         key={label.id}
                         type="button"
                         onClick={() => handleLabelToggle(label.id)}
+                        disabled={isBusy}
                         className={cn(
                           'flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-md transition-colors',
                           isSelected ? 'bg-accent-light text-accent' : 'hover:bg-stone-100 text-stone-700'
@@ -338,25 +421,45 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
           </label>
           <RichTextEditor
             content={description}
-            onChange={(value) => {
-              setDescription(value);
-              saveField({ description: value });
-            }}
+            onChange={setDescription}
             placeholder="Add a description..."
+            editable={!isBusy}
             className="min-h-[150px]"
           />
         </div>
       </div>
 
-      {/* Footer with delete */}
-      <div className="px-5 py-4 border-t border-stone-200 flex-shrink-0">
+      {/* Footer actions */}
+      <div className="px-5 py-4 border-t border-stone-200 bg-white flex-shrink-0 space-y-3">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave}
+            aria-busy={saveStatus === 'saving'}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white transition-all hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+          >
+            {saveStatus === 'saving' && <Loader2 className="h-4 w-4 animate-spin" />}
+            {saveStatus === 'saving' ? 'Saving...' : 'Save task'}
+          </button>
+          <button
+            type="button"
+            onClick={resetDraft}
+            disabled={!hasChanges || isBusy}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-100 disabled:pointer-events-none disabled:opacity-50"
+          >
+            Discard
+          </button>
+        </div>
         <button
           type="button"
           onClick={handleDelete}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full justify-center"
+          disabled={isBusy}
+          aria-busy={isDeleting}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full justify-center disabled:pointer-events-none disabled:opacity-50"
         >
           <Trash2 className="w-4 h-4" />
-          Delete task
+          {isDeleting ? 'Deleting...' : 'Delete task'}
         </button>
       </div>
     </div>

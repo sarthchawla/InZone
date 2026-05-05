@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Pencil, Trash2, Plus, X, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useLabels, useCreateLabel, useUpdateLabel, useDeleteLabel } from '../../hooks';
+import { labelKeys, useLabels, useCreateLabel, useUpdateLabel, useDeleteLabel } from '../../hooks';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -32,11 +33,16 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [savingLabelId, setSavingLabelId] = useState<string | null>(null);
+  const [deletingLabelId, setDeletingLabelId] = useState<string | null>(null);
+  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
 
   const { data: labels = [], isLoading } = useLabels();
+  const queryClient = useQueryClient();
   const createLabel = useCreateLabel();
   const updateLabel = useUpdateLabel();
   const deleteLabel = useDeleteLabel();
+  const isBusy = Boolean(savingLabelId || deletingLabelId || isCreatingLabel);
 
   const handleStartEdit = (id: string, name: string, color: string) => {
     setEditingId(id);
@@ -47,15 +53,19 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
   const handleSaveEdit = async () => {
     if (!editingId || !editName.trim()) return;
 
+    setSavingLabelId(editingId);
     try {
       await updateLabel.mutateAsync({
         id: editingId,
         name: editName.trim(),
         color: editColor,
       });
+      await queryClient.refetchQueries({ queryKey: labelKeys.all, type: 'active' });
       setEditingId(null);
     } catch {
       // Error handled by mutation
+    } finally {
+      setSavingLabelId(null);
     }
   };
 
@@ -68,25 +78,33 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
   const handleCreate = async () => {
     if (!newName.trim()) return;
 
+    setIsCreatingLabel(true);
     try {
       await createLabel.mutateAsync({
         name: newName.trim(),
         color: newColor,
       });
+      await queryClient.refetchQueries({ queryKey: labelKeys.all, type: 'active' });
       setNewName('');
       setNewColor(PRESET_COLORS[0]);
       setShowCreateForm(false);
     } catch {
       // Error handled by mutation
+    } finally {
+      setIsCreatingLabel(false);
     }
   };
 
   const handleDelete = async (id: string) => {
+    setDeletingLabelId(id);
     try {
       await deleteLabel.mutateAsync(id);
+      await queryClient.refetchQueries({ queryKey: labelKeys.all, type: 'active' });
       setDeleteConfirmId(null);
     } catch {
       // Error handled by mutation
+    } finally {
+      setDeletingLabelId(null);
     }
   };
 
@@ -117,6 +135,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         className="h-8"
+                        disabled={isBusy}
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSaveEdit();
@@ -129,6 +148,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                             key={color}
                             type="button"
                             onClick={() => setEditColor(color)}
+                            disabled={isBusy}
                             className={cn(
                               'h-5 w-5 rounded-full',
                               editColor === color && 'ring-2 ring-offset-1 ring-stone-400'
@@ -143,11 +163,16 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         variant="ghost"
                         size="sm"
                         onClick={handleSaveEdit}
-                        disabled={updateLabel.isPending}
+                        disabled={savingLabelId === label.id || isBusy}
+                        aria-busy={savingLabelId === label.id}
                       >
-                        <Check className="h-4 w-4 text-green-600" />
+                        {savingLabelId === label.id ? (
+                          <span className="text-xs text-green-600">Saving...</span>
+                        ) : (
+                          <Check className="h-4 w-4 text-green-600" />
+                        )}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+                      <Button variant="ghost" size="sm" onClick={handleCancelEdit} disabled={isBusy}>
                         <X className="h-4 w-4 text-stone-500" />
                       </Button>
                     </div>
@@ -169,14 +194,16 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         variant="danger"
                         size="sm"
                         onClick={() => handleDelete(label.id)}
-                        disabled={deleteLabel.isPending}
+                        disabled={deletingLabelId === label.id || isBusy}
+                        aria-busy={deletingLabelId === label.id}
                       >
-                        Delete
+                        {deletingLabelId === label.id ? 'Deleting...' : 'Delete'}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeleteConfirmId(null)}
+                        disabled={isBusy}
                       >
                         Cancel
                       </Button>
@@ -201,6 +228,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleStartEdit(label.id, label.name, label.color)}
+                        disabled={isBusy}
                         className="h-7 w-7 p-0"
                         data-testid={`edit-label-${label.id}`}
                         aria-label={`Edit ${label.name}`}
@@ -211,6 +239,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeleteConfirmId(label.id)}
+                        disabled={isBusy}
                         className="h-7 w-7 p-0"
                         data-testid={`delete-label-${label.id}`}
                         aria-label={`Delete ${label.name}`}
@@ -231,6 +260,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Label name"
+              disabled={isCreatingLabel}
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreate();
@@ -246,6 +276,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                   key={color}
                   type="button"
                   onClick={() => setNewColor(color)}
+                  disabled={isCreatingLabel}
                   className={cn(
                     'h-6 w-6 rounded-full',
                     newColor === color && 'ring-2 ring-offset-1 ring-stone-400'
@@ -259,9 +290,10 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                 variant="primary"
                 size="sm"
                 onClick={handleCreate}
-                disabled={!newName.trim() || createLabel.isPending}
+                disabled={!newName.trim() || isCreatingLabel}
+                aria-busy={isCreatingLabel}
               >
-                {createLabel.isPending ? 'Creating...' : 'Create Label'}
+                {isCreatingLabel ? 'Creating...' : 'Create Label'}
               </Button>
               <Button
                 variant="ghost"
@@ -270,6 +302,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
                   setShowCreateForm(false);
                   setNewName('');
                 }}
+                disabled={isCreatingLabel}
               >
                 Cancel
               </Button>
@@ -279,6 +312,7 @@ export function LabelManager({ isOpen, onClose }: LabelManagerProps) {
           <Button
             variant="default"
             onClick={() => setShowCreateForm(true)}
+            disabled={isBusy}
             className="w-full"
           >
             <Plus className="h-4 w-4 mr-2" />

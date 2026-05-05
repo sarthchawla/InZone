@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Check, FileText, GripVertical, MoreHorizontal } from 'lucide-react';
+import { Calendar, Check, FileText, GripVertical, Loader2, MoreHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { Todo, Priority } from '../../types';
 
@@ -15,6 +15,8 @@ interface TodoCardProps {
   isDropTarget?: boolean;
   isSelected?: boolean;
   sortDisabled?: boolean;
+  isDeleting?: boolean;
+  disabled?: boolean;
 }
 
 const priorityBarClass: Record<Priority, string> = {
@@ -47,8 +49,11 @@ export function TodoCard({
   isDropTarget,
   isSelected,
   sortDisabled,
+  isDeleting = false,
+  disabled = false,
 }: TodoCardProps) {
   const [isChecked, setIsChecked] = useState(false);
+  const isDisabled = disabled || isDeleting;
 
   const {
     attributes,
@@ -57,7 +62,7 @@ export function TodoCard({
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ id: todo.id, disabled: sortDisabled });
+  } = useSortable({ id: todo.id, disabled: sortDisabled || disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -76,17 +81,20 @@ export function TodoCard({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDisabled) return;
     onClick?.(todo);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isDisabled) return;
     onContextMenu?.(todo, e);
   };
 
   const handleActionsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDisabled) return;
     onContextMenu?.(todo, e);
   };
 
@@ -155,6 +163,8 @@ export function TodoCard({
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       data-testid="todo-card"
+      aria-busy={isDeleting}
+      aria-disabled={isDisabled}
       className={cn(
         'group relative rounded-xl border border-stone-200/60 bg-white shadow-sm',
         priorityBarClass[todo.priority],
@@ -165,8 +175,16 @@ export function TodoCard({
         isDropTarget && 'ring-2 ring-accent/40 border-accent/30 shadow-md',
         isSelected && 'ring-2 ring-accent',
         isOptimistic && 'animate-pulse opacity-80',
+        isDisabled && 'pointer-events-none opacity-70',
       )}
     >
+      {isDeleting && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/80 text-xs font-medium text-stone-700">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Deleting...
+        </div>
+      )}
+
       {/* Drop insertion indicator above this card */}
       {isDropTarget && (
         <div className="absolute -top-1.5 left-0 right-0 flex items-center drop-insertion-line">
@@ -180,6 +198,7 @@ export function TodoCard({
       <button
         data-testid="actions-button"
         onClick={handleActionsClick}
+        disabled={isDisabled}
         className="absolute top-2 right-2 p-1 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors z-10"
         title="Actions"
       >
@@ -201,8 +220,10 @@ export function TodoCard({
             data-testid="todo-checkbox"
             onClick={(e) => {
               e.stopPropagation();
+              if (isDisabled) return;
               setIsChecked(!isChecked);
             }}
+            disabled={isDisabled}
             className={cn(
               'h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-colors',
               isChecked
