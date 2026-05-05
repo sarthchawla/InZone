@@ -16,6 +16,7 @@ interface TodoCardProps {
   isSelected?: boolean;
   sortDisabled?: boolean;
   isDeleting?: boolean;
+  disabled?: boolean;
 }
 
 const priorityBarClass: Record<Priority, string> = {
@@ -49,8 +50,10 @@ export function TodoCard({
   isSelected,
   sortDisabled,
   isDeleting = false,
+  disabled = false,
 }: TodoCardProps) {
   const [isChecked, setIsChecked] = useState(false);
+  const isDisabled = disabled || isDeleting;
 
   const {
     attributes,
@@ -59,7 +62,7 @@ export function TodoCard({
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ id: todo.id, disabled: sortDisabled });
+  } = useSortable({ id: todo.id, disabled: sortDisabled || disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,17 +81,20 @@ export function TodoCard({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDisabled) return;
     onClick?.(todo);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isDisabled) return;
     onContextMenu?.(todo, e);
   };
 
   const handleActionsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDisabled) return;
     onContextMenu?.(todo, e);
   };
 
@@ -158,6 +164,7 @@ export function TodoCard({
       onContextMenu={handleContextMenu}
       data-testid="todo-card"
       aria-busy={isDeleting}
+      aria-disabled={isDisabled}
       className={cn(
         'group relative rounded-xl border border-stone-200/60 bg-white shadow-sm',
         priorityBarClass[todo.priority],
@@ -168,7 +175,7 @@ export function TodoCard({
         isDropTarget && 'ring-2 ring-accent/40 border-accent/30 shadow-md',
         isSelected && 'ring-2 ring-accent',
         isOptimistic && 'animate-pulse opacity-80',
-        isDeleting && 'pointer-events-none opacity-70',
+        isDisabled && 'pointer-events-none opacity-70',
       )}
     >
       {isDeleting && (
@@ -191,6 +198,7 @@ export function TodoCard({
       <button
         data-testid="actions-button"
         onClick={handleActionsClick}
+        disabled={isDisabled}
         className="absolute top-2 right-2 p-1 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors z-10"
         title="Actions"
       >
@@ -212,8 +220,10 @@ export function TodoCard({
             data-testid="todo-checkbox"
             onClick={(e) => {
               e.stopPropagation();
+              if (isDisabled) return;
               setIsChecked(!isChecked);
             }}
+            disabled={isDisabled}
             className={cn(
               'h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-colors',
               isChecked

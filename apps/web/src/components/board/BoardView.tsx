@@ -725,12 +725,14 @@ export function BoardView() {
 
   // Todo click -> open detail panel
   const handleTodoClick = (todo: Todo) => {
+    if (isBoardInteractionDisabled) return;
     setSelectedTodoId(todo.id);
     setLastClickedTodo(todo);
   };
 
   // Context menu on right-click or button
   const handleTodoContextMenu = (todo: Todo, event: React.MouseEvent) => {
+    if (isBoardInteractionDisabled) return;
     setContextMenuTodo(todo);
     setContextMenuPosition({ x: event.clientX, y: event.clientY });
   };

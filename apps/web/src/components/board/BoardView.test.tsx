@@ -1227,6 +1227,30 @@ describe("BoardView", () => {
       });
     });
 
+    it("does not open detail panel while board changes are unsaved", async () => {
+      const user = userEvent.setup();
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: "Project Alpha" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("heading", { name: "Project Alpha" }));
+      const boardNameInput = screen.getByDisplayValue("Project Alpha");
+      await user.clear(boardNameInput);
+      await user.type(boardNameInput, "Dirty Project");
+      await user.keyboard("{Enter}");
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("First Task"));
+
+      expect(screen.queryByLabelText("Close panel")).not.toBeInTheDocument();
+    });
+
     it("closes detail panel when close button is clicked", async () => {
       const user = userEvent.setup();
 

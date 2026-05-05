@@ -1,6 +1,7 @@
 {
   "url": "http://localhost:5174/",
   "artifact": ".codex/artifacts/explicit-save-browser-verification.gif",
+  "nativeArtifact": ".codex/artifacts/explicit-save-browser-verification.mov",
   "frameCount": 59,
   "coverage": [
     "Board list: starting point",
@@ -63,5 +64,5 @@
     "Column delete: Deleting... until refetch",
     "Temporary column removed after refetch"
   ],
-  "note": "Native screencapture .mov was unavailable in this environment, so this is a Browser-captured animated recording with captioned frames."
+  "note": "The GIF is the full captioned Browser walkthrough. The native MOV is a compact post-fix in-app browser recording that covers board Save changes, save-time interaction lock, task Save task, add-card loader, and label action loader behavior."
 }

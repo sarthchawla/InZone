@@ -428,6 +428,7 @@ export function BoardColumn({
                   isDropTarget={overTodoId === todo.id}
                   sortDisabled={isColumnDragActive}
                   isDeleting={deletingTodoIds?.has(todo.id)}
+                  disabled={isColumnDisabled}
                 />
               </motion.div>
             ))}

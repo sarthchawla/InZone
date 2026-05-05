@@ -594,6 +594,28 @@ describe("BoardColumn", () => {
 
       expect(onTodoClick).toHaveBeenCalledWith(todo);
     });
+
+    it("does not open todos while the column is disabled", () => {
+      const { fireEvent } = require("@testing-library/react");
+      const onTodoClick = vi.fn();
+      const todo = createMockTodo({ id: "todo-1", title: "Disabled Todo" });
+      const column = createMockColumn({ todos: [todo] });
+
+      renderWithDnd(
+        <BoardColumn
+          column={column}
+          onAddTodo={vi.fn()}
+          onTodoClick={onTodoClick}
+          disabled
+        />,
+      );
+
+      const todoCard = screen.getByTestId("todo-card");
+      expect(todoCard).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(todoCard);
+
+      expect(onTodoClick).not.toHaveBeenCalled();
+    });
   });
 
   describe("dragging state", () => {
