@@ -26,8 +26,15 @@ vi.mock("../lib/auth-client", () => ({
 
 vi.mock("../api/client", () => ({
   apiClient: {
-    get: vi.fn().mockResolvedValue({ data: { configured: true } }),
+    defaults: { baseURL: "/api" },
+    get: vi.fn((url: string) => {
+      if (url === "/mcp-tokens") {
+        return Promise.resolve({ data: [] });
+      }
+      return Promise.resolve({ data: { configured: true } });
+    }),
     post: vi.fn(),
+    delete: vi.fn(),
   },
   getErrorMessage: (err: any) => err?.response?.data?.error || "Error",
 }));
@@ -39,14 +46,36 @@ const mockUpdateUser = authClient.updateUser as ReturnType<typeof vi.fn>;
 const mockChangePassword = authClient.changePassword as ReturnType<typeof vi.fn>;
 const mockRevokeOtherSessions = authClient.revokeOtherSessions as ReturnType<typeof vi.fn>;
 const mockListAccounts = authClient.listAccounts as ReturnType<typeof vi.fn>;
+const mockApiGet = apiClient.get as ReturnType<typeof vi.fn>;
 const mockApiPost = apiClient.post as ReturnType<typeof vi.fn>;
+const mockApiDelete = apiClient.delete as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  Object.assign(navigator, {
+    clipboard: {
+      writeText: vi.fn().mockResolvedValue(undefined),
+    },
+  });
+  mockApiGet.mockImplementation((url: string) => {
+    if (url === "/mcp-tokens") {
+      return Promise.resolve({ data: [] });
+    }
+    return Promise.resolve({ data: { configured: true } });
+  });
   // Default: user has credential account
   mockListAccounts.mockResolvedValue({
     data: [{ providerId: "credential" }],
   });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      text: () =>
+        Promise.resolve(
+          'event: message\ndata: {"result":{"content":[{"type":"text","text":"[]"}]},"jsonrpc":"2.0","id":1}\n\n'
+        ),
+    })
+  );
 });
 
 describe("SettingsPage", () => {
@@ -336,5 +365,230 @@ describe("SettingsPage", () => {
 
     const changeBtn = screen.getByRole("button", { name: "Update Password" });
     expect(changeBtn).toBeDisabled();
+  });
+
+  it("renders MCP access with the current user id", async () => {
+    render(<SettingsPage />);
+
+    expect(screen.getByText("MCP Access")).toBeInTheDocument();
+    expect(screen.getByText("MCP_IMPERSONATED_USER_ID")).toBeInTheDocument();
+    expect(screen.getByText("user-1")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockApiGet).toHaveBeenCalledWith("/mcp-tokens");
+    });
+  });
+
+  it("creates an MCP token and shows the raw token once", async () => {
+    mockApiPost.mockResolvedValueOnce({
+      data: {
+        id: "token-1",
+        name: "Claude Desktop",
+        token: "iz_mcp_secret",
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    render(<SettingsPage />);
+
+    fireEvent.change(screen.getByPlaceholderText("Claude Desktop"), {
+      target: { value: "Claude Desktop" },
+    });
+    fireEvent.change(screen.getByDisplayValue("90 days"), {
+      target: { value: "never" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate Token" }));
+
+    await waitFor(() => {
+      expect(mockApiPost).toHaveBeenCalledWith("/mcp-tokens", {
+        name: "Claude Desktop",
+        expiresIn: "never",
+      });
+    });
+    expect(screen.getByText("iz_mcp_secret")).toBeInTheDocument();
+    expect(screen.getByText(/will not be shown again/i)).toBeInTheDocument();
+  });
+
+  it("copies a generated MCP token", async () => {
+    mockApiPost.mockResolvedValueOnce({
+      data: {
+        id: "token-1",
+        name: "Claude Desktop",
+        token: "iz_mcp_secret",
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    render(<SettingsPage />);
+
+    fireEvent.change(screen.getByPlaceholderText("Claude Desktop"), {
+      target: { value: "Claude Desktop" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate Token" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("iz_mcp_secret")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy Token" }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("iz_mcp_secret");
+    });
+  });
+
+  it("falls back to document copy when Clipboard API is unavailable", async () => {
+    Object.assign(navigator, { clipboard: undefined });
+    const execCommand = vi.fn().mockReturnValue(true);
+    Object.assign(document, { execCommand });
+    mockApiPost.mockResolvedValueOnce({
+      data: {
+        id: "token-1",
+        name: "Claude Desktop",
+        token: "iz_mcp_secret",
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    render(<SettingsPage />);
+
+    fireEvent.change(screen.getByPlaceholderText("Claude Desktop"), {
+      target: { value: "Claude Desktop" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate Token" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("iz_mcp_secret")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy Token" }));
+
+    await waitFor(() => {
+      expect(execCommand).toHaveBeenCalledWith("copy");
+      expect(screen.getByText("Copied to clipboard.")).toBeInTheDocument();
+    });
+  });
+
+  it("revokes an existing MCP token", async () => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === "/mcp-tokens") {
+        return Promise.resolve({
+          data: [
+            {
+            id: "token-1",
+            name: "Claude Desktop",
+            canReveal: true,
+            expiresAt: null,
+            lastUsedAt: null,
+              revokedAt: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ data: { configured: true } });
+    });
+    mockApiDelete.mockResolvedValueOnce({});
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Claude Desktop")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Revoke" }));
+
+    await waitFor(() => {
+      expect(mockApiDelete).toHaveBeenCalledWith("/mcp-tokens/token-1");
+    });
+  });
+
+  it("reveals and copies an existing MCP token", async () => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === "/mcp-tokens") {
+        return Promise.resolve({
+          data: [
+            {
+              id: "token-1",
+              name: "Claude Desktop",
+              canReveal: true,
+              expiresAt: null,
+              lastUsedAt: null,
+              revokedAt: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+      if (url === "/mcp-tokens/token-1") {
+        return Promise.resolve({
+          data: {
+            id: "token-1",
+            name: "Claude Desktop",
+            token: "iz_mcp_existing_secret",
+            expiresAt: null,
+            lastUsedAt: null,
+            revokedAt: null,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
+      return Promise.resolve({ data: { configured: true } });
+    });
+
+    render(<SettingsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Show Token" }));
+
+    expect(await screen.findByText("iz_mcp_existing_secret")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Copy Token" }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("iz_mcp_existing_secret");
+    });
+  });
+
+  it("marks hash-only MCP tokens as unavailable for reveal", async () => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === "/mcp-tokens") {
+        return Promise.resolve({
+          data: [
+            {
+              id: "token-1",
+              name: "Legacy Token",
+              canReveal: false,
+              expiresAt: null,
+              lastUsedAt: null,
+              revokedAt: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ data: { configured: true } });
+    });
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Legacy Token")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/cannot be shown again/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Token" })).toBeDisabled();
+  });
+
+  it("links to the MCP playground dev app", async () => {
+    const open = vi.fn();
+    Object.assign(window, { open });
+
+    render(<SettingsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Playground" }));
+
+    expect(open).toHaveBeenCalledWith("http://localhost:5273/", "_blank", "noopener,noreferrer");
   });
 });

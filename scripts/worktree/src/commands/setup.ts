@@ -133,7 +133,7 @@ export async function setup(options: SetupOptions): Promise<void> {
     console.log('Allocating ports...');
     const ports = findAllPorts();
     console.log(
-      `  Frontend: ${ports.frontend}, Backend: ${ports.backend}, Database: ${ports.database}`
+      `  Frontend: ${ports.frontend}, MCP Playground: ${ports.mcpPlayground}, Backend: ${ports.backend}, Database: ${ports.database}`
     );
 
     // Create git worktree
@@ -178,6 +178,7 @@ export async function setup(options: SetupOptions): Promise<void> {
     console.log('┌─────────────────────────────────────────────────────────┐');
     console.log(`│ Path:      ${worktreePath.padEnd(45)} │`);
     console.log(`│ Frontend:  http://localhost:${String(ports.frontend).padEnd(29)} │`);
+    console.log(`│ MCP Play:  http://localhost:${String(ports.mcpPlayground ?? ports.frontend + 100).padEnd(29)} │`);
     console.log(`│ Backend:   http://localhost:${String(ports.backend).padEnd(29)} │`);
     console.log(`│ Database:  localhost:${String(ports.database).padEnd(35)} │`);
     console.log(`│ DB Container: ${dbContainerName.padEnd(42)} │`);

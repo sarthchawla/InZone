@@ -55,6 +55,9 @@ export function loadRegistry(): WorktreeRegistry {
   if (!registry.settings.portRanges) {
     registry.settings.portRanges = DEFAULT_SETTINGS.portRanges;
   }
+  if (!registry.settings.portRanges.mcpPlayground) {
+    registry.settings.portRanges.mcpPlayground = DEFAULT_SETTINGS.portRanges.mcpPlayground;
+  }
   // Update database port range if still using old range
   if (registry.settings.portRanges.database.min === 5435) {
     registry.settings.portRanges.database = DEFAULT_SETTINGS.portRanges.database;
@@ -165,7 +168,9 @@ export function listWorktrees(): Worktree[] {
  */
 export function getUsedPorts(serviceType: ServiceType): number[] {
   const registry = loadRegistry();
-  return registry.worktrees.map((w) => w.ports[serviceType]);
+  return registry.worktrees
+    .map((w) => w.ports[serviceType])
+    .filter((port): port is number => typeof port === 'number');
 }
 
 /**

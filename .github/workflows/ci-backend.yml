@@ -5,6 +5,7 @@ on:
     branches: [main, master]
     paths:
       - 'apps/api/**'
+      - 'apps/mcp/**'
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -13,6 +14,7 @@ on:
     branches: [main, master]
     paths:
       - 'apps/api/**'
+      - 'apps/mcp/**'
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -48,7 +50,9 @@ jobs:
         run: pnpm install
 
       - name: Run ESLint on backend
-        run: pnpm --filter api lint
+        run: |
+          pnpm --filter @inzone/mcp lint
+          pnpm --filter api lint
 
   build:
     name: Build Backend
@@ -77,7 +81,9 @@ jobs:
         run: pnpm --filter api db:generate
 
       - name: Build backend
-        run: pnpm --filter api build
+        run: |
+          pnpm --filter @inzone/mcp build
+          pnpm --filter api build
 
   unit-tests:
     name: Unit Tests Backend
@@ -106,7 +112,9 @@ jobs:
         run: pnpm --filter api db:generate
 
       - name: Run Backend Unit Tests with Coverage
-        run: pnpm --filter api test:coverage
+        run: |
+          pnpm --filter @inzone/mcp test:coverage
+          pnpm --filter api test:coverage
 
       - name: Upload Backend Coverage to Codecov
         uses: codecov/codecov-action@v4

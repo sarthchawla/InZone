@@ -155,6 +155,7 @@ export class CustomWorld extends World<CustomWorldParameters> {
     await prisma.label.deleteMany({});
     await prisma.column.deleteMany({});
     await prisma.board.deleteMany({});
+    await prisma.mcpToken.deleteMany({});
     // Note: We don't delete BoardTemplate - templates are seeded once and reused
   }
 

@@ -50,14 +50,19 @@ Thumbs.db
 # Test coverage
 apps/api/coverage/
 apps/web/coverage/
+apps/mcp/coverage/
 
 # Playwright BDD generated files
 apps/web/.features-gen/
+apps/mcp-playground/.features-gen/
 
 # Playwright artifacts
 apps/web/playwright-report/
 apps/web/blob-report/
 apps/web/test-results/
+apps/mcp-playground/playwright-report/
+apps/mcp-playground/blob-report/
+apps/mcp-playground/test-results/
 
 # Playwright MCP
 .playwright-mcp/

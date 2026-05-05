@@ -40,6 +40,8 @@ export interface Ports {
   backend: number;
   /** Database port (PostgreSQL) - range: 7432-7499 */
   database: number;
+  /** MCP playground port (Vite dev server) - range: 5273-5299 */
+  mcpPlayground?: number;
 }
 
 export interface RegistrySettings {
@@ -48,6 +50,7 @@ export interface RegistrySettings {
   /** Port ranges for each service type */
   portRanges: {
     frontend: PortRange;
+    mcpPlayground: PortRange;
     backend: PortRange;
     database: PortRange;
   };
@@ -60,13 +63,14 @@ export interface PortRange {
 
 export type WorktreeStatus = 'active' | 'stopped' | 'error';
 
-export type ServiceType = 'frontend' | 'backend' | 'database';
+export type ServiceType = 'frontend' | 'backend' | 'database' | 'mcpPlayground';
 
 /**
  * Default port ranges
  */
 export const DEFAULT_PORT_RANGES: Record<ServiceType, PortRange> = {
   frontend: { min: 5173, max: 5199 },
+  mcpPlayground: { min: 5273, max: 5299 },
   backend: { min: 3001, max: 3099 },
   database: { min: 7432, max: 7499 }, // Updated from 5435-5499
 };

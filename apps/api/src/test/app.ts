@@ -9,6 +9,7 @@ import { labelsRouter } from "../routes/labels.js";
 import { invitesRouter } from "../routes/invites.js";
 import { accessRequestsRouter } from "../routes/access-requests.js";
 import { securityQuestionsRouter } from "../routes/security-questions.js";
+import { mcpTokensRouter } from "../routes/mcp-tokens.js";
 import { errorHandler } from "../middleware/errorHandler.js";
 
 export const TEST_USER = {
@@ -57,6 +58,7 @@ export function createTestApp(): Express {
   app.use("/api/invites", invitesRouter);
   app.use("/api/access-requests", accessRequestsRouter);
   app.use("/api/security-questions", securityQuestionsRouter);
+  app.use("/api/mcp-tokens", mcpTokensRouter);
 
   // Error handling
   app.use(errorHandler);

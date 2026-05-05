@@ -61,6 +61,7 @@ export function findFreePort(serviceType: ServiceType): number {
 export function findAllPorts(): Ports {
   return {
     frontend: findFreePort('frontend'),
+    mcpPlayground: findFreePort('mcpPlayground'),
     backend: findFreePort('backend'),
     database: findFreePort('database'),
   };
@@ -71,6 +72,7 @@ export function findAllPorts(): Ports {
  */
 export function validatePorts(ports: Ports): boolean {
   const usedFrontend = new Set(getUsedPorts('frontend'));
+  const usedMcpPlayground = new Set(getUsedPorts('mcpPlayground'));
   const usedBackend = new Set(getUsedPorts('backend'));
   const usedDatabase = new Set(getUsedPorts('database'));
 
@@ -78,6 +80,12 @@ export function validatePorts(ports: Ports): boolean {
     return false;
   }
   if (usedBackend.has(ports.backend) || isPortInUse(ports.backend)) {
+    return false;
+  }
+  if (
+    typeof ports.mcpPlayground === 'number' &&
+    (usedMcpPlayground.has(ports.mcpPlayground) || isPortInUse(ports.mcpPlayground))
+  ) {
     return false;
   }
   if (usedDatabase.has(ports.database) || isPortInUse(ports.database)) {

@@ -15,7 +15,10 @@ import { labelsRouter } from './routes/labels.js';
 import { invitesRouter } from './routes/invites.js';
 import { accessRequestsRouter } from './routes/access-requests.js';
 import { securityQuestionsRouter } from './routes/security-questions.js';
+import { mcpTokensRouter } from './routes/mcp-tokens.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { createMcpRouter } from '@inzone/mcp/express';
+import { prisma } from './lib/prisma.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,6 +97,8 @@ app.use('/api/columns', requireAuth, columnsRouter);
 app.use('/api/todos', requireAuth, todosRouter);
 app.use('/api/templates', requireAuth, templatesRouter);
 app.use('/api/labels', requireAuth, labelsRouter);
+app.use('/api/mcp-tokens', requireAuth, mcpTokensRouter);
+app.use('/api/mcp', createMcpRouter(prisma));
 
 // Error handling
 app.use(errorHandler);

@@ -31,10 +31,31 @@ model User {
   sessions           Session[]
   accounts           Account[]
   boards             Board[]
+  mcpTokens          McpToken[]
   invitesCreated     Invite[]           @relation("InviteCreator")
   securityQuestions  SecurityQuestion[]
 
   @@map("user")
+}
+
+model McpToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  tokenHash  String    @unique
+  encryptedToken String?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([revokedAt])
+  @@map("mcp_tokens")
 }
 
 model Session {

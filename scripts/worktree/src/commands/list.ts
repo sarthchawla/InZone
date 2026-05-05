@@ -76,7 +76,7 @@ export async function list(options: ListOptions): Promise<void> {
       ' │ ' +
       chalk.bold('Branch'.padEnd(24)) +
       ' │ ' +
-      chalk.bold('Ports (F/B/D)'.padEnd(20)) +
+      chalk.bold('Ports (F/M/B/D)'.padEnd(20)) +
       ' │ ' +
       chalk.bold('Status'.padEnd(8)) +
       ' │ ' +
@@ -88,7 +88,7 @@ export async function list(options: ListOptions): Promise<void> {
   );
 
   for (const wt of worktrees) {
-    const ports = `${wt.ports.frontend}/${wt.ports.backend}/${wt.ports.database}`;
+    const ports = `${wt.ports.frontend}/${wt.ports.mcpPlayground ?? '-'}/${wt.ports.backend}/${wt.ports.database}`;
     const status = getActualStatus(wt);
     const lastAccess = formatDate(wt.lastAccessed);
 

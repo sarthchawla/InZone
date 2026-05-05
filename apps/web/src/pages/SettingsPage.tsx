@@ -17,6 +17,37 @@ const SECURITY_QUESTIONS = [
   'What is your favorite book?',
 ];
 
+type McpTokenMetadata = {
+  id: string;
+  name: string;
+  canReveal: boolean;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CreatedMcpToken = {
+  id: string;
+  name: string;
+  token: string;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+type RevealedMcpToken = CreatedMcpToken & {
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+};
+
+const MCP_EXPIRY_OPTIONS = [
+  { value: '30d', label: '30 days' },
+  { value: '90d', label: '90 days' },
+  { value: '1y', label: '1 year' },
+  { value: 'never', label: 'No expiry' },
+] as const;
+
 function SectionCard({
   children,
   delay = 0,
@@ -97,12 +128,23 @@ export function SettingsPage() {
     { question: '', answer: '' },
   ]);
   const [sqMsg, setSqMsg] = useState('');
+  const [mcpTokens, setMcpTokens] = useState<McpTokenMetadata[]>([]);
+  const [mcpTokenName, setMcpTokenName] = useState('');
+  const [mcpTokenExpiry, setMcpTokenExpiry] = useState<(typeof MCP_EXPIRY_OPTIONS)[number]['value']>('90d');
+  const [createdMcpToken, setCreatedMcpToken] = useState<CreatedMcpToken | null>(null);
+  const [revealedMcpTokens, setRevealedMcpTokens] = useState<Record<string, RevealedMcpToken>>({});
+  const [mcpMsg, setMcpMsg] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     apiClient
       .get('/security-questions/status')
       .then(({ data }) => setSqConfigured(data.configured))
+      .catch(() => {});
+
+    apiClient
+      .get('/mcp-tokens')
+      .then(({ data }) => setMcpTokens(data))
       .catch(() => {});
 
     // Check if user has a credential (email/password) account
@@ -119,6 +161,11 @@ export function SettingsPage() {
       setHasCredential(true);
     });
   }, []);
+
+  async function refreshMcpTokens() {
+    const { data } = await apiClient.get('/mcp-tokens');
+    setMcpTokens(data);
+  }
 
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -187,6 +234,114 @@ export function SettingsPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     }
+  }
+
+  async function handleCreateMcpToken(e: React.FormEvent) {
+    e.preventDefault();
+    setMcpMsg('');
+    setError('');
+    setCreatedMcpToken(null);
+    try {
+      const { data } = await apiClient.post('/mcp-tokens', {
+        name: mcpTokenName,
+        expiresIn: mcpTokenExpiry,
+      });
+      setCreatedMcpToken(data);
+      setMcpTokenName('');
+      setMcpMsg('MCP token created.');
+      await refreshMcpTokens();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  async function handleRevokeMcpToken(id: string) {
+    setMcpMsg('');
+    setError('');
+    try {
+      await apiClient.delete(`/mcp-tokens/${id}`);
+      setMcpMsg('MCP token revoked.');
+      await refreshMcpTokens();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  function buildMcpClientConfig(token: string) {
+    return JSON.stringify(
+      {
+        mcpServers: {
+          inzone: {
+            url: `${window.location.origin}/api/mcp`,
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        },
+      },
+      null,
+      2,
+    );
+  }
+
+  async function handleCopyMcpToken(text: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!copied) {
+          throw new Error('Copy command failed');
+        }
+      }
+      setMcpMsg('Copied to clipboard.');
+    } catch {
+      setMcpMsg('Copy failed. Select the token manually.');
+    }
+  }
+
+  async function handleRevealMcpToken(id: string) {
+    setMcpMsg('');
+    setError('');
+    try {
+      const { data } = await apiClient.get(`/mcp-tokens/${id}`);
+      setRevealedMcpTokens((tokens) => ({
+        ...tokens,
+        [id]: data,
+      }));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  function handleHideMcpToken(id: string) {
+    setRevealedMcpTokens((tokens) => {
+      const next = { ...tokens };
+      delete next[id];
+      return next;
+    });
+  }
+
+  function getMcpPlaygroundUrl() {
+    const configuredPort = import.meta.env.VITE_MCP_PLAYGROUND_PORT;
+    const url = new URL(window.location.origin);
+    url.port = configuredPort || '5273';
+    return url.toString();
+  }
+
+  function formatDate(value: string | null) {
+    if (!value) return 'Never';
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(value));
   }
 
   const passwordFormValid = hasCredential
@@ -444,6 +599,158 @@ export function SettingsPage() {
                 </motion.form>
               )}
             </div>
+          </div>
+        </SectionCard>
+
+        {/* MCP Access section */}
+        <SectionCard delay={0.13}>
+          <SectionHeader
+            icon={
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5M4.5 6.75h.008v.008H4.5V6.75zm0 5.25h.008v.008H4.5V12zm0 5.25h.008v.008H4.5v-.008z" />
+              </svg>
+            }
+            title="MCP Access"
+            description="Generate scoped tokens for Model Context Protocol clients"
+          />
+          <div className="px-6 pb-6 space-y-5">
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-stone-500">MCP_IMPERSONATED_USER_ID</p>
+              <code className="mt-1 block break-all text-sm text-stone-800">{user?.id}</code>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-stone-900">MCP Playground</p>
+                <p className="text-xs text-stone-500 mt-0.5">Use the separate SDK-backed dev app for tool discovery and calls.</p>
+              </div>
+              <Button type="button" size="sm" onClick={() => window.open(getMcpPlaygroundUrl(), '_blank', 'noopener,noreferrer')}>
+                Open Playground
+              </Button>
+            </div>
+
+            <form onSubmit={handleCreateMcpToken} className="grid gap-3 sm:grid-cols-[1fr_160px_auto] sm:items-end">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1.5">Token name</label>
+                <Input
+                  value={mcpTokenName}
+                  onChange={(e) => setMcpTokenName(e.target.value)}
+                  placeholder="Claude Desktop"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1.5">Expiry</label>
+                <select
+                  value={mcpTokenExpiry}
+                  onChange={(e) => setMcpTokenExpiry(e.target.value as typeof mcpTokenExpiry)}
+                  className="min-h-[44px] w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-accent focus:ring-2 focus:ring-accent/30"
+                >
+                  {MCP_EXPIRY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button type="submit" variant="primary" disabled={!mcpTokenName.trim()}>
+                Generate Token
+              </Button>
+            </form>
+
+            {createdMcpToken && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-amber-900">Copy this token now. It will not be shown again.</p>
+                  <code className="mt-2 block break-all rounded-md bg-white border border-amber-200 px-3 py-2 text-xs text-stone-800">
+                    {createdMcpToken.token}
+                  </code>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" onClick={() => handleCopyMcpToken(createdMcpToken.token)}>
+                    Copy Token
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleCopyMcpToken(buildMcpClientConfig(createdMcpToken.token))}
+                  >
+                    Copy Config
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {mcpTokens.length === 0 ? (
+                <p className="text-sm text-stone-500">No MCP tokens yet.</p>
+              ) : (
+                mcpTokens.map((token) => {
+                  const revealedToken = revealedMcpTokens[token.id];
+
+                  return (
+                    <div key={token.id} className="rounded-lg border border-stone-200 p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-stone-900 truncate">{token.name}</p>
+                          <p className="text-xs text-stone-500">
+                            Expires {formatDate(token.expiresAt)} · Last used {formatDate(token.lastUsedAt)}
+                            {token.revokedAt ? ` · Revoked ${formatDate(token.revokedAt)}` : ''}
+                          </p>
+                          {!token.canReveal && (
+                            <p className="mt-1 text-xs text-amber-700">
+                              This token was created before revealable storage and cannot be shown again.
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {revealedToken ? (
+                            <Button type="button" size="sm" onClick={() => handleHideMcpToken(token.id)}>
+                              Hide
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={!token.canReveal}
+                              onClick={() => handleRevealMcpToken(token.id)}
+                            >
+                              Show Token
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            disabled={!!token.revokedAt}
+                            onClick={() => handleRevokeMcpToken(token.id)}
+                          >
+                            Revoke
+                          </Button>
+                        </div>
+                      </div>
+
+                      {revealedToken && (
+                        <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-3 space-y-3">
+                          <code className="block break-all rounded-md bg-white border border-stone-200 px-3 py-2 text-xs text-stone-800">
+                            {revealedToken.token}
+                          </code>
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="button" size="sm" onClick={() => handleCopyMcpToken(revealedToken.token)}>
+                              Copy Token
+                            </Button>
+                            <Button type="button" size="sm" onClick={() => handleCopyMcpToken(buildMcpClientConfig(revealedToken.token))}>
+                              Copy Config
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <SuccessMessage message={mcpMsg} />
           </div>
         </SectionCard>
 
