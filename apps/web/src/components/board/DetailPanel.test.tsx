@@ -256,14 +256,16 @@ describe('DetailPanel', () => {
       );
 
       const onClose = vi.fn();
+      const onCommitted = vi.fn();
       const todo = createTestTodo();
-      render(<DetailPanel todo={todo} {...defaultProps} onClose={onClose} />);
+      render(<DetailPanel todo={todo} {...defaultProps} onClose={onClose} onCommitted={onCommitted} />);
 
       fireEvent.click(screen.getByText('Delete task'));
       expect(screen.getAllByText('Deleting...').length).toBeGreaterThan(0);
       await waitFor(() => {
         expect(deleteCalled).toBe(true);
         expect(onClose).toHaveBeenCalled();
+        expect(onCommitted).toHaveBeenCalled();
       });
     });
   });
@@ -279,7 +281,8 @@ describe('DetailPanel', () => {
       );
 
       const todo = createTestTodo({ title: 'Original Title' });
-      render(<DetailPanel todo={todo} {...defaultProps} />);
+      const onCommitted = vi.fn();
+      render(<DetailPanel todo={todo} {...defaultProps} onCommitted={onCommitted} />);
 
       const titleInput = screen.getByDisplayValue('Original Title');
       fireEvent.change(titleInput, { target: { value: 'New Title' } });
@@ -293,6 +296,7 @@ describe('DetailPanel', () => {
       }, { timeout: 3000 });
 
       expect(capturedBody!.title).toBe('New Title');
+      expect(onCommitted).toHaveBeenCalled();
     });
 
     it('does not save title on blur when unchanged', () => {

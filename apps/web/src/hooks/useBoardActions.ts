@@ -26,6 +26,7 @@ interface UseBoardActionsParams {
   updateTodo: { mutate: (args: { id: string; boardId: string; priority: Priority }) => void };
   moveTodo: { mutate: (args: { id: string; boardId: string; columnId: string; position: number }) => void };
   disabled?: boolean;
+  immediateDisabled?: boolean;
 }
 
 export function useBoardActions({
@@ -41,9 +42,10 @@ export function useBoardActions({
   updateTodo,
   moveTodo,
   disabled = false,
+  immediateDisabled = disabled,
 }: UseBoardActionsParams) {
   const handleTodoDeleteWithUndo = async (todo: Todo) => {
-    if (!boardId || disabled) return;
+    if (!boardId || immediateDisabled) return;
     // Close detail panel if this todo is open
     if (selectedTodo?.id === todo.id) {
       setSelectedTodo(null);
@@ -113,7 +115,7 @@ export function useBoardActions({
       {
         label: 'Delete',
         danger: true,
-        disabled,
+        disabled: immediateDisabled,
         onClick: () => handleTodoDeleteWithUndo(todo),
       },
     ];

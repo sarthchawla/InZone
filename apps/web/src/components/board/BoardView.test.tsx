@@ -1316,7 +1316,7 @@ describe("BoardView", () => {
       });
     });
 
-    it("does not open detail panel while board changes are unsaved", async () => {
+    it("keeps staged board interactions available while board changes are unsaved", async () => {
       const user = userEvent.setup();
 
       renderBoardView();
@@ -1337,7 +1337,11 @@ describe("BoardView", () => {
 
       await user.click(screen.getByText("First Task"));
 
-      expect(screen.queryByLabelText("Close panel")).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText("Close panel")).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
     });
 
     it("closes detail panel when close button is clicked", async () => {

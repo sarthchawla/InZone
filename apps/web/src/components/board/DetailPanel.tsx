@@ -8,13 +8,14 @@ import { boardKeys } from '../../hooks/useBoards';
 import { useUpdateTodo, useDeleteTodo } from '../../hooks/useTodos';
 import { useLabels } from '../../hooks/useLabels';
 import { RichTextEditor } from '../ui/RichTextEditor';
-import type { Todo, Column, Priority } from '../../types';
+import type { Board, Todo, Column, Priority } from '../../types';
 
 export interface DetailPanelProps {
   todo: Todo | null;
   boardId: string;
   columns: Column[];
   onClose: () => void;
+  onCommitted?: (latestBoard: Board | undefined) => void;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -33,7 +34,7 @@ const PRIORITY_ACTIVE: Record<Priority, string> = {
   URGENT: 'bg-red-500 text-white border-red-500',
 };
 
-export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProps) {
+export function DetailPanel({ todo, boardId, columns, onClose, onCommitted }: DetailPanelProps) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const updateTodo = useUpdateTodo();
@@ -118,6 +119,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       await updateTodo.mutateAsync({ id: todo.id, boardId, ...updates });
       await queryClient.refetchQueries({ queryKey: boardKeys.detail(boardId), type: 'active' });
       await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      onCommitted?.(queryClient.getQueryData<Board>(boardKeys.detail(boardId)));
       setSaveStatus('saved');
       savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
     } catch {
@@ -130,6 +132,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
     dueDateForSave,
     labelsChanged,
     originalDueDate,
+    onCommitted,
     priority,
     queryClient,
     selectedLabelIds,
@@ -183,6 +186,7 @@ export function DetailPanel({ todo, boardId, columns, onClose }: DetailPanelProp
       await deleteTodo.mutateAsync({ id: todo.id, boardId });
       await queryClient.refetchQueries({ queryKey: boardKeys.detail(boardId), type: 'active' });
       await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      onCommitted?.(queryClient.getQueryData<Board>(boardKeys.detail(boardId)));
       onClose();
     } catch {
       setSaveStatus('error');

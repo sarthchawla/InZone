@@ -23,6 +23,7 @@ interface BoardColumnProps {
   overTodoId?: string | null;
   isColumnDragActive?: boolean;
   disabled?: boolean;
+  immediateActionDisabled?: boolean;
   isAddingTodo?: boolean;
   isDeleting?: boolean;
   deletingTodoIds?: Set<string>;
@@ -41,6 +42,7 @@ export function BoardColumn({
   overTodoId,
   isColumnDragActive,
   disabled = false,
+  immediateActionDisabled = disabled,
   isAddingTodo = false,
   isDeleting = false,
   deletingTodoIds,
@@ -89,6 +91,7 @@ export function BoardColumn({
   const sortedTodos = [...todos].sort((a, b) => a.position - b.position);
   const todoIds = sortedTodos.map((t) => t.id);
   const isColumnDisabled = disabled || isAddingTodo || isDeleting;
+  const isImmediateActionDisabled = isColumnDisabled || immediateActionDisabled;
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -110,7 +113,7 @@ export function BoardColumn({
   }, [isEditingTitle]);
 
   const handleAddTodo = async () => {
-    if (isColumnDisabled) return;
+    if (isImmediateActionDisabled) return;
     if (newTodoTitle.trim()) {
       try {
         await onAddTodo(column.id, newTodoTitle.trim());
@@ -191,7 +194,7 @@ export function BoardColumn({
   };
 
   const handleDeleteClick = async () => {
-    if (isColumnDisabled) return;
+    if (isImmediateActionDisabled) return;
     setShowMenu(false);
     try {
       await onDeleteColumn?.(column.id);
@@ -306,7 +309,7 @@ export function BoardColumn({
                   Edit Description
                 </button>
                 <button
-                  disabled={isColumnDisabled}
+                  disabled={isImmediateActionDisabled}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSetWipLimitClick();
@@ -462,7 +465,7 @@ export function BoardColumn({
           <div className="space-y-2">
             <Input
               value={newTodoTitle}
-              disabled={isColumnDisabled}
+              disabled={isImmediateActionDisabled}
               onChange={(e) => setNewTodoTitle(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter todo title..."
@@ -473,7 +476,7 @@ export function BoardColumn({
                 size="sm"
                 variant="primary"
                 onClick={handleAddTodo}
-                disabled={isColumnDisabled}
+                disabled={isImmediateActionDisabled}
                 aria-busy={isAddingTodo}
               >
                 {isAddingTodo ? 'Adding...' : 'Add'}
@@ -481,7 +484,7 @@ export function BoardColumn({
               <Button
                 size="sm"
                 variant="ghost"
-                disabled={isColumnDisabled}
+                disabled={isImmediateActionDisabled}
                 onClick={() => {
                   setIsAdding(false);
                   setNewTodoTitle('');
@@ -493,9 +496,9 @@ export function BoardColumn({
           </div>
         ) : (
           <button
-            disabled={isColumnDisabled}
+            disabled={isImmediateActionDisabled}
             onClick={() => {
-              if (!isColumnDisabled) setIsAdding(true);
+              if (!isImmediateActionDisabled) setIsAdding(true);
             }}
             className="flex items-center gap-1 w-full p-2.5 md:p-2 text-sm text-stone-500 hover:bg-stone-200 rounded-lg transition-colors"
             title="Add a new card"
