@@ -32,8 +32,6 @@ jobs:
     timeout-minutes: 5
     if: github.event_name == 'pull_request'
     outputs:
-      db-url: ${{ steps.create-branch.outputs.db-url }}
-      direct-url: ${{ steps.create-branch.outputs.direct-url }}
       branch-name: ${{ steps.create-branch.outputs.branch-name }}
 
     steps:
@@ -69,22 +67,6 @@ jobs:
             echo "Created branch '$BRANCH_NAME' (id: $BRANCH_ID)"
           fi
 
-          # Get connection string (pooled for app usage)
-          DB_URL=$(neonctl connection-string "$BRANCH_NAME" \
-            --project-id "$NEON_PROJECT_ID" \
-            --pooled)
-
-          # Get direct connection string (for migrations)
-          DIRECT_URL=$(neonctl connection-string "$BRANCH_NAME" \
-            --project-id "$NEON_PROJECT_ID")
-
-          # Mask secrets in logs
-          echo "::add-mask::$DB_URL"
-          echo "::add-mask::$DIRECT_URL"
-
-          echo "db-url=$DB_URL" >> "$GITHUB_OUTPUT"
-          echo "direct-url=$DIRECT_URL" >> "$GITHUB_OUTPUT"
-
   migrate:
     name: Run Database Migrations
     needs: [neon-branch]
@@ -110,19 +92,45 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run Prisma migrations
+      - name: Run Prisma migrations (Production)
+        if: github.event_name == 'push'
         working-directory: apps/api
         env:
-          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
         run: pnpm prisma migrate deploy
 
-      - name: Seed database (idempotent)
+      - name: Run Prisma migrations (Preview)
+        if: github.event_name == 'pull_request'
         working-directory: apps/api
         env:
-          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_BRANCH: ${{ needs.neon-branch.outputs.branch-name }}
+        run: |
+          DIRECT_URL=$(pnpm dlx neonctl connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT_ID")
+          echo "::add-mask::$DIRECT_URL"
+          DATABASE_URL="$DIRECT_URL" DIRECT_URL="$DIRECT_URL" pnpm prisma migrate deploy
+
+      - name: Seed database (Production)
+        if: github.event_name == 'push'
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
         run: pnpm prisma db seed
+
+      - name: Seed database (Preview)
+        if: github.event_name == 'pull_request'
+        working-directory: apps/api
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_BRANCH: ${{ needs.neon-branch.outputs.branch-name }}
+        run: |
+          DIRECT_URL=$(pnpm dlx neonctl connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT_ID")
+          echo "::add-mask::$DIRECT_URL"
+          DATABASE_URL="$DIRECT_URL" DIRECT_URL="$DIRECT_URL" pnpm prisma db seed
 
   deploy:
     name: Deploy to Vercel
@@ -182,9 +190,15 @@ jobs:
         if: github.event_name == 'pull_request'
         id: deploy-preview
         env:
-          BRANCH_DB_URL: ${{ needs.neon-branch.outputs.db-url }}
-          BRANCH_DIRECT_URL: ${{ needs.neon-branch.outputs.direct-url }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_BRANCH: ${{ needs.neon-branch.outputs.branch-name }}
         run: |
+          BRANCH_DB_URL=$(pnpm dlx neonctl connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT_ID" --pooled)
+          BRANCH_DIRECT_URL=$(pnpm dlx neonctl connection-string "$NEON_BRANCH" --project-id "$NEON_PROJECT_ID")
+          echo "::add-mask::$BRANCH_DB_URL"
+          echo "::add-mask::$BRANCH_DIRECT_URL"
+
           URL=$(vercel deploy --prebuilt \
             --env DATABASE_URL="$BRANCH_DB_URL" \
             --env DIRECT_URL="$BRANCH_DIRECT_URL" \
