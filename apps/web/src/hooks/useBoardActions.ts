@@ -2,7 +2,7 @@ import type { Todo, Column, Priority, ContextMenuItem } from '../types';
 
 interface UndoState {
   message: string;
-  onUndo: () => void;
+  onUndo: () => void | Promise<void>;
 }
 
 interface UseBoardActionsParams {
@@ -13,7 +13,7 @@ interface UseBoardActionsParams {
   setContextMenuPosition: (pos: { x: number; y: number } | null) => void;
   setContextMenuTodo: (todo: Todo | null) => void;
   setUndoState: (state: UndoState | null) => void;
-  deleteTodo: { mutate: (args: { id: string; boardId: string }) => void };
+  deleteTodo: { mutate: (args: { id: string; boardId: string }) => void | Promise<void> };
   createTodo: { mutate: (args: {
     columnId: string;
     boardId: string;
@@ -22,9 +22,10 @@ interface UseBoardActionsParams {
     priority?: Priority;
     dueDate?: string;
     labelIds?: string[];
-  }) => void };
+  }) => void | Promise<void> };
   updateTodo: { mutate: (args: { id: string; boardId: string; priority: Priority }) => void };
   moveTodo: { mutate: (args: { id: string; boardId: string; columnId: string; position: number }) => void };
+  disabled?: boolean;
 }
 
 export function useBoardActions({
@@ -39,9 +40,10 @@ export function useBoardActions({
   createTodo,
   updateTodo,
   moveTodo,
+  disabled = false,
 }: UseBoardActionsParams) {
-  const handleTodoDeleteWithUndo = (todo: Todo) => {
-    if (!boardId) return;
+  const handleTodoDeleteWithUndo = async (todo: Todo) => {
+    if (!boardId || disabled) return;
     // Close detail panel if this todo is open
     if (selectedTodo?.id === todo.id) {
       setSelectedTodo(null);
@@ -50,31 +52,36 @@ export function useBoardActions({
     setContextMenuPosition(null);
     setContextMenuTodo(null);
 
-    deleteTodo.mutate({ id: todo.id, boardId });
-    setUndoState({
-      message: `"${todo.title}" deleted`,
-      onUndo: () => {
-        // Re-create the todo (best-effort undo)
-        createTodo.mutate({
-          columnId: todo.columnId,
-          boardId,
-          title: todo.title,
-          description: todo.description,
-          priority: todo.priority,
-          dueDate: todo.dueDate,
-          labelIds: todo.labels.map((l) => l.id),
-        });
-      },
-    });
+    try {
+      await deleteTodo.mutate({ id: todo.id, boardId });
+      setUndoState({
+        message: `"${todo.title}" deleted`,
+        onUndo: () => {
+          // Re-create the todo (best-effort undo)
+          return createTodo.mutate({
+            columnId: todo.columnId,
+            boardId,
+            title: todo.title,
+            description: todo.description,
+            priority: todo.priority,
+            dueDate: todo.dueDate,
+            labelIds: todo.labels.map((l) => l.id),
+          });
+        },
+      });
+    } catch {
+      // Parent handlers surface the user-facing error and loading cleanup.
+    }
   };
 
   const getContextMenuItems = (todo: Todo): ContextMenuItem[] => {
     const priorityItems: ContextMenuItem[] = (['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as Priority[]).map((p) => ({
       label: p.charAt(0) + p.slice(1).toLowerCase(),
       onClick: () => {
-        if (!boardId) return;
+        if (!boardId || disabled) return;
         updateTodo.mutate({ id: todo.id, boardId, priority: p });
       },
+      disabled,
     }));
 
     const moveToItems: ContextMenuItem[] = (columns ?? [])
@@ -82,9 +89,10 @@ export function useBoardActions({
       .map((c) => ({
         label: c.name,
         onClick: () => {
-          if (!boardId) return;
+          if (!boardId || disabled) return;
           moveTodo.mutate({ id: todo.id, boardId, columnId: c.id, position: 0 });
         },
+        disabled,
       }));
 
     return [
@@ -96,6 +104,7 @@ export function useBoardActions({
       {
         label: 'Priority',
         submenu: priorityItems,
+        disabled,
       },
       ...(moveToItems.length > 0
         ? [{ label: 'Move to', submenu: moveToItems }]
@@ -104,6 +113,7 @@ export function useBoardActions({
       {
         label: 'Delete',
         danger: true,
+        disabled,
         onClick: () => handleTodoDeleteWithUndo(todo),
       },
     ];

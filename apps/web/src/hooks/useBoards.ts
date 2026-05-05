@@ -88,7 +88,7 @@ export function useCreateBoard() {
 export function useUpdateBoard() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string | null }) => {
       const { data } = await apiClient.put<Board>(`/boards/${id}`, updates);
       return data;
     },
@@ -103,12 +103,17 @@ export function useUpdateBoard() {
         queryClient.setQueryData<Board>(boardKeys.detail(id), {
           ...previousDetail,
           ...updates,
+          description: updates.description === null ? undefined : updates.description ?? previousDetail.description,
           updatedAt: new Date().toISOString(),
         });
       }
 
       queryClient.setQueryData<Board[]>(boardKeys.all, (old) =>
-        (old ?? []).map((b) => b.id === id ? { ...b, ...updates } : b)
+        (old ?? []).map((b) => b.id === id ? {
+          ...b,
+          ...updates,
+          description: updates.description === null ? undefined : updates.description ?? b.description,
+        } : b)
       );
 
       return { previousDetail, previousAll };

@@ -313,6 +313,112 @@ describe("BoardView", () => {
       });
     });
 
+    it("shows the created column without marking the board draft dirty", async () => {
+      const user = userEvent.setup();
+      let boardState = createMockBoard({
+        ...mockBoardWithTodos,
+        columns: mockBoardWithTodos.columns,
+      });
+
+      server.use(
+        http.get(`/api/boards/:id`, () => {
+          return HttpResponse.json(boardState);
+        }),
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
+          const body = await request.json() as { name: string };
+          const newColumn = createMockColumn({
+            id: "column-new",
+            name: body.name,
+            boardId: "board-1",
+            position: boardState.columns.length,
+            todos: [],
+          });
+          boardState = {
+            ...boardState,
+            columns: [...boardState.columns, newColumn],
+          };
+          return HttpResponse.json(newColumn, { status: 201 });
+        })
+      );
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByText("Add column")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Add column"));
+      await user.type(screen.getByPlaceholderText(/enter column name/i), "New Column");
+      await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: "New Column" })).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: /save changes/i })).not.toBeInTheDocument();
+    });
+
+    it("keeps add column in a saving state until the latest board is refetched", async () => {
+      const user = userEvent.setup();
+      let boardState = createMockBoard({
+        ...mockBoardWithTodos,
+        columns: mockBoardWithTodos.columns,
+      });
+      let hasServedInitialBoard = false;
+      let releaseRefetch: (() => void) | undefined;
+      const refetchStarted = vi.fn();
+
+      server.use(
+        http.get(`/api/boards/:id`, async () => {
+          if (hasServedInitialBoard) {
+            refetchStarted();
+            await new Promise<void>((resolve) => {
+              releaseRefetch = resolve;
+            });
+          }
+          hasServedInitialBoard = true;
+          return HttpResponse.json(boardState);
+        }),
+        http.post(`/api/boards/:boardId/columns`, async ({ request }) => {
+          const body = await request.json() as { name: string };
+          const newColumn = createMockColumn({
+            id: "column-refetched",
+            name: body.name,
+            boardId: "board-1",
+            position: boardState.columns.length,
+            todos: [],
+          });
+          boardState = {
+            ...boardState,
+            columns: [...boardState.columns, newColumn],
+          };
+          return HttpResponse.json(newColumn, { status: 201 });
+        })
+      );
+
+      renderBoardView();
+
+      await waitFor(() => {
+        expect(screen.getByText("Add column")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Add column"));
+      await user.type(screen.getByPlaceholderText(/enter column name/i), "Refetched Column");
+      await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+      await waitFor(() => {
+        expect(refetchStarted).toHaveBeenCalled();
+      });
+      expect(screen.getByRole("button", { name: /adding/i })).toBeDisabled();
+      expect(screen.queryByRole("button", { name: /save changes/i })).not.toBeInTheDocument();
+
+      releaseRefetch?.();
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: "Refetched Column" })).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: /save changes/i })).not.toBeInTheDocument();
+    });
+
     it("cancels column creation when cancel is clicked", async () => {
       const user = userEvent.setup();
       renderBoardView();

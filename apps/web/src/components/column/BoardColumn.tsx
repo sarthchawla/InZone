@@ -12,9 +12,9 @@ import type { Column, Todo } from '../../types';
 
 interface BoardColumnProps {
   column: Column;
-  onAddTodo: (columnId: string, title: string) => void;
+  onAddTodo: (columnId: string, title: string) => void | Promise<void>;
   onUpdateColumn?: (id: string, updates: { name?: string; description?: string | null; wipLimit?: number | null }) => void;
-  onDeleteColumn?: (id: string) => void;
+  onDeleteColumn?: (id: string) => void | Promise<void>;
   onTodoClick?: (todo: Todo) => void;
   onTodoContextMenu?: (todo: Todo, event: React.MouseEvent) => void;
   isDragging?: boolean;
@@ -22,6 +22,10 @@ interface BoardColumnProps {
   activeTodoId?: string | null;
   overTodoId?: string | null;
   isColumnDragActive?: boolean;
+  disabled?: boolean;
+  isAddingTodo?: boolean;
+  isDeleting?: boolean;
+  deletingTodoIds?: Set<string>;
 }
 
 export function BoardColumn({
@@ -36,6 +40,10 @@ export function BoardColumn({
   activeTodoId,
   overTodoId,
   isColumnDragActive,
+  disabled = false,
+  isAddingTodo = false,
+  isDeleting = false,
+  deletingTodoIds,
 }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState('');
@@ -80,6 +88,7 @@ export function BoardColumn({
   const todos = column.todos ?? [];
   const sortedTodos = [...todos].sort((a, b) => a.position - b.position);
   const todoIds = sortedTodos.map((t) => t.id);
+  const isColumnDisabled = disabled || isAddingTodo || isDeleting;
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -100,11 +109,16 @@ export function BoardColumn({
     }
   }, [isEditingTitle]);
 
-  const handleAddTodo = () => {
+  const handleAddTodo = async () => {
+    if (isColumnDisabled) return;
     if (newTodoTitle.trim()) {
-      onAddTodo(column.id, newTodoTitle.trim());
-      setNewTodoTitle('');
-      setIsAdding(false);
+      try {
+        await onAddTodo(column.id, newTodoTitle.trim());
+        setNewTodoTitle('');
+        setIsAdding(false);
+      } catch {
+        // Parent surfaces the error; keep the draft title so the user can retry.
+      }
     }
   };
 
@@ -118,6 +132,7 @@ export function BoardColumn({
   };
 
   const handleTitleClick = () => {
+    if (isColumnDisabled) return;
     setEditedTitle(column.name);
     setIsEditingTitle(true);
   };
@@ -139,6 +154,7 @@ export function BoardColumn({
   };
 
   const handleEditDescriptionClick = () => {
+    if (isColumnDisabled) return;
     setShowMenu(false);
     setEditedDescription(column.description || '');
     setIsEditingDescription(true);
@@ -158,6 +174,7 @@ export function BoardColumn({
   };
 
   const handleSetWipLimitClick = () => {
+    if (isColumnDisabled) return;
     setShowMenu(false);
     setWipLimitValue(column.wipLimit?.toString() || '');
     setIsSettingWipLimit(true);
@@ -173,9 +190,14 @@ export function BoardColumn({
     setIsSettingWipLimit(false);
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = async () => {
+    if (isColumnDisabled) return;
     setShowMenu(false);
-    onDeleteColumn?.(column.id);
+    try {
+      await onDeleteColumn?.(column.id);
+    } catch {
+      // Parent surfaces the error.
+    }
   };
 
   return (
@@ -205,6 +227,7 @@ export function BoardColumn({
                 ref={titleInputRef}
                 type="text"
                 value={editedTitle}
+                disabled={isColumnDisabled}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
@@ -256,6 +279,7 @@ export function BoardColumn({
           {/* Dropdown menu trigger */}
           <div className="relative flex-shrink-0" ref={menuRef}>
             <button
+              disabled={isColumnDisabled}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowMenu(!showMenu);
@@ -270,6 +294,7 @@ export function BoardColumn({
             {showMenu && (
               <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-stone-200 z-50 py-1">
                 <button
+                  disabled={isColumnDisabled}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEditDescriptionClick();
@@ -281,6 +306,7 @@ export function BoardColumn({
                   Edit Description
                 </button>
                 <button
+                  disabled={isColumnDisabled}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSetWipLimitClick();
@@ -292,6 +318,7 @@ export function BoardColumn({
                   Set WIP Limit
                 </button>
                 <button
+                  disabled={isColumnDisabled}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteClick();
@@ -300,7 +327,7 @@ export function BoardColumn({
                   className="flex items-center gap-2 w-full px-3 py-2.5 md:py-2 text-sm text-red-600 hover:bg-red-50 text-left"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete Column
+                  {isDeleting ? 'Deleting...' : 'Delete Column'}
                 </button>
               </div>
             )}
@@ -333,12 +360,13 @@ export function BoardColumn({
             content={editedDescription}
             onChange={setEditedDescription}
             placeholder="Add a description for this column..."
+            editable={!isColumnDisabled}
           />
           <div className="flex gap-2">
-            <Button size="sm" variant="primary" onClick={handleDescriptionSave}>
+            <Button size="sm" variant="primary" onClick={handleDescriptionSave} disabled={isColumnDisabled}>
               Save
             </Button>
-            <Button size="sm" variant="ghost" onClick={handleDescriptionCancel}>
+            <Button size="sm" variant="ghost" onClick={handleDescriptionCancel} disabled={isColumnDisabled}>
               Cancel
             </Button>
           </div>
@@ -359,15 +387,16 @@ export function BoardColumn({
             type="number"
             min={0}
             value={wipLimitValue}
+            disabled={isColumnDisabled}
             onChange={(e) => setWipLimitValue(e.target.value)}
             placeholder="e.g. 5"
             autoFocus
           />
           <div className="flex gap-2">
-            <Button size="sm" variant="primary" onClick={handleWipLimitSave}>
+            <Button size="sm" variant="primary" onClick={handleWipLimitSave} disabled={isColumnDisabled}>
               Save
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setIsSettingWipLimit(false)}>
+            <Button size="sm" variant="ghost" onClick={() => setIsSettingWipLimit(false)} disabled={isColumnDisabled}>
               Cancel
             </Button>
           </div>
@@ -392,7 +421,14 @@ export function BoardColumn({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
               >
-                <TodoCard todo={todo} onClick={onTodoClick} onContextMenu={onTodoContextMenu} isDropTarget={overTodoId === todo.id} sortDisabled={isColumnDragActive} />
+                <TodoCard
+                  todo={todo}
+                  onClick={onTodoClick}
+                  onContextMenu={onTodoContextMenu}
+                  isDropTarget={overTodoId === todo.id}
+                  sortDisabled={isColumnDragActive}
+                  isDeleting={deletingTodoIds?.has(todo.id)}
+                />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -425,18 +461,26 @@ export function BoardColumn({
           <div className="space-y-2">
             <Input
               value={newTodoTitle}
+              disabled={isColumnDisabled}
               onChange={(e) => setNewTodoTitle(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter todo title..."
               autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" variant="primary" onClick={handleAddTodo}>
-                Add
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={handleAddTodo}
+                disabled={isColumnDisabled}
+                aria-busy={isAddingTodo}
+              >
+                {isAddingTodo ? 'Adding...' : 'Add'}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
+                disabled={isColumnDisabled}
                 onClick={() => {
                   setIsAdding(false);
                   setNewTodoTitle('');
@@ -448,7 +492,10 @@ export function BoardColumn({
           </div>
         ) : (
           <button
-            onClick={() => setIsAdding(true)}
+            disabled={isColumnDisabled}
+            onClick={() => {
+              if (!isColumnDisabled) setIsAdding(true);
+            }}
             className="flex items-center gap-1 w-full p-2.5 md:p-2 text-sm text-stone-500 hover:bg-stone-200 rounded-lg transition-colors"
             title="Add a new card"
           >

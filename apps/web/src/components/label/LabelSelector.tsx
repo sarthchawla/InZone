@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, Plus, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useLabels, useCreateLabel } from '../../hooks';
+import { labelKeys, useLabels, useCreateLabel } from '../../hooks';
 import type { Label } from '../../types';
 
 interface LabelSelectorProps {
@@ -28,9 +29,11 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState(PRESET_COLORS[0]);
+  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: labels = [] } = useLabels();
+  const queryClient = useQueryClient();
   const createLabel = useCreateLabel();
 
   useEffect(() => {
@@ -60,19 +63,23 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
   };
 
   const handleCreateLabel = async () => {
-    if (!newLabelName.trim()) return;
+    if (!newLabelName.trim() || isCreatingLabel) return;
 
+    setIsCreatingLabel(true);
     try {
       const newLabel = await createLabel.mutateAsync({
         name: newLabelName.trim(),
         color: newLabelColor,
       });
+      await queryClient.refetchQueries({ queryKey: labelKeys.all, type: 'active' });
       onLabelsChange([...selectedLabels, newLabel]);
       setNewLabelName('');
       setNewLabelColor(PRESET_COLORS[0]);
       setShowCreateForm(false);
     } catch {
       // Error handled by mutation
+    } finally {
+      setIsCreatingLabel(false);
     }
   };
 
@@ -154,6 +161,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                   value={newLabelName}
                   onChange={(e) => setNewLabelName(e.target.value)}
                   placeholder="Label name"
+                  disabled={isCreatingLabel}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   autoFocus
                   onKeyDown={(e) => {
@@ -173,6 +181,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                       key={color}
                       type="button"
                       onClick={() => setNewLabelColor(color)}
+                      disabled={isCreatingLabel}
                       className={cn(
                         'h-6 w-6 rounded-full transition-transform',
                         newLabelColor === color && 'ring-2 ring-offset-1 ring-gray-400 scale-110'
@@ -185,10 +194,11 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                   <button
                     type="button"
                     onClick={handleCreateLabel}
-                    disabled={!newLabelName.trim() || createLabel.isPending}
+                    disabled={!newLabelName.trim() || isCreatingLabel}
+                    aria-busy={isCreatingLabel}
                     className="flex-1 px-2 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {createLabel.isPending ? 'Creating...' : 'Create'}
+                    {isCreatingLabel ? 'Creating...' : 'Create'}
                   </button>
                   <button
                     type="button"
@@ -196,6 +206,7 @@ export function LabelSelector({ selectedLabels, onLabelsChange, className }: Lab
                       setShowCreateForm(false);
                       setNewLabelName('');
                     }}
+                    disabled={isCreatingLabel}
                     className="px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded"
                   >
                     Cancel

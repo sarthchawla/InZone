@@ -106,12 +106,12 @@ describe('useBoardActions', () => {
       });
     });
 
-    it('sets undo state with correct message', () => {
+    it('sets undo state with correct message', async () => {
       const params = createDefaultParams();
       const { handleTodoDeleteWithUndo } = useBoardActions(params);
       const todo = createMockTodo({ title: 'My Task' });
 
-      handleTodoDeleteWithUndo(todo);
+      await handleTodoDeleteWithUndo(todo);
 
       expect(params.setUndoState).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -120,7 +120,7 @@ describe('useBoardActions', () => {
       );
     });
 
-    it('undo callback calls createTodo.mutate with original todo data', () => {
+    it('undo callback calls createTodo.mutate with original todo data', async () => {
       const params = createDefaultParams();
       const { handleTodoDeleteWithUndo } = useBoardActions(params);
       const todo = createMockTodo({
@@ -136,7 +136,7 @@ describe('useBoardActions', () => {
         ],
       });
 
-      handleTodoDeleteWithUndo(todo);
+      await handleTodoDeleteWithUndo(todo);
 
       const undoState = params.setUndoState.mock.calls[0][0];
       undoState.onUndo();

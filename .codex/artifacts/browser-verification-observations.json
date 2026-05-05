@@ -1,0 +1,9 @@
+{
+  "url": "http://localhost:5174/board/cmorybpsx0009lhy0a8l7d7vn",
+  "observations": [
+    "Task create was verified in the in-app browser; the task appeared on the board after the create/refetch flow.",
+    "Task detail edit exposed Save task, showed Saving during the save, and the updated title was visible after refetch.",
+    "Context-menu priority staged board Save changes; Saving loader cleared after refetch.",
+    "Delete task completed with undo toast; proof task cleaned up."
+  ]
+}

@@ -84,7 +84,9 @@ describe('DetailPanel', () => {
       const dateInput = screen.getByDisplayValue('');
       fireEvent.change(dateInput, { target: { value: '2026-06-15' } });
 
-      // Wait for debounced save (800ms debounce + buffer)
+      expect(capturedBody).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
+
       await waitFor(
         () => {
           expect(capturedBody).not.toBeNull();
@@ -114,6 +116,9 @@ describe('DetailPanel', () => {
 
       const dateInput = screen.getByDisplayValue('2026-06-15');
       fireEvent.change(dateInput, { target: { value: '' } });
+
+      expect(capturedBody).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
 
       await waitFor(
         () => {
@@ -163,6 +168,9 @@ describe('DetailPanel', () => {
 
       const dateInput = screen.getByDisplayValue('');
       fireEvent.change(dateInput, { target: { value: '2026-12-25' } });
+
+      expect(capturedBody).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
 
       await waitFor(
         () => {
@@ -226,6 +234,9 @@ describe('DetailPanel', () => {
 
       fireEvent.click(screen.getByText('High'));
 
+      expect(capturedBody).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
+
       await waitFor(() => {
         expect(capturedBody).not.toBeNull();
       }, { timeout: 3000 });
@@ -249,12 +260,16 @@ describe('DetailPanel', () => {
       render(<DetailPanel todo={todo} {...defaultProps} onClose={onClose} />);
 
       fireEvent.click(screen.getByText('Delete task'));
-      expect(onClose).toHaveBeenCalled();
+      expect(screen.getAllByText('Deleting...').length).toBeGreaterThan(0);
+      await waitFor(() => {
+        expect(deleteCalled).toBe(true);
+        expect(onClose).toHaveBeenCalled();
+      });
     });
   });
 
   describe('title', () => {
-    it('saves title on blur when changed', async () => {
+    it('saves title on explicit save when changed', async () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.put('/api/todos/todo-1', async ({ request }) => {
@@ -269,6 +284,9 @@ describe('DetailPanel', () => {
       const titleInput = screen.getByDisplayValue('Original Title');
       fireEvent.change(titleInput, { target: { value: 'New Title' } });
       fireEvent.blur(titleInput);
+
+      expect(capturedBody).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
 
       await waitFor(() => {
         expect(capturedBody).not.toBeNull();
@@ -333,6 +351,9 @@ describe('DetailPanel', () => {
       // Click the label to remove it
       fireEvent.click(screen.getByText('Bug'));
 
+      expect(capturedBody).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
+
       await waitFor(() => {
         expect(capturedBody).not.toBeNull();
       }, { timeout: 3000 });
@@ -363,9 +384,10 @@ describe('DetailPanel', () => {
       render(<DetailPanel todo={todo} {...defaultProps} />);
 
       fireEvent.click(screen.getByText('High'));
+      fireEvent.click(screen.getByRole('button', { name: /save task/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Saving...')).toBeInTheDocument();
+        expect(screen.getAllByText('Saving...').length).toBeGreaterThan(0);
       }, { timeout: 3000 });
 
       // Resolve to clean up

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragOverlay,
@@ -11,12 +12,11 @@ import {
   SortableContext,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowLeft, Plus, Tags, Columns } from 'lucide-react';
+import { ArrowLeft, Plus, Tags, Columns, Loader2, RotateCcw, Save } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { useSyncStatus } from '../../hooks/useSyncStatus';
-import { useDebouncedMutation } from '../../hooks/useDebouncedMutation';
-import { useBoard, useUpdateBoard } from '../../hooks/useBoards';
+import { useBoard, useUpdateBoard, boardKeys } from '../../hooks/useBoards';
 import { useCreateTodo, useUpdateTodo, useDeleteTodo, useMoveTodo, useReorderTodos } from '../../hooks/useTodos';
 import { useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from '../../hooks/useColumns';
 import { useKeyboardShortcuts, BOARD_SHORTCUTS } from '../../hooks/useKeyboardShortcuts';
@@ -36,16 +36,80 @@ import {
   SyncStatusIndicator,
 } from '../ui';
 import { DetailPanel } from './DetailPanel';
-import type { Todo } from '../../types';
+import type { Board, Column, Priority, Todo } from '../../types';
 
 interface UndoState {
   message: string;
   onUndo: () => void;
 }
 
+type ColumnUpdates = { name?: string; description?: string | null; wipLimit?: number | null };
+type TodoUpdates = { priority?: Priority };
+
+function normalizeDescription(description: string | undefined | null) {
+  return description || '';
+}
+
+function sortedColumnsForBoard(board: Board | undefined) {
+  return [...(board?.columns ?? [])].sort((a, b) => a.position - b.position);
+}
+
+function sortedTodosForColumn(column: Column | undefined) {
+  return [...(column?.todos ?? [])].sort((a, b) => a.position - b.position);
+}
+
+function findTodoInBoard(board: Board | undefined, todoId: string | null) {
+  if (!board || !todoId) return null;
+  for (const column of board.columns) {
+    const todo = (column.todos ?? []).find((item) => item.id === todoId);
+    if (todo) return todo;
+  }
+  return null;
+}
+
+function arraysEqual(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function hasDraftBoardChanges(
+  serverBoard: Board | undefined,
+  draftBoard: Board | undefined,
+  dirtyColumnIds: Set<string>,
+  dirtyTodoIds: Set<string>
+) {
+  if (!serverBoard || !draftBoard) return false;
+
+  if (serverBoard.name !== draftBoard.name) return true;
+  if (normalizeDescription(serverBoard.description) !== normalizeDescription(draftBoard.description)) return true;
+  if (dirtyColumnIds.size > 0) return true;
+  if (dirtyTodoIds.size > 0) return true;
+
+  const serverColumns = sortedColumnsForBoard(serverBoard);
+  const draftColumns = sortedColumnsForBoard(draftBoard);
+  if (!arraysEqual(serverColumns.map((column) => column.id), draftColumns.map((column) => column.id))) return true;
+
+  for (const draftColumn of draftColumns) {
+    const serverColumn = serverColumns.find((column) => column.id === draftColumn.id);
+    if (!serverColumn) return true;
+    if (!arraysEqual(
+      sortedTodosForColumn(serverColumn).map((todo) => todo.id),
+      sortedTodosForColumn(draftColumn).map((todo) => todo.id)
+    )) {
+      return true;
+    }
+    for (const draftTodo of draftColumn.todos ?? []) {
+      const serverTodo = findTodoInBoard(serverBoard, draftTodo.id);
+      if (serverTodo?.columnId !== draftTodo.columnId) return true;
+    }
+  }
+
+  return false;
+}
+
 export function BoardView() {
   const { boardId } = useParams<{ boardId: string }>();
   const { data: board, isLoading, error } = useBoard(boardId);
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
@@ -58,26 +122,109 @@ export function BoardView() {
   const reorderColumns = useReorderColumns();
   const updateBoard = useUpdateBoard();
   const { state: syncState, pendingCount } = useSyncStatus();
+  const [draftBoard, setDraftBoard] = useState<Board | undefined>();
+  const [dirtyColumnIds, setDirtyColumnIds] = useState<Set<string>>(() => new Set());
+  const [dirtyTodoIds, setDirtyTodoIds] = useState<Set<string>>(() => new Set());
+  const [isSavingBoardDraft, setIsSavingBoardDraft] = useState(false);
+  const [isSavingNewColumn, setIsSavingNewColumn] = useState(false);
+  const [addingTodoColumnIds, setAddingTodoColumnIds] = useState<Set<string>>(() => new Set());
+  const [deletingColumnIds, setDeletingColumnIds] = useState<Set<string>>(() => new Set());
+  const [deletingTodoIds, setDeletingTodoIds] = useState<Set<string>>(() => new Set());
+  const [boardSaveError, setBoardSaveError] = useState<string | null>(null);
 
-  const debouncedReorderTodos = useDebouncedMutation({
-    mutate: reorderTodos.mutate,
-    getKey: (args: { boardId: string; columnId: string; todoIds: string[] }) => args.columnId,
-  });
+  const hasUnsavedBoardChanges = useMemo(
+    () => hasDraftBoardChanges(board, draftBoard, dirtyColumnIds, dirtyTodoIds),
+    [board, dirtyColumnIds, dirtyTodoIds, draftBoard]
+  );
+  const isSavingImmediateAction =
+    isSavingNewColumn || addingTodoColumnIds.size > 0 || deletingColumnIds.size > 0 || deletingTodoIds.size > 0;
+  const hasBoardChanges = !isSavingImmediateAction && hasUnsavedBoardChanges;
+  const isBoardInteractionDisabled = isSavingBoardDraft || isSavingImmediateAction || hasUnsavedBoardChanges;
 
-  const debouncedReorderColumns = useDebouncedMutation({
-    mutate: reorderColumns.mutate,
-    getKey: (args: { boardId: string; columnIds: string[] }) => args.boardId,
-  });
-
-  // Flush pending debounced mutations before page unload
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      debouncedReorderTodos.flush();
-      debouncedReorderColumns.flush();
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [debouncedReorderTodos, debouncedReorderColumns]);
+    if (board && !hasBoardChanges && !isSavingBoardDraft) {
+      setDraftBoard(board);
+    }
+  }, [board, hasBoardChanges, isSavingBoardDraft]);
+
+  const stageColumnReorder = useCallback((args: { boardId: string; columnIds: string[] }) => {
+    setBoardSaveError(null);
+    setDraftBoard((current) => {
+      if (!current) return current;
+      const columnMap = new Map(current.columns.map((column) => [column.id, column]));
+      const reordered = args.columnIds
+        .map((id, index) => {
+          const column = columnMap.get(id);
+          return column ? { ...column, position: index } : null;
+        })
+        .filter(Boolean) as Column[];
+      return { ...current, columns: reordered };
+    });
+  }, []);
+
+  const stageTodoReorder = useCallback((args: { boardId: string; columnId: string; todoIds: string[] }) => {
+    setBoardSaveError(null);
+    setDraftBoard((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        columns: current.columns.map((column) => {
+          if (column.id !== args.columnId) return column;
+          const todoMap = new Map((column.todos ?? []).map((todo) => [todo.id, todo]));
+          const reordered = args.todoIds
+            .map((id, index) => {
+              const todo = todoMap.get(id);
+              return todo ? { ...todo, position: index } : null;
+            })
+            .filter(Boolean) as Todo[];
+          return { ...column, todos: reordered };
+        }),
+      };
+    });
+  }, []);
+
+  const stageTodoMove = useCallback((args: { id: string; boardId: string; columnId: string; position: number }) => {
+    setBoardSaveError(null);
+    setDraftBoard((current) => {
+      if (!current) return current;
+
+      let movedTodo: Todo | undefined;
+      const columnsWithoutTodo = current.columns.map((column) => {
+        const match = (column.todos ?? []).find((todo) => todo.id === args.id);
+        if (match) movedTodo = { ...match, columnId: args.columnId, position: args.position };
+        return { ...column, todos: (column.todos ?? []).filter((todo) => todo.id !== args.id) };
+      });
+
+      if (!movedTodo) return current;
+
+      return {
+        ...current,
+        columns: columnsWithoutTodo.map((column) => {
+          if (column.id !== args.columnId) return column;
+          const todos = [...(column.todos ?? [])];
+          todos.splice(args.position, 0, movedTodo!);
+          return { ...column, todos: todos.map((todo, index) => ({ ...todo, position: index })) };
+        }),
+      };
+    });
+  }, []);
+
+  const stageTodoPriority = useCallback((args: { id: string; boardId: string; priority: Priority }) => {
+    setBoardSaveError(null);
+    setDirtyTodoIds((current) => new Set(current).add(args.id));
+    setDraftBoard((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        columns: current.columns.map((column) => ({
+          ...column,
+          todos: (column.todos ?? []).map((todo) => (
+            todo.id === args.id ? { ...todo, priority: args.priority } : todo
+          )),
+        })),
+      };
+    });
+  }, []);
 
   const {
     activeId,
@@ -90,11 +237,12 @@ export function BoardView() {
     handleDragOver,
     handleDragEnd,
   } = useBoardDnD({
-    board,
+    board: draftBoard,
     boardId,
-    reorderColumns: { mutate: debouncedReorderColumns.mutate },
-    moveTodo,
-    reorderTodos: { mutate: debouncedReorderTodos.mutate },
+    reorderColumns: { mutate: stageColumnReorder },
+    moveTodo: { mutate: stageTodoMove },
+    reorderTodos: { mutate: stageTodoReorder },
+    disabled: isSavingBoardDraft,
   });
 
   const [showLabelManager, setShowLabelManager] = useState(false);
@@ -102,7 +250,11 @@ export function BoardView() {
   const [newColumnName, setNewColumnName] = useState('');
 
   // Detail panel state (replaces TodoEditModal)
-  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const selectedTodo = useMemo(() => findTodoInBoard(draftBoard, selectedTodoId), [draftBoard, selectedTodoId]);
+  const setSelectedTodo = useCallback((todo: Todo | null) => {
+    setSelectedTodoId(todo?.id ?? null);
+  }, []);
 
   // Context menu state
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
@@ -110,20 +262,6 @@ export function BoardView() {
 
   // Undo toast state
   const [undoState, setUndoState] = useState<UndoState | null>(null);
-
-  const { handleTodoDeleteWithUndo, getContextMenuItems } = useBoardActions({
-    boardId,
-    columns: board?.columns,
-    selectedTodo,
-    setSelectedTodo,
-    setContextMenuPosition,
-    setContextMenuTodo,
-    setUndoState,
-    deleteTodo,
-    createTodo,
-    updateTodo,
-    moveTodo,
-  });
 
   // Keyboard shortcuts state
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -141,6 +279,114 @@ export function BoardView() {
   // Mobile column pagination
   const [activeColumnIndex, setActiveColumnIndex] = useState(0);
 
+  const revealColumn = useCallback((columnId: string, nextBoard: Board) => {
+    const columnIndex = sortedColumnsForBoard(nextBoard).findIndex((column) => column.id === columnId);
+    if (columnIndex === -1) return;
+
+    setActiveColumnIndex(columnIndex);
+    requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      if (isMobile) {
+        container.scrollTo({
+          left: columnIndex * container.clientWidth,
+          behavior: 'smooth',
+        });
+        return;
+      }
+
+      const columnElement = container.querySelector<HTMLElement>(`[data-column-id="${columnId}"]`);
+      if (typeof columnElement?.scrollIntoView === 'function') {
+        columnElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center',
+        });
+      }
+    });
+  }, [isMobile]);
+
+  const refetchLatestBoard = useCallback(async () => {
+    if (!boardId) return undefined;
+
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: boardKeys.detail(boardId), type: 'active' }),
+      queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' }),
+    ]);
+
+    const latestBoard = queryClient.getQueryData<Board>(boardKeys.detail(boardId));
+    if (latestBoard) {
+      setDirtyColumnIds(new Set());
+      setDirtyTodoIds(new Set());
+      setDraftBoard(latestBoard);
+    }
+    return latestBoard;
+  }, [boardId, queryClient]);
+
+  const handleDeleteTodoFromMenu = useCallback(async (args: { id: string; boardId: string }) => {
+    if (isBoardInteractionDisabled) return;
+
+    setBoardSaveError(null);
+    setDeletingTodoIds((current) => new Set(current).add(args.id));
+    try {
+      await deleteTodo.mutateAsync(args);
+      await refetchLatestBoard();
+    } catch {
+      setBoardSaveError('Unable to delete task. Please try again.');
+      throw new Error('Unable to delete task');
+    } finally {
+      setDeletingTodoIds((current) => {
+        const next = new Set(current);
+        next.delete(args.id);
+        return next;
+      });
+    }
+  }, [deleteTodo, isBoardInteractionDisabled, refetchLatestBoard]);
+
+  const handleRestoreTodoFromUndo = useCallback(async (args: {
+    columnId: string;
+    boardId: string;
+    title: string;
+    description?: string;
+    priority?: Priority;
+    dueDate?: string;
+    labelIds?: string[];
+  }) => {
+    if (isBoardInteractionDisabled) return;
+
+    setBoardSaveError(null);
+    setAddingTodoColumnIds((current) => new Set(current).add(args.columnId));
+    try {
+      await createTodo.mutateAsync(args);
+      await refetchLatestBoard();
+    } catch {
+      setBoardSaveError('Unable to restore task. Please try again.');
+      throw new Error('Unable to restore task');
+    } finally {
+      setAddingTodoColumnIds((current) => {
+        const next = new Set(current);
+        next.delete(args.columnId);
+        return next;
+      });
+    }
+  }, [createTodo, isBoardInteractionDisabled, refetchLatestBoard]);
+
+  const { handleTodoDeleteWithUndo, getContextMenuItems } = useBoardActions({
+    boardId,
+    columns: draftBoard?.columns,
+    selectedTodo,
+    setSelectedTodo,
+    setContextMenuPosition,
+    setContextMenuTodo,
+    setUndoState,
+    deleteTodo: { mutate: handleDeleteTodoFromMenu },
+    createTodo: { mutate: handleRestoreTodoFromUndo },
+    updateTodo: { mutate: stageTodoPriority },
+    moveTodo: { mutate: stageTodoMove },
+    disabled: isBoardInteractionDisabled,
+  });
+
   // Focus board name input when editing starts
   useEffect(() => {
     if (isEditingBoardName && boardNameInputRef.current) {
@@ -149,13 +395,13 @@ export function BoardView() {
     }
   }, [isEditingBoardName]);
 
-  // Sync edited values when board data changes
+  // Sync edited values when server data changes and no local draft is pending
   useEffect(() => {
-    if (board) {
+    if (board && !hasBoardChanges) {
       setEditedBoardName(board.name);
       setEditedDescription(board.description || '');
     }
-  }, [board]);
+  }, [board, hasBoardChanges]);
 
   // Track active column index on mobile for dot indicators
   useEffect(() => {
@@ -222,32 +468,86 @@ export function BoardView() {
     },
   ]);
 
-  const handleAddTodo = (columnId: string, title: string) => {
-    if (!boardId) return;
-    createTodo.mutate({ columnId, boardId, title });
+  const handleAddTodo = async (columnId: string, title: string) => {
+    if (!boardId || isBoardInteractionDisabled) return;
+
+    setBoardSaveError(null);
+    setAddingTodoColumnIds((current) => new Set(current).add(columnId));
+    try {
+      await createTodo.mutateAsync({ columnId, boardId, title });
+      await refetchLatestBoard();
+    } catch {
+      setBoardSaveError('Unable to add task. Please try again.');
+      throw new Error('Unable to add task');
+    } finally {
+      setAddingTodoColumnIds((current) => {
+        const next = new Set(current);
+        next.delete(columnId);
+        return next;
+      });
+    }
   };
 
   const handleUpdateColumn = (id: string, updates: { name?: string; description?: string | null; wipLimit?: number | null }) => {
-    if (!boardId) return;
-    updateColumn.mutate({ id, boardId, ...updates });
+    if (!boardId || isSavingBoardDraft) return;
+    setBoardSaveError(null);
+    setDirtyColumnIds((current) => new Set(current).add(id));
+    setDraftBoard((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        columns: current.columns.map((column) => (
+          column.id === id
+            ? {
+                ...column,
+                ...updates,
+                description: updates.description === null ? undefined : updates.description ?? column.description,
+                wipLimit: updates.wipLimit === null ? undefined : updates.wipLimit ?? column.wipLimit,
+              }
+            : column
+        )),
+      };
+    });
   };
 
-  const handleDeleteColumn = (id: string) => {
-    if (!boardId) return;
-    deleteColumn.mutate({ id, boardId });
+  const handleDeleteColumn = async (id: string) => {
+    if (!boardId || isBoardInteractionDisabled) return;
+
+    setBoardSaveError(null);
+    setDeletingColumnIds((current) => new Set(current).add(id));
+    try {
+      await deleteColumn.mutateAsync({ id, boardId });
+      await refetchLatestBoard();
+    } catch {
+      setBoardSaveError('Unable to delete column. Please try again.');
+      throw new Error('Unable to delete column');
+    } finally {
+      setDeletingColumnIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
-  const handleAddColumn = () => {
-    if (!boardId || !newColumnName.trim()) return;
-    createColumn.mutate(
-      { boardId, name: newColumnName.trim() },
-      {
-        onSuccess: () => {
-          setNewColumnName('');
-          setIsAddingColumn(false);
-        },
+  const handleAddColumn = async () => {
+    if (!boardId || !newColumnName.trim() || isBoardInteractionDisabled) return;
+    setBoardSaveError(null);
+    setIsSavingNewColumn(true);
+
+    try {
+      const createdColumn = await createColumn.mutateAsync({ boardId, name: newColumnName.trim() });
+      const latestBoard = await refetchLatestBoard();
+      if (latestBoard) {
+        revealColumn(createdColumn.id, latestBoard);
       }
-    );
+      setNewColumnName('');
+      setIsAddingColumn(false);
+    } catch {
+      setBoardSaveError('Unable to add column. Please try again.');
+    } finally {
+      setIsSavingNewColumn(false);
+    }
   };
 
   const handleColumnKeyDown = (e: React.KeyboardEvent) => {
@@ -261,20 +561,20 @@ export function BoardView() {
 
   // Board name inline editing
   const handleBoardNameClick = () => {
-    if (board) {
-      setEditedBoardName(board.name);
+    if (draftBoard && !isSavingBoardDraft) {
+      setEditedBoardName(draftBoard.name);
       setIsEditingBoardName(true);
     }
   };
 
   const handleBoardNameSave = () => {
-    if (!boardId || !editedBoardName.trim()) {
+    if (!boardId || !editedBoardName.trim() || isSavingBoardDraft) {
       setIsEditingBoardName(false);
       return;
     }
-    if (editedBoardName.trim() !== board?.name) {
-      updateBoard.mutate({ id: boardId, name: editedBoardName.trim() });
-    }
+    const nextName = editedBoardName.trim();
+    setBoardSaveError(null);
+    setDraftBoard((current) => current ? { ...current, name: nextName } : current);
     setIsEditingBoardName(false);
   };
 
@@ -282,24 +582,150 @@ export function BoardView() {
     if (e.key === 'Enter') {
       handleBoardNameSave();
     } else if (e.key === 'Escape') {
-      setEditedBoardName(board?.name || '');
+      setEditedBoardName(draftBoard?.name || '');
       setIsEditingBoardName(false);
     }
   };
 
-  // Inline board description editing (auto-save on blur)
+  // Inline board description editing (stage on blur, save from header)
   const handleDescriptionBlur = () => {
-    if (!boardId) return;
+    if (!boardId || isSavingBoardDraft) return;
     const newDescription = editedDescription.trim();
-    if (newDescription !== (board?.description || '')) {
-      updateBoard.mutate({ id: boardId, description: newDescription || undefined });
-    }
+    setBoardSaveError(null);
+    setDraftBoard((current) => current ? { ...current, description: newDescription || undefined } : current);
     setIsEditingDescription(false);
   };
 
+  const handleDiscardBoardChanges = useCallback(() => {
+    if (!board || isSavingBoardDraft) return;
+    setDraftBoard(board);
+    setDirtyColumnIds(new Set());
+    setDirtyTodoIds(new Set());
+    setBoardSaveError(null);
+    setEditedBoardName(board.name);
+    setEditedDescription(board.description || '');
+    setIsEditingBoardName(false);
+    setIsEditingDescription(false);
+  }, [board, isSavingBoardDraft]);
+
+  const handleSaveBoardChanges = useCallback(async () => {
+    if (!boardId || !board || !draftBoard || !hasBoardChanges || isSavingBoardDraft) return;
+
+    setIsSavingBoardDraft(true);
+    setBoardSaveError(null);
+
+    try {
+      const draftColumns = sortedColumnsForBoard(draftBoard);
+      const serverColumns = sortedColumnsForBoard(board);
+
+      const boardUpdates: { name?: string; description?: string | null } = {};
+      if (draftBoard.name !== board.name) boardUpdates.name = draftBoard.name;
+      if (normalizeDescription(draftBoard.description) !== normalizeDescription(board.description)) {
+        boardUpdates.description = draftBoard.description || null;
+      }
+      if (Object.keys(boardUpdates).length > 0) {
+        await updateBoard.mutateAsync({ id: boardId, ...boardUpdates });
+      }
+
+      for (const columnId of dirtyColumnIds) {
+        const draftColumn = draftColumns.find((column) => column.id === columnId);
+        const serverColumn = serverColumns.find((column) => column.id === columnId);
+        if (!draftColumn || !serverColumn) continue;
+
+        const updates: ColumnUpdates = {};
+        if (draftColumn.name !== serverColumn.name) updates.name = draftColumn.name;
+        if (normalizeDescription(draftColumn.description) !== normalizeDescription(serverColumn.description)) {
+          updates.description = draftColumn.description || null;
+        }
+        if ((draftColumn.wipLimit ?? null) !== (serverColumn.wipLimit ?? null)) {
+          updates.wipLimit = draftColumn.wipLimit ?? null;
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateColumn.mutateAsync({ id: columnId, boardId, ...updates });
+        }
+      }
+
+      for (const todoId of dirtyTodoIds) {
+        const draftTodo = findTodoInBoard(draftBoard, todoId);
+        const serverTodo = findTodoInBoard(board, todoId);
+        if (!draftTodo || !serverTodo) continue;
+
+        const updates: TodoUpdates = {};
+        if (draftTodo.priority !== serverTodo.priority) updates.priority = draftTodo.priority;
+        if (Object.keys(updates).length > 0) {
+          await updateTodo.mutateAsync({ id: todoId, boardId, ...updates });
+        }
+      }
+
+      const serverColumnIds = serverColumns.map((column) => column.id);
+      const draftColumnIds = draftColumns.map((column) => column.id);
+      if (!arraysEqual(serverColumnIds, draftColumnIds)) {
+        await reorderColumns.mutateAsync({ boardId, columnIds: draftColumnIds });
+      }
+
+      const movedTodoIds = new Set<string>();
+      for (const draftColumn of draftColumns) {
+        const draftTodos = sortedTodosForColumn(draftColumn);
+        for (const [position, draftTodo] of draftTodos.entries()) {
+          const serverTodo = findTodoInBoard(board, draftTodo.id);
+          if (serverTodo && serverTodo.columnId !== draftColumn.id) {
+            movedTodoIds.add(draftTodo.id);
+            await moveTodo.mutateAsync({
+              id: draftTodo.id,
+              boardId,
+              columnId: draftColumn.id,
+              position,
+            });
+          }
+        }
+      }
+
+      for (const draftColumn of draftColumns) {
+        const draftTodoIds = sortedTodosForColumn(draftColumn).map((todo) => todo.id);
+        const serverColumn = serverColumns.find((column) => column.id === draftColumn.id);
+        const serverTodoIds = sortedTodosForColumn(serverColumn).map((todo) => todo.id);
+        const columnHasMovedTodo = draftTodoIds.some((id) => movedTodoIds.has(id)) ||
+          serverTodoIds.some((id) => movedTodoIds.has(id));
+        if (draftTodoIds.length > 0 && (!arraysEqual(draftTodoIds, serverTodoIds) || columnHasMovedTodo)) {
+          await reorderTodos.mutateAsync({ boardId, columnId: draftColumn.id, todoIds: draftTodoIds });
+        }
+      }
+
+      await queryClient.refetchQueries({ queryKey: boardKeys.detail(boardId), type: 'active' });
+      await queryClient.refetchQueries({ queryKey: boardKeys.all, type: 'active' });
+      const latestBoard = queryClient.getQueryData<Board>(boardKeys.detail(boardId));
+      setDraftBoard(latestBoard ?? draftBoard);
+      setDirtyColumnIds(new Set());
+      setDirtyTodoIds(new Set());
+      setEditedBoardName((latestBoard ?? draftBoard).name);
+      setEditedDescription((latestBoard ?? draftBoard).description || '');
+      setIsEditingBoardName(false);
+      setIsEditingDescription(false);
+    } catch {
+      setBoardSaveError('Could not save changes. Please try again.');
+    } finally {
+      setIsSavingBoardDraft(false);
+    }
+  }, [
+    board,
+    boardId,
+    dirtyColumnIds,
+    dirtyTodoIds,
+    draftBoard,
+    hasBoardChanges,
+    isSavingBoardDraft,
+    moveTodo,
+    queryClient,
+    reorderColumns,
+    reorderTodos,
+    updateBoard,
+    updateColumn,
+    updateTodo,
+  ]);
+
   // Todo click -> open detail panel
   const handleTodoClick = (todo: Todo) => {
-    setSelectedTodo(todo);
+    setSelectedTodoId(todo.id);
     setLastClickedTodo(todo);
   };
 
@@ -340,7 +766,8 @@ export function BoardView() {
     );
   }
 
-  const sortedColumns = [...board.columns].sort((a, b) => a.position - b.position);
+  const activeBoard = draftBoard ?? board;
+  const sortedColumns = sortedColumnsForBoard(activeBoard);
   const columnIds = sortedColumns.map((c) => `column-${c.id}`);
 
   return (
@@ -364,6 +791,7 @@ export function BoardView() {
                     ref={boardNameInputRef}
                     type="text"
                     value={editedBoardName}
+                    disabled={isSavingBoardDraft}
                     onChange={(e) => setEditedBoardName(e.target.value)}
                     onBlur={handleBoardNameSave}
                     onKeyDown={handleBoardNameKeyDown}
@@ -375,7 +803,7 @@ export function BoardView() {
                     onClick={handleBoardNameClick}
                     title="Click to edit"
                   >
-                    {board.name}
+                    {activeBoard.name}
                   </h1>
                 )}
               </div>
@@ -393,6 +821,7 @@ export function BoardView() {
                     content={editedDescription}
                     onChange={setEditedDescription}
                     placeholder="Add a description..."
+                    editable={!isSavingBoardDraft}
                     compact
                   />
                 </div>
@@ -400,22 +829,63 @@ export function BoardView() {
                 <p
                   className="text-xs text-stone-400 truncate cursor-pointer hover:text-stone-600 transition-colors max-w-xl"
                   onClick={() => {
-                    setEditedDescription(board.description || '');
+                    setEditedDescription(activeBoard.description || '');
                     setIsEditingDescription(true);
                   }}
-                  title={board.description || 'Click to add description'}
+                  title={activeBoard.description || 'Click to add description'}
                 >
-                  {board.description || 'Add a description...'}
+                  {activeBoard.description || 'Add a description...'}
                 </p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <SyncStatusIndicator state={syncState} pendingCount={pendingCount} />
+            <AnimatePresence>
+              {hasBoardChanges && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="flex items-center gap-1.5"
+                >
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDiscardBoardChanges}
+                    disabled={isSavingBoardDraft}
+                    aria-label="Discard changes"
+                    title="Discard changes"
+                  >
+                    <RotateCcw className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Discard</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={handleSaveBoardChanges}
+                    disabled={isSavingBoardDraft}
+                    aria-busy={isSavingBoardDraft}
+                    aria-label={isSavingBoardDraft ? 'Saving changes' : 'Save changes'}
+                    title={isSavingBoardDraft ? 'Saving changes' : 'Save changes'}
+                  >
+                    {isSavingBoardDraft ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1.5" />
+                    )}
+                    <span>
+                      {isSavingBoardDraft ? 'Saving...' : 'Save changes'}
+                    </span>
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowLabelManager(true)}
+              disabled={isSavingBoardDraft}
               aria-label="Labels"
               title="Manage labels"
             >
@@ -424,12 +894,17 @@ export function BoardView() {
             </Button>
           </div>
         </div>
+        {boardSaveError && (
+          <p className="mt-2 text-xs text-red-600" role="alert">
+            {boardSaveError}
+          </p>
+        )}
       </div>
 
       <LabelManager isOpen={showLabelManager} onClose={() => setShowLabelManager(false)} />
 
       {/* Board content + Detail panel row */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
       {/* Board content — shrinks when detail panel is open */}
       <div
         ref={scrollContainerRef}
@@ -473,6 +948,7 @@ export function BoardView() {
                 {sortedColumns.map((column, index) => (
                   <motion.div
                     key={column.id}
+                    data-column-id={column.id}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.06, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
@@ -490,12 +966,17 @@ export function BoardView() {
                       activeTodoId={activeTodo?.id ?? null}
                       overTodoId={overColumnId === column.id ? overTodoId : null}
                       isColumnDragActive={activeColumn !== null}
+                      disabled={isBoardInteractionDisabled}
+                      isAddingTodo={addingTodoColumnIds.has(column.id)}
+                      isDeleting={deletingColumnIds.has(column.id)}
+                      deletingTodoIds={deletingTodoIds}
                     />
                   </motion.div>
                 ))}
 
                 {/* Add column button */}
-                <div className={cn(isMobile && 'snap-center flex-shrink-0 w-full')}>
+                {!isMobile && (
+                <div>
                   {isAddingColumn ? (
                     <div className="flex flex-col gap-2 w-full md:w-72 md:min-w-72 h-fit p-3 rounded-xl bg-stone-100">
                       <Input
@@ -503,6 +984,7 @@ export function BoardView() {
                         onChange={(e) => setNewColumnName(e.target.value)}
                         onKeyDown={handleColumnKeyDown}
                         placeholder="Enter column name..."
+                        disabled={isBoardInteractionDisabled}
                         autoFocus
                       />
                       <div className="flex gap-2">
@@ -510,13 +992,15 @@ export function BoardView() {
                           size="sm"
                           variant="primary"
                           onClick={handleAddColumn}
-                          disabled={createColumn.isPending}
+                          disabled={isBoardInteractionDisabled}
+                          aria-busy={isSavingNewColumn}
                         >
-                          {createColumn.isPending ? 'Adding...' : 'Add'}
+                          {isSavingNewColumn ? 'Adding...' : 'Add'}
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
+                          disabled={isBoardInteractionDisabled}
                           onClick={() => {
                             setIsAddingColumn(false);
                             setNewColumnName('');
@@ -529,6 +1013,7 @@ export function BoardView() {
                   ) : (
                     <button
                       onClick={() => setIsAddingColumn(true)}
+                      disabled={isBoardInteractionDisabled}
                       className="flex items-center gap-2 w-full md:w-72 md:min-w-72 h-fit p-3 rounded-xl bg-stone-200/50 hover:bg-stone-200 text-stone-500 transition-colors"
                     >
                       <Plus className="h-5 w-5" />
@@ -536,6 +1021,7 @@ export function BoardView() {
                     </button>
                   )}
                 </div>
+                )}
               </div>
             </SortableContext>
 
@@ -591,6 +1077,54 @@ export function BoardView() {
         )}
       </div>
 
+      {isMobile && (
+        <div className="border-t border-stone-100 bg-white p-3">
+          {isAddingColumn ? (
+            <div className="flex flex-col gap-2 rounded-xl bg-stone-100 p-3">
+              <Input
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+                onKeyDown={handleColumnKeyDown}
+                placeholder="Enter column name..."
+                disabled={isBoardInteractionDisabled}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleAddColumn}
+                  disabled={isBoardInteractionDisabled}
+                  aria-busy={isSavingNewColumn}
+                >
+                  {isSavingNewColumn ? 'Adding...' : 'Add'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={isBoardInteractionDisabled}
+                  onClick={() => {
+                    setIsAddingColumn(false);
+                    setNewColumnName('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAddingColumn(true)}
+              disabled={isBoardInteractionDisabled}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-100 px-3 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" />
+              Add column
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Mobile dot indicators */}
       {isMobile && sortedColumns.length > 1 && (
         <div className="flex justify-center gap-1.5 py-2 bg-white border-t border-stone-100 safe-bottom">
@@ -621,7 +1155,7 @@ export function BoardView() {
           <DetailPanel
             todo={selectedTodo}
             boardId={boardId}
-            columns={board.columns}
+            columns={activeBoard.columns}
             onClose={() => setSelectedTodo(null)}
           />
         )}
