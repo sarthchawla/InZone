@@ -10,13 +10,7 @@ on:
       - 'pnpm-lock.yaml'
       - '.github/workflows/ci-backend.yml'
   pull_request:
-    branches: [main, master]
-    paths:
-      - 'apps/api/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/ci-backend.yml'
+    branches: [master]
 
 env:
   NODE_ENV: test
