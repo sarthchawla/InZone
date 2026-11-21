@@ -12,9 +12,10 @@ name: Vercel Deploy
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -26,21 +27,37 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
-  neon-branch:
-    name: Create Neon Preview Branch
+  deploy:
+    name: Deploy to Vercel
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: github.event_name == 'pull_request'
+    timeout-minutes: 25
     outputs:
-      db-url: ${{ steps.create-branch.outputs.db-url }}
-      direct-url: ${{ steps.create-branch.outputs.direct-url }}
-      branch-name: ${{ steps.create-branch.outputs.branch-name }}
+      deployment-url: ${{ steps.deploy-production.outputs.url || steps.deploy-preview.outputs.url }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
       - name: Install neonctl
+        if: github.event_name == 'pull_request'
         run: npm install -g neonctl
 
       - name: Create or reuse Neon branch
+        if: github.event_name == 'pull_request'
         id: create-branch
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -78,78 +95,28 @@ jobs:
           DIRECT_URL=$(neonctl connection-string "$BRANCH_NAME" \
             --project-id "$NEON_PROJECT_ID")
 
-          # Mask secrets in logs
+          : "${DB_URL:?Preview database connection is missing}"
+          : "${DIRECT_URL:?Direct preview database connection is missing}"
+
+          # Mask secrets before passing them to later steps in this job.
           echo "::add-mask::$DB_URL"
           echo "::add-mask::$DIRECT_URL"
 
           echo "db-url=$DB_URL" >> "$GITHUB_OUTPUT"
           echo "direct-url=$DIRECT_URL" >> "$GITHUB_OUTPUT"
 
-  migrate:
-    name: Run Database Migrations
-    needs: [neon-branch]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: always() && (github.event_name == 'push' || needs.neon-branch.result == 'success')
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run Prisma migrations
+      - name: Run Prisma migrations and seed database
         working-directory: apps/api
         env:
-          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-        run: pnpm prisma migrate deploy
-
-      - name: Seed database (idempotent)
-        working-directory: apps/api
-        env:
-          DATABASE_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-          DIRECT_URL: ${{ github.event_name == 'pull_request' && needs.neon-branch.outputs.direct-url || secrets.NEON_DIRECT_URL }}
-        run: pnpm prisma db seed
-
-  deploy:
-    name: Deploy to Vercel
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [neon-branch, migrate]
-    if: always() && needs.migrate.result == 'success'
-    outputs:
-      deployment-url: ${{ steps.deploy-production.outputs.url || steps.deploy-preview.outputs.url }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
+          DATABASE_URL: ${{ github.event_name == 'push' && secrets.NEON_DIRECT_URL || steps.create-branch.outputs.direct-url }}
+          DIRECT_URL: ${{ github.event_name == 'push' && secrets.NEON_DIRECT_URL || steps.create-branch.outputs.direct-url }}
+        run: |
+          : "${DATABASE_URL:?Database connection is missing for this deployment}"
+          pnpm prisma migrate deploy
+          pnpm prisma db seed
 
       - name: Install Vercel CLI
         run: pnpm add -g vercel@latest
@@ -182,8 +149,8 @@ jobs:
         if: github.event_name == 'pull_request'
         id: deploy-preview
         env:
-          BRANCH_DB_URL: ${{ needs.neon-branch.outputs.db-url }}
-          BRANCH_DIRECT_URL: ${{ needs.neon-branch.outputs.direct-url }}
+          BRANCH_DB_URL: ${{ steps.create-branch.outputs.db-url }}
+          BRANCH_DIRECT_URL: ${{ steps.create-branch.outputs.direct-url }}
         run: |
           URL=$(vercel deploy --prebuilt \
             --env DATABASE_URL="$BRANCH_DB_URL" \
@@ -198,7 +165,7 @@ jobs:
         env:
           PREVIEW_URL: ${{ steps.deploy-preview.outputs.url }}
           COMMIT_SHA: ${{ github.sha }}
-          NEON_BRANCH: ${{ needs.neon-branch.outputs.branch-name }}
+          NEON_BRANCH: ${{ steps.create-branch.outputs.branch-name }}
         with:
           script: |
             const url = process.env.PREVIEW_URL;
@@ -238,7 +205,7 @@ jobs:
     needs: [deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployment-url != ''
+    if: needs.deploy.outputs.deployment-url != ''
 
     steps:
       - name: Wait for deployment to stabilize
