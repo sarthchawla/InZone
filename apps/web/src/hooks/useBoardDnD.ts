@@ -19,9 +19,10 @@ interface UseBoardDnDParams {
   reorderColumns: { mutate: (args: { boardId: string; columnIds: string[] }) => void };
   moveTodo: { mutate: (args: { id: string; boardId: string; columnId: string; position: number }) => void };
   reorderTodos: { mutate: (args: { boardId: string; columnId: string; todoIds: string[] }) => void };
+  disabled?: boolean;
 }
 
-export function useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderTodos }: UseBoardDnDParams) {
+export function useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderTodos, disabled = false }: UseBoardDnDParams) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
@@ -68,6 +69,7 @@ export function useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderT
 
   /* istanbul ignore next */
   const handleDragStart = (event: DragStartEvent) => {
+    if (disabled) return;
     const { active } = event;
     const activeIdStr = active.id as string;
     setActiveId(activeIdStr);
@@ -89,6 +91,7 @@ export function useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderT
 
   /* istanbul ignore next */
   const handleDragOver = (event: DragOverEvent) => {
+    if (disabled) return;
     const { over } = event;
     if (!over || !board) {
       setOverColumnId(null);
@@ -139,7 +142,7 @@ export function useBoardDnD({ board, boardId, reorderColumns, moveTodo, reorderT
     setOverColumnId(null);
     setOverTodoId(null);
 
-    if (!over || !board || !boardId) return;
+    if (disabled || !over || !board || !boardId) return;
 
     const activeIdStr = active.id as string;
     const overIdStr = over.id as string;
